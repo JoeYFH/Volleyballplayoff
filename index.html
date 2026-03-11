@@ -532,17 +532,28 @@
       if (s.forFriend) tags.push(`${tr('proxyTag')}:${escHtml(s.forFriend)}`);
       if (s.pairWith) tags.push(`${tr('pairTag')}:${escHtml(s.pairWith)}`);
       const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-7 h-7 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
+      const isOwn = currentUser && s.uid && s.uid === currentUser.uid;
+      const deleteBtn = isOwn ? `<button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
       return `
-        <div class="flex items-center gap-2 ${isWait?'opacity-60':''} bg-gray-50 rounded-xl px-3 py-2">
+        <div class="flex items-center gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} rounded-xl px-3 py-2">
           <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0">${posLabel}</span>
           ${photoEl}
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-800 truncate">${escHtml(s.name)}</p>
+            <p class="text-sm font-medium text-gray-800 truncate">${escHtml(s.name)}${isOwn?` <span class="text-xs text-indigo-400">(${getLang()==='zh'?'我':'me'})</span>`:''}</p>
           </div>
           ${tags.length ? `<div class="flex gap-1 flex-wrap justify-end">${tags.map(t2=>`<span class="tag">${t2}</span>`).join('')}</div>` : ''}
+          ${deleteBtn}
         </div>`;
     }).join('');
   }
+
+  // ── Cancel own signup ──
+  window.cancelSignup = async (sessionId, signupId) => {
+    const msg = getLang()==='zh' ? '確定要取消報名？' : 'Cancel your signup?';
+    if (!confirm(msg)) return;
+    const { deleteDoc, doc: fsDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    await deleteDoc(fsDoc(db, 'sessions', sessionId, 'signups', signupId));
+  };
 
   // ── Countdown ──
   const countdownTimers = {};
