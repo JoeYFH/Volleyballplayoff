@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏐 排球零打 — 管理員</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
+    input,select,textarea { transition: border-color .2s, box-shadow .2s; }
+    input:focus,select:focus,textarea:focus { outline:none; border-color:#818cf8; box-shadow:0 0 0 3px rgba(129,140,248,.25); }
+    .chip { display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid transparent;transition:.15s; }
+    .chip-active { background:#4f46e5;color:#fff;border-color:#4f46e5; }
+    .chip-idle { background:#f1f5f9;color:#64748b;border-color:#e2e8f0; }
+    .chip-idle:hover { border-color:#a5b4fc;color:#4f46e5; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Login Screen -->
+<div id="loginScreen" class="flex items-center justify-center min-h-screen px-4">
+  <div class="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-center">
+    <div class="text-5xl mb-3">🏐</div>
+    <h1 class="text-xl font-bold text-gray-800 mb-1">排球零打</h1>
+    <p class="text-sm text-gray-400 mb-6">管理員入口</p>
+    <button id="googleLoginBtn"
+      class="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition-all">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="" />
+      使用 Google 帳號登入
+    </button>
+    <p id="loginError" class="text-xs text-red-500 mt-3 hidden"></p>
+    <div class="mt-6 border-t pt-4">
+      <a href="index.html" class="text-xs text-gray-400 hover:text-gray-500">← 回到報名頁面</a>
+    </div>
+  </div>
+</div>
+
+<!-- Main Admin App -->
+<div id="adminApp" class="hidden max-w-2xl mx-auto px-4 py-6 pb-20">
+
+  <!-- Top bar -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">🏐 管理員後台</h1>
+      <a href="index.html" class="text-xs text-indigo-500 hover:underline">← 查看報名頁面</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="adminInfo" class="flex items-center gap-2">
+        <img id="adminPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
+        <span id="adminName" class="text-sm text-gray-600 hidden"></span>
+      </div>
+      <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-500 transition">登出</button>
+    </div>
+  </div>
+
+  <!-- Current Session Status -->
+  <div id="currentSessionCard" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-5 hidden fade-in">
+    <div class="flex items-start justify-between mb-3">
+      <h2 class="font-semibold text-gray-700">目前場次</h2>
+      <div class="flex gap-2">
+        <button id="toggleOpenBtn" class="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"></button>
+        <button id="closeSessionBtn" class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">結束場次</button>
+      </div>
+    </div>
+    <div id="currentSessionInfo" class="text-sm text-gray-600 space-y-1 mb-4"></div>
+
+    <!-- Signups table -->
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-sm font-semibold text-gray-600">報名名單 <span id="adminCount" class="text-indigo-500"></span></h3>
+      <button id="exportBtn" class="text-xs text-indigo-500 hover:underline">匯出名單</button>
+    </div>
+    <div id="adminSignupList" class="space-y-1.5 max-h-64 overflow-y-auto pr-1"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-2 mb-4">
+    <button id="tabNew" class="chip chip-active" onclick="switchTab('new')">➕ 建立新場次</button>
+    <button id="tabTemplate" class="chip chip-idle" onclick="switchTab('template')">📋 我的範本</button>
+  </div>
+
+  <!-- New Session Form -->
+  <div id="tabNewContent" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-gray-700">場次設定</h2>
+      <button id="loadTemplateBtn" class="text-xs text-indigo-500 hover:underline hidden">載入範本</button>
+    </div>
+
+    <div class="space-y-4">
+      <!-- Title -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">場次名稱</label>
+        <input id="fTitle" type="text" placeholder="例：第15週零打" maxlength="30"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+      </div>
+
+      <!-- Date + Time -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
+          <input id="fDate" type="date"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">時間 <span class="text-red-400">*</span></label>
+          <input id="fTime" type="time"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+        </div>
+      </div>
+
+      <!-- Location + Venue -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">地點 <span class="text-red-400">*</span></label>
+        <input id="fLocation" type="text" placeholder="例：大安運動中心" maxlength="50"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">場地詳細（選填）</label>
+        <input id="fVenue" type="text" placeholder="例：B1 室內羽球場4號場" maxlength="50"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+      </div>
+
+      <!-- Limit + Type -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">人數上限（0=不限）</label>
+          <input id="fLimit" type="number" min="0" max="100" value="12"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">性別分類</label>
+          <select id="fType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white">
+            <option value="">不限</option>
+            <option value="mixed">混合</option>
+            <option value="male">男網</option>
+            <option value="female">女網</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Equipment -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-2">需要攜帶的用具</label>
+        <div class="flex flex-wrap gap-2" id="equipChips">
+          <button type="button" class="chip chip-idle" data-equip="球">🏐 球</button>
+          <button type="button" class="chip chip-idle" data-equip="護腕">🤸 護腕</button>
+          <button type="button" class="chip chip-idle" data-equip="護膝">🦵 護膝</button>
+          <button type="button" class="chip chip-idle" data-equip="球鞋">👟 球鞋</button>
+          <button type="button" class="chip chip-idle" data-equip="球網">🕸️ 球網</button>
+        </div>
+        <input id="fEquipCustom" type="text" placeholder="其他用具（逗號分隔）" maxlength="100"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 mt-2" />
+      </div>
+
+      <!-- Open At -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">預定開放報名時間（選填）</label>
+        <input id="fOpenAt" type="datetime-local"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700" />
+        <p class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時，到時自動開放</p>
+      </div>
+
+      <!-- Open Now toggle -->
+      <div class="flex items-center gap-2 pt-1">
+        <input type="checkbox" id="fOpenNow" class="w-4 h-4" checked />
+        <label for="fOpenNow" class="text-sm text-gray-600">立即開放報名</label>
+      </div>
+
+      <!-- Note -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1">備註（選填）</label>
+        <textarea id="fNote" rows="2" placeholder="其他說明..."
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 resize-none"></textarea>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-5">
+      <button id="createBtn"
+        class="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all">
+        🚀 建立場次
+      </button>
+      <button id="saveTemplateBtn"
+        class="px-4 bg-gray-100 text-gray-600 rounded-xl py-3 font-medium text-sm hover:bg-gray-200 active:scale-95 transition-all">
+        💾 存為範本
+      </button>
+    </div>
+    <p id="createMsg" class="text-center text-sm mt-2 hidden"></p>
+  </div>
+
+  <!-- Templates Tab -->
+  <div id="tabTemplateContent" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <h2 class="font-semibold text-gray-700 mb-4">📋 我的範本</h2>
+    <div id="templateList" class="space-y-3"></div>
+    <div id="emptyTemplates" class="text-center py-8 text-gray-400 text-sm hidden">
+      還沒有儲存任何範本<br><span class="text-xs">在建立場次時點「存為範本」</span>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div id="exportModal" class="fixed inset-0 bg-black/40 flex items-end justify-center z-50 hidden">
+  <div class="bg-white rounded-t-2xl w-full max-w-md p-5 pb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-semibold text-gray-700">📤 匯出名單</h3>
+      <button onclick="document.getElementById('exportModal').classList.add('hidden')" class="text-gray-400 text-xl">✕</button>
+    </div>
+    <textarea id="exportText" rows="10"
+      class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 resize-none font-mono" readonly></textarea>
+    <button id="copyExportBtn"
+      class="mt-3 w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 transition">
+      📋 複製到剪貼簿
+    </button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  import {
+    getFirestore, doc, collection, addDoc, setDoc, getDoc,
+    onSnapshot, query, orderBy, deleteDoc, Timestamp, updateDoc
+  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+  import { firebaseConfig } from './firebase-config.js';
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let currentSessionId = null;
+  let signupsData = [];
+  let unsubSignups = null;
+  let selectedEquip = new Set();
+
+  // Auth
+  document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      document.getElementById('loginError').textContent = '登入失敗：' + e.message;
+      document.getElementById('loginError').classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminApp').classList.remove('hidden');
+      // Show user info
+      const photo = document.getElementById('adminPhoto');
+      const name = document.getElementById('adminName');
+      if (user.photoURL) { photo.src = user.photoURL; photo.classList.remove('hidden'); }
+      name.textContent = user.displayName || user.email;
+      name.classList.remove('hidden');
+      loadCurrentSession();
+      loadTemplates();
+    } else {
+      currentUser = null;
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('adminApp').classList.add('hidden');
+    }
+  });
+
+  // Equipment chips
+  document.getElementById('equipChips').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-equip]');
+    if (!btn) return;
+    const val = btn.dataset.equip;
+    if (selectedEquip.has(val)) {
+      selectedEquip.delete(val);
+      btn.className = 'chip chip-idle';
+    } else {
+      selectedEquip.add(val);
+      btn.className = 'chip chip-active';
+    }
+  });
+
+  // Tab switching
+  window.switchTab = (tab) => {
+    document.getElementById('tabNew').className = tab==='new' ? 'chip chip-active' : 'chip chip-idle';
+    document.getElementById('tabTemplate').className = tab==='template' ? 'chip chip-active' : 'chip chip-idle';
+    document.getElementById('tabNewContent').classList.toggle('hidden', tab!=='new');
+    document.getElementById('tabTemplateContent').classList.toggle('hidden', tab!=='template');
+  };
+
+  // Load current session
+  function loadCurrentSession() {
+    onSnapshot(doc(db, 'config', 'current'), async (snap) => {
+      if (!snap.exists() || !snap.data().sessionId) {
+        document.getElementById('currentSessionCard').classList.add('hidden');
+        return;
+      }
+      currentSessionId = snap.data().sessionId;
+      const sessSnap = await getDoc(doc(db, 'sessions', currentSessionId));
+      if (!sessSnap.exists()) { document.getElementById('currentSessionCard').classList.add('hidden'); return; }
+
+      const s = sessSnap.data();
+      document.getElementById('currentSessionCard').classList.remove('hidden');
+      renderCurrentSession(s);
+      subscribeAdminSignups();
+    });
+  }
+
+  function renderCurrentSession(s) {
+    const TYPE_LABEL = { male:'男網', female:'女網', mixed:'混合' };
+    const info = [
+      `📅 ${s.date}`,
+      `🕐 ${s.time}`,
+      `📍 ${s.location}${s.venue ? ' — '+s.venue : ''}`,
+      s.limit ? `👥 上限 ${s.limit} 人` : '',
+      s.type ? `🏷️ ${TYPE_LABEL[s.type]||s.type}` : '',
+      s.note ? `📝 ${s.note}` : ''
+    ].filter(Boolean);
+    document.getElementById('currentSessionInfo').innerHTML = info.map(i=>`<div>${i}</div>`).join('');
+
+    const toggleBtn = document.getElementById('toggleOpenBtn');
+    if (s.isOpen) {
+      toggleBtn.textContent = '⏸ 暫停報名';
+      toggleBtn.className = 'text-xs px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition';
+    } else {
+      toggleBtn.textContent = '▶ 開放報名';
+      toggleBtn.className = 'text-xs px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition';
+    }
+  }
+
+  document.getElementById('toggleOpenBtn').addEventListener('click', async () => {
+    if (!currentSessionId) return;
+    const snap = await getDoc(doc(db, 'sessions', currentSessionId));
+    if (snap.exists()) {
+      await updateDoc(doc(db, 'sessions', currentSessionId), { isOpen: !snap.data().isOpen });
+      renderCurrentSession({ ...snap.data(), isOpen: !snap.data().isOpen });
+    }
+  });
+
+  document.getElementById('closeSessionBtn').addEventListener('click', async () => {
+    if (!confirm('確定要結束目前場次嗎？')) return;
+    await setDoc(doc(db, 'config', 'current'), { sessionId: null });
+    document.getElementById('currentSessionCard').classList.add('hidden');
+  });
+
+  function subscribeAdminSignups() {
+    if (unsubSignups) unsubSignups();
+    const q = query(collection(db, 'sessions', currentSessionId, 'signups'), orderBy('signedAt', 'asc'));
+    unsubSignups = onSnapshot(q, (snap) => {
+      signupsData = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i + 1 }));
+      renderAdminList(signupsData);
+    });
+  }
+
+  function renderAdminList(list) {
+    document.getElementById('adminCount').textContent = `(${list.length} 人)`;
+    const el = document.getElementById('adminSignupList');
+    if (!list.length) { el.innerHTML = '<p class="text-sm text-gray-400 text-center py-3">還沒有報名</p>'; return; }
+    el.innerHTML = list.map(s => {
+      const tags = [];
+      if (s.isLate) tags.push(s.lateTime ? `晚到${s.lateTime}` : '晚到');
+      if (s.forFriend) tags.push(`代報:${s.forFriend}`);
+      if (s.pairWith) tags.push(`搭檔:${s.pairWith}`);
+      return `
+        <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 text-sm">
+          <span class="w-6 text-center text-xs font-bold text-indigo-500 shrink-0">${s.position}</span>
+          <span class="font-medium text-gray-800 flex-1">${escHtml(s.name)}</span>
+          ${tags.map(t=>`<span class="text-xs bg-white text-gray-400 border rounded-full px-2 py-0.5">${escHtml(t)}</span>`).join('')}
+          <button onclick="removeSignup('${s.id}')" class="text-gray-300 hover:text-red-400 text-xs transition ml-1">✕</button>
+        </div>`;
+    }).join('');
+  }
+
+  window.removeSignup = async (id) => {
+    if (!confirm('確定移除此報名？')) return;
+    await deleteDoc(doc(db, 'sessions', currentSessionId, 'signups', id));
+  };
+
+  // Export
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const lines = signupsData.map((s, i) => {
+      let line = `${i+1}. ${s.name}`;
+      if (s.isLate) line += s.lateTime ? `（晚到${s.lateTime}）` : '（晚到）';
+      if (s.forFriend) line += `（代報：${s.forFriend}）`;
+      if (s.pairWith) line += `（搭檔：${s.pairWith}）`;
+      return line;
+    });
+    document.getElementById('exportText').value = `🏐 排球零打報名名單\n${'─'.repeat(20)}\n${lines.join('\n')}\n${'─'.repeat(20)}\n共 ${signupsData.length} 人`;
+    document.getElementById('exportModal').classList.remove('hidden');
+  });
+
+  document.getElementById('copyExportBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('exportText').value)
+      .then(() => { document.getElementById('copyExportBtn').textContent = '✅ 已複製！'; setTimeout(()=>document.getElementById('copyExportBtn').textContent='📋 複製到剪貼簿',2000); });
+  });
+
+  // Create session
+  document.getElementById('createBtn').addEventListener('click', () => createSession(false));
+  document.getElementById('saveTemplateBtn').addEventListener('click', () => createSession(true));
+
+  async function createSession(saveTemplate) {
+    const date = document.getElementById('fDate').value;
+    const time = document.getElementById('fTime').value;
+    const location = document.getElementById('fLocation').value.trim();
+    if (!date || !time || !location) { showCreateMsg('請填寫日期、時間、地點', 'error'); return; }
+
+    const customEquip = document.getElementById('fEquipCustom').value.split('、').map(s=>s.trim()).filter(Boolean);
+    const equipment = [...selectedEquip, ...customEquip];
+    const openAtVal = document.getElementById('fOpenAt').value;
+    const openNow = document.getElementById('fOpenNow').checked;
+
+    const sessionData = {
+      title: document.getElementById('fTitle').value.trim() || `${date} 零打`,
+      date,
+      time,
+      location,
+      venue: document.getElementById('fVenue').value.trim(),
+      limit: parseInt(document.getElementById('fLimit').value) || 0,
+      type: document.getElementById('fType').value,
+      equipment,
+      note: document.getElementById('fNote').value.trim(),
+      isOpen: openNow,
+      openAt: openAtVal ? Timestamp.fromDate(new Date(openAtVal)) : null,
+      createdAt: Timestamp.now(),
+      createdBy: currentUser.uid,
+    };
+
+    try {
+      document.getElementById('createBtn').disabled = true;
+      document.getElementById('createBtn').textContent = '建立中...';
+
+      if (saveTemplate) {
+        const templateName = prompt('範本名稱：', sessionData.title);
+        if (!templateName) return;
+        await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
+          ...sessionData, name: templateName, createdAt: Timestamp.now()
+        });
+        showCreateMsg('✅ 已儲存為範本！', 'success');
+        loadTemplates();
+        return;
+      }
+
+      const ref = await addDoc(collection(db, 'sessions'), sessionData);
+      await setDoc(doc(db, 'config', 'current'), { sessionId: ref.id });
+      showCreateMsg('✅ 場次建立成功！', 'success');
+
+      // Set up scheduled open if openAt is set and openNow is false
+      if (openAtVal && !openNow) {
+        const delay = new Date(openAtVal).getTime() - Date.now();
+        if (delay > 0 && delay < 86400000) {
+          setTimeout(async () => {
+            await updateDoc(doc(db, 'sessions', ref.id), { isOpen: true });
+          }, delay);
+        }
+      }
+    } catch (e) {
+      showCreateMsg('❌ 建立失敗：' + e.message, 'error');
+    } finally {
+      document.getElementById('createBtn').disabled = false;
+      document.getElementById('createBtn').textContent = '🚀 建立場次';
+    }
+  }
+
+  function showCreateMsg(msg, type) {
+    const el = document.getElementById('createMsg');
+    el.textContent = msg;
+    el.className = `text-center text-sm mt-2 ${type==='success'?'text-green-600':'text-red-500'}`;
+    el.classList.remove('hidden');
+    setTimeout(()=>el.classList.add('hidden'), 3000);
+  }
+
+  // Templates
+  function loadTemplates() {
+    if (!currentUser) return;
+    const q = query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snap) => {
+      const templates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTemplates(templates);
+    });
+  }
+
+  function renderTemplates(templates) {
+    const list = document.getElementById('templateList');
+    const empty = document.getElementById('emptyTemplates');
+    const loadBtn = document.getElementById('loadTemplateBtn');
+
+    if (!templates.length) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      loadBtn.classList.add('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    loadBtn.classList.remove('hidden');
+
+    list.innerHTML = templates.map(t => `
+      <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-gray-700 text-sm">${escHtml(t.name)}</p>
+          <p class="text-xs text-gray-400">${t.location} • ${t.time} • ${t.limit?t.limit+'人':'不限人數'}</p>
+        </div>
+        <button onclick="loadTemplate(${JSON.stringify(JSON.stringify(t)).slice(1,-1)})" class="text-xs text-indigo-500 hover:text-indigo-700 shrink-0">套用</button>
+        <button onclick="deleteTemplate('${t.id}')" class="text-xs text-gray-300 hover:text-red-400 shrink-0">✕</button>
+      </div>`).join('');
+  }
+
+  window.loadTemplate = (jsonStr) => {
+    const t = JSON.parse(jsonStr);
+    document.getElementById('fTitle').value = t.name || '';
+    document.getElementById('fTime').value = t.time || '';
+    document.getElementById('fLocation').value = t.location || '';
+    document.getElementById('fVenue').value = t.venue || '';
+    document.getElementById('fLimit').value = t.limit || 0;
+    document.getElementById('fType').value = t.type || '';
+    document.getElementById('fNote').value = t.note || '';
+    // Reset equip
+    selectedEquip.clear();
+    document.querySelectorAll('[data-equip]').forEach(btn => {
+      if (t.equipment && t.equipment.includes(btn.dataset.equip)) {
+        selectedEquip.add(btn.dataset.equip);
+        btn.className = 'chip chip-active';
+      } else {
+        btn.className = 'chip chip-idle';
+      }
+    });
+    switchTab('new');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showCreateMsg('✅ 已套用範本，請確認並調整日期', 'success');
+  };
+
+  window.deleteTemplate = async (id) => {
+    if (!confirm('確定刪除此範本？')) return;
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'templates', id));
+  };
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

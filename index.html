@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏐 排球零打報名</title>
+  <meta property="og:title" content="🏐 排球零打報名" />
+  <meta property="og:description" content="快來報名這週的排球零打！" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .fade-in { animation: fadeIn 0.35s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
+    .pulse-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+    input[type=checkbox]{accent-color:#4f46e5}
+    .tag { display:inline-flex;align-items:center;gap:4px;background:#e0e7ff;color:#4338ca;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 min-h-screen">
+<div class="max-w-md mx-auto px-4 py-6 pb-16">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-xl font-bold text-indigo-800">🏐 排球零打報名</h1>
+      <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+        <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>即時更新
+      </p>
+    </div>
+    <!-- User Avatar / Login Button -->
+    <div id="userArea">
+      <button id="loginBtn"
+        class="flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
+        Google 登入
+      </button>
+      <div id="userInfo" class="hidden flex items-center gap-2">
+        <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+        <div class="text-right">
+          <p id="userName" class="text-xs font-medium text-gray-700"></p>
+          <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Info Card -->
+  <div class="bg-white rounded-2xl shadow-sm border border-indigo-50 p-5 mb-4">
+    <div id="loadingInfo" class="animate-pulse space-y-2">
+      <div class="h-5 bg-gray-100 rounded w-3/4"></div>
+      <div class="h-4 bg-gray-100 rounded w-1/2"></div>
+    </div>
+
+    <div id="gameInfo" class="hidden">
+      <div class="flex items-start justify-between mb-3 gap-2">
+        <h2 id="gameTitle" class="text-lg font-bold text-gray-800"></h2>
+        <span id="statusBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"></span>
+      </div>
+      <div id="countdownRow" class="hidden bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-3 text-sm text-amber-700 text-center font-medium"></div>
+      <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-gray-600">
+        <div class="flex items-center gap-1.5"><span>📅</span><span id="gameDate"></span></div>
+        <div class="flex items-center gap-1.5"><span>🕐</span><span id="gameTime"></span></div>
+        <div class="flex items-center gap-1.5 col-span-2"><span>📍</span><span id="gameLocation"></span></div>
+        <div id="gameVenueRow" class="hidden flex items-center gap-1.5 col-span-2"><span>🏟️</span><span id="gameVenue"></span></div>
+        <div id="gameLimitRow" class="hidden flex items-center gap-1.5"><span>👥</span><span id="gameLimit"></span></div>
+        <div id="gameTypeRow" class="hidden flex items-center gap-1.5"><span>🏷️</span><span id="gameType"></span></div>
+        <div id="gameEquipRow" class="hidden flex items-center gap-1.5 col-span-2 text-xs"><span>🎒</span><span id="gameEquip" class="text-gray-500"></span></div>
+        <div id="gameNoteRow" class="hidden flex items-center gap-1.5 col-span-2 text-xs"><span>📝</span><span id="gameNote" class="text-gray-500"></span></div>
+      </div>
+    </div>
+
+    <div id="noSession" class="hidden text-center py-4 text-gray-400">
+      <div class="text-3xl mb-2">📭</div>
+      <p class="text-sm">目前沒有開放報名的場次</p>
+    </div>
+  </div>
+
+  <!-- Sign-up Form -->
+  <div id="signupSection" class="bg-white rounded-2xl shadow-sm border border-indigo-50 p-5 mb-4 hidden">
+    <h2 class="text-base font-semibold text-gray-700 mb-4">✍️ 填寫報名資料</h2>
+
+    <!-- User profile preview (when logged in) -->
+    <div id="profilePreview" class="hidden flex items-center gap-3 bg-indigo-50 rounded-xl px-4 py-3 mb-4">
+      <img id="formPhoto" src="" alt="" class="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+      <div>
+        <p class="text-sm font-medium text-indigo-800" id="formDisplayName"></p>
+        <p class="text-xs text-indigo-400">以 Google 帳號報名</p>
+      </div>
+    </div>
+
+    <!-- Name (hidden when logged in with Google) -->
+    <div id="nameRow">
+      <label class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
+      <input id="nameInput" type="text" placeholder="輸入你的名字" maxlength="20"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-4 transition" />
+    </div>
+
+    <!-- Late -->
+    <div class="flex items-center gap-2 mb-2">
+      <input type="checkbox" id="lateCheck" class="w-4 h-4" />
+      <label for="lateCheck" class="text-sm text-gray-600">我會晚到</label>
+    </div>
+    <div id="lateSection" class="hidden ml-6 mb-4">
+      <input id="lateTime" type="text" placeholder="大約幾點到？（例：19:30）"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition" />
+    </div>
+
+    <!-- Friend -->
+    <div class="flex items-center gap-2 mb-2">
+      <input type="checkbox" id="friendCheck" class="w-4 h-4" />
+      <label for="friendCheck" class="text-sm text-gray-600">幫朋友報名</label>
+    </div>
+    <div id="friendSection" class="hidden ml-6 mb-4">
+      <input id="friendName" type="text" placeholder="朋友的名字" maxlength="20"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition" />
+    </div>
+
+    <!-- Pair with -->
+    <label class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
+    <input id="pairInput" type="text" placeholder="填入對方名字" maxlength="20"
+      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-4 transition" />
+
+    <button id="signupBtn"
+      class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+      🙋 確認報名
+    </button>
+    <p id="signupMsg" class="text-center text-sm mt-2 hidden"></p>
+  </div>
+
+  <!-- Signup List -->
+  <div id="listSection" class="bg-white rounded-2xl shadow-sm border border-indigo-50 p-5 hidden">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-semibold text-gray-700">📋 報名名單</h2>
+      <span id="countBadge" class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full">0 人</span>
+    </div>
+
+    <div id="fullNotice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 text-sm text-amber-700 text-center">
+      🎉 正取名額已滿！以下為候補名單
+    </div>
+
+    <div id="signupList" class="space-y-2"></div>
+    <div id="emptyList" class="text-center py-6 text-gray-400 text-sm">還沒有人報名，快搶第一！</div>
+  </div>
+
+  <div class="text-center mt-6">
+    <a href="admin.html" class="text-xs text-gray-300 hover:text-gray-400 transition">管理員入口</a>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  import {
+    getFirestore, doc, collection, onSnapshot,
+    addDoc, getDoc, serverTimestamp, query, orderBy
+  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+  import { firebaseConfig } from './firebase-config.js';
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let currentSessionId = null;
+  let currentLimit = 0;
+  let openAtTimer = null;
+  let unsubSignups = null;
+
+  const TYPE_LABEL = { male:'男網', female:'女網', mixed:'混合' };
+
+  // Auth state
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    if (user) {
+      document.getElementById('loginBtn').classList.add('hidden');
+      document.getElementById('userInfo').classList.remove('hidden');
+      document.getElementById('userPhoto').src = user.photoURL || '';
+      document.getElementById('userName').textContent = user.displayName || user.email;
+      // Show profile in form
+      document.getElementById('profilePreview').classList.remove('hidden');
+      document.getElementById('formPhoto').src = user.photoURL || '';
+      document.getElementById('formDisplayName').textContent = user.displayName || user.email;
+      document.getElementById('nameRow').classList.add('hidden');
+    } else {
+      document.getElementById('loginBtn').classList.remove('hidden');
+      document.getElementById('userInfo').classList.add('hidden');
+      document.getElementById('profilePreview').classList.add('hidden');
+      document.getElementById('nameRow').classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('loginBtn').addEventListener('click', () => signInWithPopup(auth, provider));
+  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+  // Watch config
+  onSnapshot(doc(db, 'config', 'current'), async (snap) => {
+    if (!snap.exists() || !snap.data().sessionId) { showNoSession(); return; }
+    currentSessionId = snap.data().sessionId;
+    const sessSnap = await getDoc(doc(db, 'sessions', currentSessionId));
+    if (!sessSnap.exists()) { showNoSession(); return; }
+    renderGameInfo(sessSnap.data());
+    subscribeSignups();
+  });
+
+  function showNoSession() {
+    document.getElementById('loadingInfo').classList.add('hidden');
+    document.getElementById('noSession').classList.remove('hidden');
+    document.getElementById('signupSection').classList.add('hidden');
+    document.getElementById('listSection').classList.add('hidden');
+  }
+
+  function renderGameInfo(s) {
+    document.getElementById('loadingInfo').classList.add('hidden');
+    document.getElementById('gameInfo').classList.remove('hidden');
+    document.getElementById('listSection').classList.remove('hidden');
+
+    document.getElementById('gameTitle').textContent = s.title || '排球零打';
+    document.getElementById('gameDate').textContent = formatDate(s.date);
+    document.getElementById('gameTime').textContent = s.time || '時間未定';
+    document.getElementById('gameLocation').textContent = s.location || '地點未定';
+    currentLimit = s.limit || 0;
+
+    setOptional('gameVenueRow', 'gameVenue', s.venue);
+    if (s.limit) { document.getElementById('gameLimitRow').classList.remove('hidden'); document.getElementById('gameLimit').textContent = `名額 ${s.limit} 人`; }
+    if (s.type) { document.getElementById('gameTypeRow').classList.remove('hidden'); document.getElementById('gameType').textContent = TYPE_LABEL[s.type] || s.type; }
+    if (s.equipment?.length) { document.getElementById('gameEquipRow').classList.remove('hidden'); document.getElementById('gameEquip').textContent = '需自備：' + s.equipment.join('、'); }
+    setOptional('gameNoteRow', 'gameNote', s.note);
+
+    const now = Date.now();
+    const openAt = s.openAt ? s.openAt.toMillis() : null;
+
+    if (s.isOpen) {
+      setBadge('報名中', 'green');
+      document.getElementById('signupSection').classList.remove('hidden');
+      document.getElementById('countdownRow').classList.add('hidden');
+      if (openAtTimer) clearInterval(openAtTimer);
+    } else if (openAt && openAt > now) {
+      setBadge('尚未開放', 'gray');
+      document.getElementById('signupSection').classList.add('hidden');
+      startCountdown(openAt);
+    } else {
+      setBadge('已截止', 'red');
+      document.getElementById('signupSection').classList.add('hidden');
+    }
+  }
+
+  function setOptional(rowId, fieldId, value) {
+    if (value) { document.getElementById(rowId).classList.remove('hidden'); document.getElementById(fieldId).textContent = value; }
+  }
+
+  function setBadge(text, color) {
+    const badge = document.getElementById('statusBadge');
+    badge.textContent = text;
+    const c = { green:'bg-green-100 text-green-700', red:'bg-red-100 text-red-600', gray:'bg-gray-100 text-gray-500' };
+    badge.className = `text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${c[color]}`;
+  }
+
+  function startCountdown(openAtMs) {
+    const row = document.getElementById('countdownRow');
+    row.classList.remove('hidden');
+    if (openAtTimer) clearInterval(openAtTimer);
+    const update = () => {
+      const diff = openAtMs - Date.now();
+      if (diff <= 0) { clearInterval(openAtTimer); row.textContent = '報名已開放！請重新整理頁面'; return; }
+      const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+      row.textContent = `⏳ 報名將於 ${h?h+'小時':''}${m}分${s}秒後開放`;
+    };
+    update();
+    openAtTimer = setInterval(update, 1000);
+  }
+
+  function subscribeSignups() {
+    if (unsubSignups) unsubSignups();
+    const q = query(collection(db, 'sessions', currentSessionId, 'signups'), orderBy('signedAt', 'asc'));
+    unsubSignups = onSnapshot(q, (snap) => {
+      renderList(snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i+1 })));
+    });
+  }
+
+  function renderList(signups) {
+    const list = document.getElementById('signupList');
+    const empty = document.getElementById('emptyList');
+    document.getElementById('countBadge').textContent = `${signups.length} 人`;
+    document.getElementById('fullNotice').classList.toggle('hidden', !(currentLimit > 0 && signups.length >= currentLimit));
+
+    if (!signups.length) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+
+    list.innerHTML = signups.map(s => {
+      const isWait = currentLimit > 0 && s.position > currentLimit;
+      const posColor = s.position===1?'bg-yellow-400 text-white':s.position===2?'bg-gray-300 text-gray-700':s.position===3?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
+      const posLabel = isWait ? `候${s.position-currentLimit}` : `#${s.position}`;
+      const tags = [];
+      if (s.isLate) tags.push(`⏰${s.lateTime?' '+s.lateTime:' 晚到'}`);
+      if (s.forFriend) tags.push(`👫 代：${escHtml(s.forFriend)}`);
+      if (s.pairWith) tags.push(`🤝 ${escHtml(s.pairWith)}`);
+
+      const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-8 h-8 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
+
+      return `
+        <div class="flex items-start gap-3 ${isWait?'bg-gray-50 opacity-75':'bg-indigo-50'} rounded-xl px-4 py-3 fade-in">
+          <span class="w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
+          ${photoEl}
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-gray-800 text-sm">${escHtml(s.name)}</p>
+            <p class="text-xs text-gray-400 mb-1">${formatTime(s.signedAt)}</p>
+            ${tags.length ? `<div class="flex flex-wrap gap-1">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Form
+  document.getElementById('lateCheck').addEventListener('change', e => document.getElementById('lateSection').classList.toggle('hidden', !e.target.checked));
+  document.getElementById('friendCheck').addEventListener('change', e => document.getElementById('friendSection').classList.toggle('hidden', !e.target.checked));
+
+  const signupBtn = document.getElementById('signupBtn');
+  signupBtn.addEventListener('click', async () => {
+    const name = currentUser ? currentUser.displayName : document.getElementById('nameInput').value.trim();
+    if (!name) { showMsg('請輸入名字', 'error'); return; }
+    if (!currentSessionId) return;
+
+    signupBtn.disabled = true;
+    signupBtn.textContent = '報名中...';
+
+    try {
+      await addDoc(collection(db, 'sessions', currentSessionId, 'signups'), {
+        name,
+        photoURL: currentUser?.photoURL || null,
+        uid: currentUser?.uid || null,
+        signedAt: serverTimestamp(),
+        isLate: document.getElementById('lateCheck').checked,
+        lateTime: document.getElementById('lateTime').value.trim(),
+        forFriend: document.getElementById('friendName').value.trim(),
+        pairWith: document.getElementById('pairInput').value.trim(),
+      });
+      // Reset form
+      document.getElementById('nameInput').value = '';
+      ['lateCheck','friendCheck'].forEach(id => { document.getElementById(id).checked = false; });
+      document.getElementById('lateSection').classList.add('hidden');
+      document.getElementById('friendSection').classList.add('hidden');
+      document.getElementById('lateTime').value = '';
+      document.getElementById('friendName').value = '';
+      document.getElementById('pairInput').value = '';
+      showMsg('✅ 報名成功！', 'success');
+    } catch(e) {
+      showMsg('❌ 報名失敗，請再試一次', 'error');
+    } finally {
+      signupBtn.disabled = false;
+      signupBtn.textContent = '🙋 確認報名';
+    }
+  });
+
+  document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') signupBtn.click(); });
+
+  function showMsg(msg, type) {
+    const el = document.getElementById('signupMsg');
+    el.textContent = msg;
+    el.className = `text-center text-sm mt-2 ${type==='success'?'text-green-600':'text-red-500'}`;
+    el.classList.remove('hidden');
+    setTimeout(()=>el.classList.add('hidden'), 3000);
+  }
+
+  function formatDate(d) {
+    if (!d) return '日期未定';
+    const dt = new Date(d);
+    const days = ['日','一','二','三','四','五','六'];
+    return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 報名`;
+  }
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
