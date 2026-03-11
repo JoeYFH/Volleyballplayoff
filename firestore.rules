@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 場次：所有人可讀，登入者可建立，只有建立者可修改/刪除
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null &&
+        (request.auth.uid == resource.data.createdBy ||
+         request.auth.token.email in ['YOUR_ADMIN_EMAIL@gmail.com']);
+
+      // 報名：所有人可讀，登入者可建立自己的，只能刪除自己的
+      match /signups/{signupId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null &&
+          (request.auth.uid == resource.data.uid ||
+           request.auth.token.email in ['YOUR_ADMIN_EMAIL@gmail.com']);
+        allow update: if false;
+      }
+    }
+
+    // 範本：只有本人可以讀寫，完全私有
+    match /users/{userId}/templates/{templateId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 設定：所有人可讀
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
