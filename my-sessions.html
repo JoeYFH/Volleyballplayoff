@@ -310,18 +310,24 @@
 
   // ── My Sessions ──
   function loadMySessions() {
-    const q = query(collection(db, 'sessions'), where('createdBy', '==', currentUser.uid), orderBy('date', 'desc'));
+    // Use simple query without composite index requirement, sort client-side
+    const q = query(collection(db, 'sessions'), where('createdBy', '==', currentUser.uid));
     onSnapshot(q, (snap) => {
-      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       document.getElementById('noMySessions').classList.toggle('hidden', sessions.length > 0);
       renderSessionMgmtList('mySessionsList', sessions, true);
+    }, (err) => {
+      console.error('loadMySessions error:', err);
+      document.getElementById('noMySessions').classList.remove('hidden');
     });
   }
 
   function loadAllSessions() {
-    const q = query(collection(db, 'sessions'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'sessions'));
     onSnapshot(q, (snap) => {
-      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       renderSessionMgmtList('allSessionsList', sessions, true);
     });
   }

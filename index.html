@@ -219,10 +219,16 @@
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
       </div>
 
-      <button id="submitCreateBtn"
-        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
-        <span id="hCreateBtn">🚀 建立場次</span>
-      </button>
+      <div class="flex gap-3">
+        <button id="submitCreateBtn"
+          class="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
+          <span id="hCreateBtn">🚀 建立場次</span>
+        </button>
+        <button id="saveTemplateBtn" type="button"
+          class="px-4 bg-gray-100 text-gray-600 rounded-xl py-3 font-medium text-sm hover:bg-gray-200 active:scale-95 transition">
+          💾 <span id="hSaveTemplate">存為範本</span>
+        </button>
+      </div>
       <p id="createMsg" class="text-center text-sm hidden"></p>
     </div>
   </div>
@@ -351,6 +357,11 @@
     document.getElementById('lNote').textContent = tr('fNote');
     document.getElementById('fNote').placeholder = tr('fNotePh');
     document.getElementById('hCreateBtn').textContent = tr('createBtn');
+    document.getElementById('hSaveTemplate').textContent = getLang()==='zh' ? '存為範本' : 'Save Template';
+    document.getElementById('hCreateTitle').textContent = getLang()==='zh' ? '建立新場次' : 'Create New Session';
+    document.getElementById('lTemplatePick').textContent = getLang()==='zh' ? '套用範本' : 'Apply Template';
+    document.getElementById('applyTemplateBtn').textContent = getLang()==='zh' ? '套用' : 'Apply';
+    document.getElementById('editTemplateBtn').textContent = getLang()==='zh' ? '編輯' : 'Edit';
     document.getElementById('hMapSearch').textContent = tr('mapSearch');
     document.getElementById('modalFormTitle').textContent = tr('formTitle');
     document.getElementById('hGoogleProfile').textContent = tr('googleProfile');
@@ -634,6 +645,27 @@
     el.classList.remove('hidden');
     setTimeout(()=>el.classList.add('hidden'), 3000);
   }
+
+  // ── Save Template ──
+  document.getElementById('saveTemplateBtn').addEventListener('click', async () => {
+    if (!currentUser) return;
+    const name = prompt(getLang()==='zh' ? '範本名稱：' : 'Template name:', document.getElementById('fTitle').value || '');
+    if (!name) return;
+    const customEquip = document.getElementById('fEquipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const { setDoc, doc: fsDoc, Timestamp: TS } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    await setDoc(fsDoc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
+      name,
+      time: document.getElementById('fTime').value,
+      location: document.getElementById('fLocation').value.trim(),
+      venue: document.getElementById('fVenue').value.trim(),
+      limit: parseInt(document.getElementById('fLimit').value) || 0,
+      type: document.getElementById('fType').value,
+      equipment: [...selectedEquip, ...customEquip],
+      note: document.getElementById('fNote').value.trim(),
+      createdAt: TS.now(),
+    });
+    showCreateMsg(getLang()==='zh' ? '✅ 已儲存為範本！' : '✅ Saved as template!', 'success');
+  });
 
   // ── Open When Toggle ──
   window.onOpenWhenChange = () => {
