@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-TW" id="htmlRoot">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏐 我的開場</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
+    input[type=checkbox]{accent-color:#4f46e5}
+    #mapSuggestions2 { position:absolute;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;width:100%; }
+    #mapSuggestions2 li { padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9; }
+    #mapSuggestions2 li:last-child { border-bottom:none; }
+    #mapSuggestions2 li:hover { background:#f1f5f9; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Login Screen -->
+<div id="loginScreen" class="flex items-center justify-center min-h-screen px-4">
+  <div class="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-center">
+    <div class="text-5xl mb-3">🏐</div>
+    <h1 id="hLoginTitle" class="text-xl font-bold text-gray-800 mb-1">我的開場</h1>
+    <p class="text-sm text-gray-400 mb-6">請先登入</p>
+    <button id="googleLoginBtn"
+      class="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" />
+      <span id="hGoogleLogin">使用 Google 帳號登入</span>
+    </button>
+    <div class="mt-6 border-t pt-4">
+      <a href="index.html" class="text-xs text-gray-400 hover:text-gray-500">← 回到報名頁面</a>
+    </div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="mainApp" class="hidden max-w-2xl mx-auto px-4 py-5 pb-20">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 id="hPageTitle" class="text-xl font-bold text-gray-800">📋 我的開場</h1>
+      <a href="index.html" class="text-xs text-indigo-500 hover:underline">← 報名頁面</a>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="langBtn2" onclick="toggleLang()"
+        class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">EN</button>
+      <div class="flex items-center gap-2">
+        <img id="adminPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
+        <div class="text-right">
+          <p id="adminName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
+          <div class="flex gap-2 items-center justify-end">
+            <span id="adminBadge" class="hidden text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Super Admin</span>
+            <button id="logoutBtn2" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-2 mb-5">
+    <button id="tabSessions" onclick="switchTab('sessions')"
+      class="text-xs font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white transition">我的場次</button>
+    <button id="tabTemplates" onclick="switchTab('templates')"
+      class="text-xs font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition">我的範本</button>
+    <button id="tabAdmin" onclick="switchTab('admin')"
+      class="hidden text-xs font-semibold px-4 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 transition">所有場次</button>
+  </div>
+
+  <!-- Sessions Tab -->
+  <div id="contentSessions">
+    <button id="createNewBtn"
+      class="w-full mb-4 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
+      + <span id="hCreateNew">建立新場次</span>
+    </button>
+    <div id="mySessionsList" class="space-y-4"></div>
+    <div id="noMySessions" class="hidden text-center py-10 text-gray-400">
+      <div class="text-4xl mb-2">📭</div>
+      <p id="hNoMySessions" class="text-sm">還沒有建立任何場次</p>
+    </div>
+  </div>
+
+  <!-- Templates Tab -->
+  <div id="contentTemplates" class="hidden">
+    <div id="templatesList" class="space-y-3"></div>
+    <div id="noTemplates" class="hidden text-center py-10 text-gray-400">
+      <div class="text-3xl mb-2">📋</div>
+      <p id="hNoTemplates" class="text-sm">還沒有儲存任何範本</p>
+      <p class="text-xs mt-1">在建立場次時點「存為範本」</p>
+    </div>
+  </div>
+
+  <!-- Admin Tab -->
+  <div id="contentAdmin" class="hidden">
+    <div id="allSessionsList" class="space-y-4"></div>
+  </div>
+</div>
+
+<!-- Create/Edit Session Sheet -->
+<div id="sessionSheet" class="fixed inset-0 z-40 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeSessionSheet()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-h-[92vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
+    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+      <h2 id="sheetTitle" class="font-bold text-gray-800">建立新場次</h2>
+      <button onclick="closeSessionSheet()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div class="px-5 py-4 space-y-4">
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱</label>
+        <input id="sf_title" type="text" maxlength="30"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl1">日期 <span class="text-red-400">*</span></label>
+          <input id="sf_date" type="date"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl2">時間 <span class="text-red-400">*</span></label>
+          <input id="sf_time" type="time" value="00:00"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl3">地點 <span class="text-red-400">*</span></label>
+        <div class="relative">
+          <input id="sf_location" type="text" autocomplete="off"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm pr-20 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <button type="button" onclick="searchLoc2()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg hover:bg-indigo-100">
+            🗺️ <span id="hMapSearch2">地圖</span>
+          </button>
+          <ul id="mapSuggestions2" class="hidden"></ul>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl4">場地詳細（選填）</label>
+        <input id="sf_venue" type="text" maxlength="50"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl5">人數上限（0=不限）</label>
+          <input id="sf_limit" type="number" min="0" max="100" value="12"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl6">性別分類</label>
+          <select id="sf_type" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="">不限</option>
+            <option value="mixed">混合</option>
+            <option value="male">男網</option>
+            <option value="female">女網</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-2" id="sl7">需要攜帶的用具</label>
+        <div class="flex flex-wrap gap-2 mb-2" id="sf_equipChips">
+          <button type="button" data-equip="球" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
+          <button type="button" data-equip="護腕" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🤸 護腕</button>
+          <button type="button" data-equip="護膝" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🦵 護膝</button>
+          <button type="button" data-equip="球鞋" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">👟 球鞋</button>
+          <button type="button" data-equip="球網" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🕸️ 球網</button>
+        </div>
+        <input id="sf_equipCustom" type="text" placeholder="其他用具（逗號分隔）"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <!-- Open Time -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl8">開放報名時間</label>
+        <select id="sf_openWhen" onchange="onSfOpenWhenChange()"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
+          <option value="now">立即開放</option>
+          <option value="hours">開賽前 N 小時</option>
+          <option value="days">開賽前 N 天</option>
+          <option value="custom">指定時間</option>
+        </select>
+        <div id="sf_offsetRow" class="hidden flex items-center gap-2">
+          <input id="sf_offset" type="number" min="1" max="999" value="1"
+            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <span id="sf_offsetUnit" class="text-sm text-gray-500">小時前</span>
+        </div>
+        <div id="sf_atRow" class="hidden">
+          <input id="sf_openAt" type="datetime-local"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl9">備註（選填）</label>
+        <textarea id="sf_note" rows="2"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="sfSubmitBtn" onclick="submitSession()"
+          class="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition disabled:opacity-50">
+          🚀 儲存場次
+        </button>
+        <button onclick="saveAsTemplate()"
+          class="px-4 bg-gray-100 text-gray-600 rounded-xl py-3 font-medium text-sm hover:bg-gray-200 transition">
+          💾 存為範本
+        </button>
+      </div>
+      <p id="sfMsg" class="text-center text-sm hidden"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div id="exportModal" class="fixed inset-0 bg-black/40 flex items-end justify-center z-50 hidden">
+  <div class="bg-white rounded-t-2xl w-full max-w-md p-5 pb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-semibold text-gray-700">📤 匯出名單</h3>
+      <button onclick="document.getElementById('exportModal').classList.add('hidden')" class="text-gray-400 text-xl">✕</button>
+    </div>
+    <textarea id="exportText" rows="10"
+      class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 resize-none font-mono" readonly></textarea>
+    <button id="copyExportBtn" onclick="copyExport()"
+      class="mt-3 w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 transition">
+      📋 複製到剪貼簿
+    </button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  import {
+    getFirestore, doc, collection, query, where, orderBy,
+    onSnapshot, addDoc, updateDoc, deleteDoc, getDocs,
+    serverTimestamp, Timestamp, getDoc, setDoc
+  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
+  import { tr, getLang, setLang } from './i18n.js';
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let isAdmin = false;
+  let editingSessionId = null;
+  let sfSelectedEquip = new Set();
+  let mapDebounce2 = null;
+  let signupUnsubs = {};
+  let exportSignups = [];
+
+  // ── Language ──
+  window.toggleLang = () => {
+    setLang(getLang() === 'zh' ? 'en' : 'zh');
+    applyLang();
+  };
+
+  function applyLang() {
+    const l = getLang();
+    document.getElementById('langBtn2').textContent = l === 'zh' ? 'EN' : '中';
+  }
+
+  // ── Auth ──
+  document.getElementById('googleLoginBtn').addEventListener('click', () => signInWithPopup(auth, provider));
+  document.getElementById('logoutBtn2').addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    if (user) {
+      isAdmin = (ADMIN_EMAILS || []).includes(user.email);
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      const photo = document.getElementById('adminPhoto');
+      if (user.photoURL) { photo.src = user.photoURL; photo.classList.remove('hidden'); }
+      document.getElementById('adminName').textContent = user.displayName || user.email;
+      if (isAdmin) {
+        document.getElementById('adminBadge').classList.remove('hidden');
+        document.getElementById('tabAdmin').classList.remove('hidden');
+      }
+      loadMySessions();
+      loadTemplates();
+    } else {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('mainApp').classList.add('hidden');
+    }
+  });
+
+  // ── Tabs ──
+  window.switchTab = (tab) => {
+    ['sessions','templates','admin'].forEach(t2 => {
+      document.getElementById('content' + t2.charAt(0).toUpperCase() + t2.slice(1)).classList.toggle('hidden', t2 !== tab);
+      const btn = document.getElementById('tab' + t2.charAt(0).toUpperCase() + t2.slice(1));
+      if (btn) btn.className = btn.className.replace(/bg-indigo-600 text-white|bg-white border border-gray-200 text-gray-600/g, '');
+      if (t2 === tab && btn) btn.classList.add('bg-indigo-600', 'text-white');
+      else if (btn && t2 !== 'admin') btn.classList.add('bg-white', 'border', 'border-gray-200', 'text-gray-600');
+    });
+    if (tab === 'admin') loadAllSessions();
+  };
+
+  // ── My Sessions ──
+  function loadMySessions() {
+    const q = query(collection(db, 'sessions'), where('createdBy', '==', currentUser.uid), orderBy('date', 'desc'));
+    onSnapshot(q, (snap) => {
+      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById('noMySessions').classList.toggle('hidden', sessions.length > 0);
+      renderSessionMgmtList('mySessionsList', sessions, true);
+    });
+  }
+
+  function loadAllSessions() {
+    const q = query(collection(db, 'sessions'), orderBy('date', 'desc'));
+    onSnapshot(q, (snap) => {
+      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderSessionMgmtList('allSessionsList', sessions, true);
+    });
+  }
+
+  function renderSessionMgmtList(containerId, sessions, canEdit) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = sessions.map(s => buildMgmtCard(s, canEdit)).join('');
+    sessions.forEach(s => subscribeSignupsMgmt(s.id, s.limit || 0));
+  }
+
+  function buildMgmtCard(s, canEdit) {
+    const TYPE_LABEL = { '':'不限', mixed:'混合', male:'男網', female:'女網' };
+    const isOpen = s.isOpen;
+    const badgeCls = isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
+    const badgeText = isOpen ? (getLang()==='zh'?'報名中':'Open') : (getLang()==='zh'?'已關閉':'Closed');
+
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden fade-in">
+        <div class="p-4">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p class="font-bold text-gray-800">${escHtml(s.title || s.date + ' 零打')}</p>
+              ${s.creatorName ? `<p class="text-xs text-gray-400">by ${escHtml(s.creatorName)}</p>` : ''}
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${badgeCls} shrink-0">${badgeText}</span>
+          </div>
+          <div class="text-sm text-gray-600 space-y-1 mb-3">
+            <div class="flex gap-4">
+              <span>📅 ${s.date}</span>
+              <span>🕐 ${s.time || '—'}</span>
+            </div>
+            <div>📍 <a href="https://maps.google.com/?q=${encodeURIComponent(s.location||'')}" target="_blank" class="text-indigo-500 hover:underline">${escHtml(s.location||'—')}</a></div>
+            ${s.limit ? `<div>👥 ${getLang()==='zh'?'名額':'Limit'} ${s.limit}</div>` : ''}
+            ${s.type ? `<div>🏷️ ${TYPE_LABEL[s.type]||s.type}</div>` : ''}
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="toggleOpen('${s.id}', ${isOpen})"
+              class="text-xs px-3 py-1.5 rounded-lg font-medium transition ${isOpen ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}">
+              ${isOpen ? (getLang()==='zh'?'⏸ 暫停報名':'⏸ Pause') : (getLang()==='zh'?'▶ 開放報名':'▶ Open')}
+            </button>
+            <button onclick="openEditSession('${s.id}')"
+              class="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition">
+              ✏️ ${getLang()==='zh'?'編輯':'Edit'}
+            </button>
+            <button onclick="exportSession('${s.id}')"
+              class="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
+              📤 ${getLang()==='zh'?'匯出':'Export'}
+            </button>
+            <button onclick="deleteSession('${s.id}')"
+              class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">
+              🗑️ ${getLang()==='zh'?'刪除':'Delete'}
+            </button>
+          </div>
+        </div>
+        <!-- Signups -->
+        <div class="border-t border-gray-50 px-4 py-3">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-semibold text-gray-500">${getLang()==='zh'?'報名名單':'Sign-ups'}</p>
+            <span id="mgmt-cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <div id="mgmt-list-${s.id}" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
+          <div id="mgmt-empty-${s.id}" class="text-center py-3 text-gray-400 text-xs">${getLang()==='zh'?'還沒有報名':'No signups yet'}</div>
+        </div>
+      </div>`;
+  }
+
+  function subscribeSignupsMgmt(sessionId, limit) {
+    if (signupUnsubs[sessionId]) return;
+    const q = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
+    signupUnsubs[sessionId] = onSnapshot(q, (snap) => {
+      const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i+1 }));
+      renderMgmtSignups(sessionId, items, limit);
+    });
+  }
+
+  function renderMgmtSignups(sessionId, items, limit) {
+    const listEl = document.getElementById('mgmt-list-' + sessionId);
+    const emptyEl = document.getElementById('mgmt-empty-' + sessionId);
+    const cntEl = document.getElementById('mgmt-cnt-' + sessionId);
+    if (!listEl) return;
+    cntEl && (cntEl.textContent = items.length);
+    if (!items.length) { listEl.innerHTML = ''; emptyEl?.classList.remove('hidden'); return; }
+    emptyEl?.classList.add('hidden');
+
+    listEl.innerHTML = items.map(s => {
+      const isWait = limit > 0 && s.position > limit;
+      const tags = [];
+      if (s.isLate) tags.push(s.lateTime ? `晚到${s.lateTime}` : '晚到');
+      if (s.forFriend) tags.push(`代:${escHtml(s.forFriend)}`);
+      if (s.pairWith) tags.push(`搭:${escHtml(s.pairWith)}`);
+      const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
+      return `
+        <div class="flex items-center gap-2 ${isWait?'opacity-60':''}">
+          <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0">${s.position}</span>
+          ${photo}
+          <span class="flex-1 text-sm text-gray-700 truncate">${escHtml(s.name)}</span>
+          ${tags.map(t2=>`<span class="text-xs text-gray-400">${t2}</span>`).join('')}
+          <button onclick="removeSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition ml-1">✕</button>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Session Actions ──
+  window.toggleOpen = async (id, currentOpen) => {
+    await updateDoc(doc(db, 'sessions', id), { isOpen: !currentOpen });
+  };
+
+  window.deleteSession = async (id) => {
+    if (!confirm(getLang()==='zh'?'確定要刪除此場次嗎？':'Delete this session?')) return;
+    await deleteDoc(doc(db, 'sessions', id));
+  };
+
+  window.removeSignup = async (sessionId, signupId) => {
+    if (!confirm(getLang()==='zh'?'確定移除此報名？':'Remove this signup?')) return;
+    await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
+  };
+
+  window.exportSession = async (id) => {
+    const snap = await getDocs(query(collection(db, 'sessions', id, 'signups'), orderBy('signedAt', 'asc')));
+    const items = snap.docs.map((d, i) => ({ ...d.data(), position: i+1 }));
+    const sessSnap = await getDoc(doc(db, 'sessions', id));
+    const s = sessSnap.data();
+    const lines = items.map(item => {
+      let line = `${item.position}. ${item.name}`;
+      if (item.isLate) line += item.lateTime ? `（晚到${item.lateTime}）` : '（晚到）';
+      if (item.forFriend) line += `（代報：${item.forFriend}）`;
+      if (item.pairWith) line += `（搭檔：${item.pairWith}）`;
+      return line;
+    });
+    document.getElementById('exportText').value =
+      `🏐 ${s?.title || id}\n📅 ${s?.date} ${s?.time||''}\n📍 ${s?.location||''}\n${'─'.repeat(20)}\n${lines.join('\n')}\n${'─'.repeat(20)}\n共 ${items.length} 人`;
+    document.getElementById('exportModal').classList.remove('hidden');
+  };
+
+  window.copyExport = () => {
+    navigator.clipboard.writeText(document.getElementById('exportText').value)
+      .then(() => {
+        const btn = document.getElementById('copyExportBtn');
+        btn.textContent = '✅ 已複製！';
+        setTimeout(() => btn.textContent = '📋 複製到剪貼簿', 2000);
+      });
+  };
+
+  // ── Create / Edit Session Sheet ──
+  document.getElementById('createNewBtn').addEventListener('click', () => openSessionSheet());
+
+  window.openEditSession = async (id) => {
+    const snap = await getDoc(doc(db, 'sessions', id));
+    if (!snap.exists()) return;
+    openSessionSheet(id, snap.data());
+  };
+
+  function openSessionSheet(id = null, data = null) {
+    editingSessionId = id;
+    sfSelectedEquip.clear();
+    document.getElementById('sheetTitle').textContent = id ? (getLang()==='zh'?'編輯場次':'Edit Session') : (getLang()==='zh'?'建立新場次':'New Session');
+    document.getElementById('sfSubmitBtn').textContent = id ? (getLang()==='zh'?'💾 更新場次':'💾 Update') : (getLang()==='zh'?'🚀 建立場次':'🚀 Create');
+    // Reset form
+    document.getElementById('sf_title').value = data?.title || '';
+    document.getElementById('sf_date').value = data?.date || '';
+    document.getElementById('sf_time').value = data?.time || '00:00';
+    document.getElementById('sf_location').value = data?.location || '';
+    document.getElementById('sf_venue').value = data?.venue || '';
+    document.getElementById('sf_limit').value = data?.limit ?? 12;
+    document.getElementById('sf_type').value = data?.type || '';
+    document.getElementById('sf_note').value = data?.note || '';
+    document.getElementById('sf_openWhen').value = 'now';
+    onSfOpenWhenChange();
+    // Equip chips
+    document.querySelectorAll('[data-equip]').forEach(btn => {
+      const active = data?.equipment?.includes(btn.dataset.equip);
+      if (active) {
+        sfSelectedEquip.add(btn.dataset.equip);
+        btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
+      } else {
+        btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+      }
+    });
+    document.getElementById('sessionSheet').classList.remove('hidden');
+  }
+
+  window.closeSessionSheet = () => {
+    document.getElementById('sessionSheet').classList.add('hidden');
+    editingSessionId = null;
+  };
+
+  document.getElementById('sf_equipChips').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-equip]');
+    if (!btn) return;
+    const val = btn.dataset.equip;
+    if (sfSelectedEquip.has(val)) {
+      sfSelectedEquip.delete(val);
+      btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+    } else {
+      sfSelectedEquip.add(val);
+      btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
+    }
+  });
+
+  window.onSfOpenWhenChange = () => {
+    const val = document.getElementById('sf_openWhen').value;
+    document.getElementById('sf_offsetRow').classList.toggle('hidden', val !== 'hours' && val !== 'days');
+    document.getElementById('sf_atRow').classList.toggle('hidden', val !== 'custom');
+    const unitEl = document.getElementById('sf_offsetUnit');
+    unitEl.textContent = getLang() === 'zh' ? (val === 'days' ? '天前' : '小時前') : (val === 'days' ? 'days before' : 'hours before');
+  };
+
+  window.submitSession = async () => {
+    if (!currentUser) return;
+    const date = document.getElementById('sf_date').value;
+    const time = document.getElementById('sf_time').value;
+    const location = document.getElementById('sf_location').value.trim();
+    if (!date || !time || !location) { showSfMsg('請填寫日期、時間、地點', 'error'); return; }
+
+    const btn = document.getElementById('sfSubmitBtn');
+    btn.disabled = true;
+
+    const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const equipment = [...sfSelectedEquip, ...customEquip];
+    const openWhen = document.getElementById('sf_openWhen').value;
+    let openAt = null, isOpen = false;
+
+    if (openWhen === 'now') {
+      isOpen = true;
+    } else if (openWhen === 'custom') {
+      const v = document.getElementById('sf_openAt').value;
+      if (v) { openAt = Timestamp.fromDate(new Date(v)); isOpen = new Date(v) <= new Date(); }
+    } else {
+      const n = parseInt(document.getElementById('sf_offset').value) || 1;
+      const gameDate = new Date(`${date}T${time}:00`);
+      const ms = openWhen === 'hours' ? n*3600000 : n*86400000;
+      const openDate = new Date(gameDate.getTime() - ms);
+      openAt = Timestamp.fromDate(openDate);
+      isOpen = openDate <= new Date();
+    }
+
+    const data = {
+      title: document.getElementById('sf_title').value.trim() || `${date} 零打`,
+      date, time, location,
+      venue: document.getElementById('sf_venue').value.trim(),
+      limit: parseInt(document.getElementById('sf_limit').value) || 0,
+      type: document.getElementById('sf_type').value,
+      equipment,
+      note: document.getElementById('sf_note').value.trim(),
+      isOpen, openAt,
+    };
+
+    try {
+      if (editingSessionId) {
+        await updateDoc(doc(db, 'sessions', editingSessionId), data);
+        showSfMsg('✅ 已更新！', 'success');
+      } else {
+        await addDoc(collection(db, 'sessions'), {
+          ...data, createdAt: serverTimestamp(), createdBy: currentUser.uid, creatorName: currentUser.displayName
+        });
+        showSfMsg('✅ 場次建立成功！', 'success');
+      }
+      setTimeout(closeSessionSheet, 1000);
+    } catch(e) {
+      showSfMsg('❌ ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  window.saveAsTemplate = async () => {
+    if (!currentUser) return;
+    const name = prompt(getLang()==='zh'?'範本名稱：':'Template name:', document.getElementById('sf_title').value || '');
+    if (!name) return;
+    const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
+      name,
+      time: document.getElementById('sf_time').value,
+      location: document.getElementById('sf_location').value.trim(),
+      venue: document.getElementById('sf_venue').value.trim(),
+      limit: parseInt(document.getElementById('sf_limit').value) || 0,
+      type: document.getElementById('sf_type').value,
+      equipment: [...sfSelectedEquip, ...customEquip],
+      note: document.getElementById('sf_note').value.trim(),
+      createdAt: Timestamp.now(),
+    });
+    showSfMsg('✅ 已儲存為範本！', 'success');
+    loadTemplates();
+  };
+
+  function showSfMsg(msg, type) {
+    const el = document.getElementById('sfMsg');
+    el.textContent = msg;
+    el.className = `text-center text-sm ${type==='success'?'text-green-600':'text-red-500'}`;
+    el.classList.remove('hidden');
+    setTimeout(()=>el.classList.add('hidden'), 3000);
+  }
+
+  // ── Templates ──
+  let templatesData = [];
+
+  function loadTemplates() {
+    if (!currentUser) return;
+    const q = query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snap) => {
+      templatesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTemplates();
+    });
+  }
+
+  function renderTemplates() {
+    const list = document.getElementById('templatesList');
+    const empty = document.getElementById('noTemplates');
+    if (!templatesData.length) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    list.innerHTML = templatesData.map(t2 => `
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-3 fade-in">
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-700">${escHtml(t2.name)}</p>
+          <p class="text-xs text-gray-400 mt-0.5">${escHtml(t2.location||'—')} • ${t2.time||'—'} • ${t2.limit?t2.limit+'人':'不限'}</p>
+          ${t2.equipment?.length ? `<p class="text-xs text-gray-400">🎒 ${t2.equipment.join('、')}</p>` : ''}
+        </div>
+        <div class="flex flex-col gap-1.5 shrink-0">
+          <button onclick="applyTemplate('${t2.id}')"
+            class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition font-medium">
+            套用
+          </button>
+          <button onclick="editTemplate('${t2.id}')"
+            class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition font-medium">
+            編輯
+          </button>
+          <button onclick="deleteTemplate('${t2.id}')"
+            class="text-xs bg-red-50 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-100 transition font-medium">
+            刪除
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  window.applyTemplate = (id) => {
+    const tmpl = templatesData.find(t2 => t2.id === id);
+    if (!tmpl) return;
+    openSessionSheet(null, tmpl);
+    switchTab('sessions');
+  };
+
+  window.editTemplate = (id) => {
+    const tmpl = templatesData.find(t2 => t2.id === id);
+    if (!tmpl) return;
+    // Open edit form for the template
+    openSessionSheet(null, tmpl);
+    // Override submit to update template instead
+    document.getElementById('sfSubmitBtn').textContent = getLang()==='zh' ? '💾 更新範本' : '💾 Update Template';
+    document.getElementById('sfSubmitBtn').onclick = async () => {
+      const name = document.getElementById('sf_title').value.trim() || tmpl.name;
+      const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+      await setDoc(doc(db, 'users', currentUser.uid, 'templates', id), {
+        name,
+        time: document.getElementById('sf_time').value,
+        location: document.getElementById('sf_location').value.trim(),
+        venue: document.getElementById('sf_venue').value.trim(),
+        limit: parseInt(document.getElementById('sf_limit').value) || 0,
+        type: document.getElementById('sf_type').value,
+        equipment: [...sfSelectedEquip, ...customEquip],
+        note: document.getElementById('sf_note').value.trim(),
+        createdAt: tmpl.createdAt,
+      });
+      showSfMsg('✅ 範本已更新！', 'success');
+      setTimeout(closeSessionSheet, 1000);
+    };
+    switchTab('templates');
+  };
+
+  window.deleteTemplate = async (id) => {
+    if (!confirm(getLang()==='zh'?'確定刪除此範本？':'Delete template?')) return;
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'templates', id));
+  };
+
+  // ── Map Search ──
+  const locInput2 = document.getElementById('sf_location');
+  const sugg2 = document.getElementById('mapSuggestions2');
+
+  window.searchLoc2 = () => {
+    const val = locInput2.value.trim();
+    if (val) doMapSearch2(val);
+  };
+
+  locInput2.addEventListener('input', () => {
+    clearTimeout(mapDebounce2);
+    if (locInput2.value.trim().length < 2) { sugg2.classList.add('hidden'); return; }
+    mapDebounce2 = setTimeout(() => doMapSearch2(locInput2.value.trim()), 400);
+  });
+
+  async function doMapSearch2(q2) {
+    try {
+      sugg2.innerHTML = `<li class="text-gray-400">搜尋中...</li>`;
+      sugg2.classList.remove('hidden');
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q2)}&format=json&limit=5&accept-language=${getLang()==='zh'?'zh-TW,zh':'en'}`);
+      const data = await res.json();
+      if (!data.length) { sugg2.innerHTML = `<li class="text-gray-400">找不到結果</li>`; return; }
+      sugg2.innerHTML = data.map(item => {
+        const name = item.display_name.split(',').slice(0,3).join(', ');
+        return `<li onclick="selLoc2('${escAttr(name)}')">${escHtml(name)}</li>`;
+      }).join('');
+    } catch { sugg2.innerHTML = `<li class="text-gray-400">Error</li>`; }
+  }
+
+  window.selLoc2 = (name) => { locInput2.value = name; sugg2.classList.add('hidden'); };
+  document.addEventListener('click', (e) => {
+    if (!locInput2.contains(e.target) && !sugg2.contains(e.target)) sugg2.classList.add('hidden');
+  });
+
+  function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+
+  applyLang();
+</script>
+</body>
+</html>

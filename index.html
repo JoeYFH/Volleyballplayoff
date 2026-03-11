@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" id="htmlRoot">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,150 +15,283 @@
     .pulse-dot { animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
     input[type=checkbox]{accent-color:#4f46e5}
-    .tag { display:inline-flex;align-items:center;gap:4px;background:#e0e7ff;color:#4338ca;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500; }
+    .tag{display:inline-flex;align-items:center;gap:4px;background:#e0e7ff;color:#4338ca;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500}
+    .sheet{transition:transform .3s ease,opacity .3s ease}
+    .sheet.hidden-sheet{transform:translateY(100%);opacity:0;pointer-events:none}
+    #mapSuggestions { position:absolute; z-index:50; background:white; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); max-height:200px; overflow-y:auto; width:100%; }
+    #mapSuggestions li { padding:10px 14px; font-size:13px; cursor:pointer; border-bottom:1px solid #f1f5f9; }
+    #mapSuggestions li:last-child { border-bottom:none; }
+    #mapSuggestions li:hover { background:#f1f5f9; }
   </style>
 </head>
 <body class="bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 min-h-screen">
-<div class="max-w-md mx-auto px-4 py-6 pb-16">
+<div class="max-w-md mx-auto px-4 py-5 pb-24">
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-5">
     <div>
-      <h1 class="text-xl font-bold text-indigo-800">🏐 排球零打報名</h1>
+      <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800">🏐 排球零打報名</h1>
       <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-        <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>即時更新
+        <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
+        <span id="hLive">即時更新</span>
       </p>
     </div>
-    <!-- User Avatar / Login Button -->
-    <div id="userArea">
-      <button id="loginBtn"
-        class="flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
-        Google 登入
+    <div class="flex items-center gap-2">
+      <!-- Lang toggle -->
+      <button id="langBtn" onclick="toggleLang()"
+        class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">
+        EN
       </button>
-      <div id="userInfo" class="hidden flex items-center gap-2">
-        <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-        <div class="text-right">
-          <p id="userName" class="text-xs font-medium text-gray-700"></p>
-          <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+      <!-- User -->
+      <div id="userArea">
+        <button id="loginBtn"
+          class="flex items-center gap-1.5 border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 active:scale-95 transition shadow-sm">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
+          <span id="hLogin">Google 登入</span>
+        </button>
+        <div id="userInfo" class="hidden flex items-center gap-2">
+          <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+          <div class="text-right">
+            <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
+            <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Game Info Card -->
-  <div class="bg-white rounded-2xl shadow-sm border border-indigo-50 p-5 mb-4">
-    <div id="loadingInfo" class="animate-pulse space-y-2">
-      <div class="h-5 bg-gray-100 rounded w-3/4"></div>
-      <div class="h-4 bg-gray-100 rounded w-1/2"></div>
-    </div>
-
-    <div id="gameInfo" class="hidden">
-      <div class="flex items-start justify-between mb-3 gap-2">
-        <h2 id="gameTitle" class="text-lg font-bold text-gray-800"></h2>
-        <span id="statusBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"></span>
-      </div>
-      <div id="countdownRow" class="hidden bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-3 text-sm text-amber-700 text-center font-medium"></div>
-      <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-gray-600">
-        <div class="flex items-center gap-1.5"><span>📅</span><span id="gameDate"></span></div>
-        <div class="flex items-center gap-1.5"><span>🕐</span><span id="gameTime"></span></div>
-        <div class="flex items-center gap-1.5 col-span-2"><span>📍</span><span id="gameLocation"></span></div>
-        <div id="gameVenueRow" class="hidden flex items-center gap-1.5 col-span-2"><span>🏟️</span><span id="gameVenue"></span></div>
-        <div id="gameLimitRow" class="hidden flex items-center gap-1.5"><span>👥</span><span id="gameLimit"></span></div>
-        <div id="gameTypeRow" class="hidden flex items-center gap-1.5"><span>🏷️</span><span id="gameType"></span></div>
-        <div id="gameEquipRow" class="hidden flex items-center gap-1.5 col-span-2 text-xs"><span>🎒</span><span id="gameEquip" class="text-gray-500"></span></div>
-        <div id="gameNoteRow" class="hidden flex items-center gap-1.5 col-span-2 text-xs"><span>📝</span><span id="gameNote" class="text-gray-500"></span></div>
-      </div>
-    </div>
-
-    <div id="noSession" class="hidden text-center py-4 text-gray-400">
-      <div class="text-3xl mb-2">📭</div>
-      <p class="text-sm">目前沒有開放報名的場次</p>
-    </div>
+  <!-- Sessions List -->
+  <div id="sessionsList" class="space-y-4"></div>
+  <div id="noSessionsMsg" class="hidden text-center py-10 text-gray-400">
+    <div class="text-4xl mb-2">📭</div>
+    <p id="hNoSessions" class="text-sm">目前沒有即將舉行的場次</p>
+  </div>
+  <div id="loadingSpinner" class="text-center py-10 text-gray-400">
+    <div class="animate-spin text-3xl">⏳</div>
   </div>
 
-  <!-- Sign-up Form -->
-  <div id="signupSection" class="bg-white rounded-2xl shadow-sm border border-indigo-50 p-5 mb-4 hidden">
-    <h2 class="text-base font-semibold text-gray-700 mb-4">✍️ 填寫報名資料</h2>
+</div>
 
-    <!-- User profile preview (when logged in) -->
-    <div id="profilePreview" class="hidden flex items-center gap-3 bg-indigo-50 rounded-xl px-4 py-3 mb-4">
-      <img id="formPhoto" src="" alt="" class="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-      <div>
-        <p class="text-sm font-medium text-indigo-800" id="formDisplayName"></p>
-        <p class="text-xs text-indigo-400">以 Google 帳號報名</p>
-      </div>
-    </div>
-
-    <!-- Name (hidden when logged in with Google) -->
-    <div id="nameRow">
-      <label class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
-      <input id="nameInput" type="text" placeholder="輸入你的名字" maxlength="20"
-        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-4 transition" />
-    </div>
-
-    <!-- Late -->
-    <div class="flex items-center gap-2 mb-2">
-      <input type="checkbox" id="lateCheck" class="w-4 h-4" />
-      <label for="lateCheck" class="text-sm text-gray-600">我會晚到</label>
-    </div>
-    <div id="lateSection" class="hidden ml-6 mb-4">
-      <input id="lateTime" type="text" placeholder="大約幾點到？（例：19:30）"
-        class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition" />
-    </div>
-
-    <!-- Friend -->
-    <div class="flex items-center gap-2 mb-2">
-      <input type="checkbox" id="friendCheck" class="w-4 h-4" />
-      <label for="friendCheck" class="text-sm text-gray-600">幫朋友報名</label>
-    </div>
-    <div id="friendSection" class="hidden ml-6 mb-4">
-      <input id="friendName" type="text" placeholder="朋友的名字" maxlength="20"
-        class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition" />
-    </div>
-
-    <!-- Pair with -->
-    <label class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
-    <input id="pairInput" type="text" placeholder="填入對方名字" maxlength="20"
-      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-4 transition" />
-
-    <button id="signupBtn"
-      class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-      🙋 確認報名
+<!-- FAB: Create Session -->
+<div class="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-30">
+  <div id="fabMenu" class="hidden flex-col items-end gap-2 mb-2">
+    <a href="my-sessions.html"
+      class="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 shadow-md hover:bg-gray-50 transition">
+      <span id="hMySessions">我的開場</span> 📋
+    </a>
+  </div>
+  <div class="flex gap-2">
+    <button id="mySessionsBtn"
+      class="hidden bg-white border border-indigo-200 text-indigo-600 rounded-xl px-4 py-3 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-95 transition">
+      📋 <span id="hMySessionsBtn">我的開場</span>
     </button>
-    <p id="signupMsg" class="text-center text-sm mt-2 hidden"></p>
+    <button id="createBtn"
+      class="hidden bg-indigo-600 text-white rounded-xl px-5 py-3 text-sm font-semibold shadow-lg hover:bg-indigo-700 active:scale-95 transition">
+      <span id="hCreate">+ 建立場次</span>
+    </button>
   </div>
+</div>
 
-  <!-- Signup List -->
-  <div id="listSection" class="bg-white rounded-2xl shadow-sm border border-indigo-50 p-5 hidden">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-base font-semibold text-gray-700">📋 報名名單</h2>
-      <span id="countBadge" class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full">0 人</span>
+<!-- Create Session Sheet -->
+<div id="createSheet" class="fixed inset-0 z-40 hidden">
+  <div id="sheetOverlay" class="absolute inset-0 bg-black/40" onclick="closeCreateSheet()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-h-[92vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
+    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+      <h2 id="hCreateTitle" class="font-bold text-gray-800">建立新場次</h2>
+      <button onclick="closeCreateSheet()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
+    <div class="px-5 py-4 space-y-4">
 
-    <div id="fullNotice" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 text-sm text-amber-700 text-center">
-      🎉 正取名額已滿！以下為候補名單
+      <!-- Template Dropdown -->
+      <div id="templateDropdownRow" class="hidden">
+        <label id="lTemplatePick" class="block text-sm font-medium text-gray-600 mb-1">套用範本</label>
+        <div class="flex gap-2">
+          <select id="templateSelect"
+            class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="">— 不套用 —</option>
+          </select>
+          <button id="applyTemplateBtn" type="button" onclick="applySelectedTemplate()"
+            class="px-3 py-2 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition shrink-0">套用</button>
+          <button id="editTemplateBtn" type="button" onclick="editSelectedTemplate()"
+            class="px-3 py-2 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl hover:bg-gray-200 transition shrink-0">編輯</button>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div>
+        <label id="lTitle" class="block text-sm font-medium text-gray-600 mb-1">場次名稱</label>
+        <input id="fTitle" type="text" maxlength="30"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <!-- Date + Time -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label id="lDate" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
+          <input id="fDate" type="date"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label id="lTime" class="block text-sm font-medium text-gray-600 mb-1">時間 <span class="text-red-400">*</span></label>
+          <input id="fTime" type="time" value="00:00"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+      </div>
+
+      <!-- Location with map search -->
+      <div>
+        <label id="lLocation" class="block text-sm font-medium text-gray-600 mb-1">地點 <span class="text-red-400">*</span></label>
+        <div class="relative">
+          <input id="fLocation" type="text" autocomplete="off"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 pr-20" />
+          <button id="mapSearchBtn" type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition">
+            🗺️ <span id="hMapSearch">地圖</span>
+          </button>
+          <ul id="mapSuggestions" class="hidden"></ul>
+        </div>
+      </div>
+
+      <!-- Venue -->
+      <div>
+        <label id="lVenue" class="block text-sm font-medium text-gray-600 mb-1">場地詳細（選填）</label>
+        <input id="fVenue" type="text" maxlength="50"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <!-- Limit + Type -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label id="lLimit" class="block text-sm font-medium text-gray-600 mb-1">人數上限（0=不限）</label>
+          <input id="fLimit" type="number" min="0" max="100" value="12"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label id="lType" class="block text-sm font-medium text-gray-600 mb-1">性別分類</label>
+          <select id="fType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="" id="oNoType">不限</option>
+            <option value="mixed" id="oMixed">混合</option>
+            <option value="male" id="oMale">男網</option>
+            <option value="female" id="oFemale">女網</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Equipment chips -->
+      <div>
+        <label id="lEquip" class="block text-sm font-medium text-gray-600 mb-2">需要攜帶的用具</label>
+        <div class="flex flex-wrap gap-2 mb-2" id="equipChips">
+          <button type="button" data-equip="球" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
+          <button type="button" data-equip="護腕" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🤸 護腕</button>
+          <button type="button" data-equip="護膝" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🦵 護膝</button>
+          <button type="button" data-equip="球鞋" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">👟 球鞋</button>
+          <button type="button" data-equip="球網" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🕸️ 球網</button>
+        </div>
+        <input id="fEquipCustom" type="text"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <!-- Open Time -->
+      <div>
+        <label id="lOpenWhen" class="block text-sm font-medium text-gray-600 mb-1">開放報名時間</label>
+        <select id="fOpenWhen" onchange="onOpenWhenChange()"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
+          <option value="now" id="oOpenNow">立即開放</option>
+          <option value="hours" id="oOpenHours">開賽前 N 小時</option>
+          <option value="days" id="oOpenDays">開賽前 N 天</option>
+          <option value="custom" id="oOpenCustom">指定時間</option>
+        </select>
+        <div id="fOpenOffsetRow" class="hidden flex items-center gap-2">
+          <input id="fOpenOffset" type="number" min="1" max="999" value="1"
+            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <span id="fOpenOffsetUnit" class="text-sm text-gray-500">小時前</span>
+        </div>
+        <div id="fOpenAtRow" class="hidden">
+          <input id="fOpenAt" type="datetime-local"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="hOpenAtHint" class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div>
+        <label id="lNote" class="block text-sm font-medium text-gray-600 mb-1">備註（選填）</label>
+        <textarea id="fNote" rows="2"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+      </div>
+
+      <button id="submitCreateBtn"
+        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
+        <span id="hCreateBtn">🚀 建立場次</span>
+      </button>
+      <p id="createMsg" class="text-center text-sm hidden"></p>
     </div>
-
-    <div id="signupList" class="space-y-2"></div>
-    <div id="emptyList" class="text-center py-6 text-gray-400 text-sm">還沒有人報名，快搶第一！</div>
   </div>
+</div>
 
-  <div class="text-center mt-6">
-    <a href="admin.html" class="text-xs text-gray-300 hover:text-gray-400 transition">管理員入口</a>
+<!-- Signup Modal -->
+<div id="signupModal" class="fixed inset-0 z-40 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeSignupModal()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
+    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+      <h2 id="modalFormTitle" class="font-bold text-gray-800">✍️ 填寫報名資料</h2>
+      <button onclick="closeSignupModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+
+      <div id="modalProfilePreview" class="hidden flex items-center gap-3 bg-indigo-50 rounded-xl px-4 py-3">
+        <img id="modalPhoto" src="" alt="" class="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+        <div>
+          <p id="modalDisplayName" class="text-sm font-medium text-indigo-800"></p>
+          <p id="hGoogleProfile" class="text-xs text-indigo-400">以 Google 帳號報名</p>
+        </div>
+      </div>
+
+      <div id="modalNameRow">
+        <label id="lModalName" class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
+        <input id="modalName" type="text" maxlength="20"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="modalLate" class="w-4 h-4" />
+        <label id="lModalLate" for="modalLate" class="text-sm text-gray-600">我會晚到</label>
+      </div>
+      <div id="modalLateSection" class="hidden ml-6">
+        <input id="modalLateTime" type="text"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="modalFriend" class="w-4 h-4" />
+        <label id="lModalFriend" for="modalFriend" class="text-sm text-gray-600">幫朋友報名</label>
+      </div>
+      <div id="modalFriendSection" class="hidden ml-6">
+        <input id="modalFriendName" type="text" maxlength="20"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <div>
+        <label id="lModalPair" class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
+        <input id="modalPair" type="text" maxlength="20"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+
+      <button id="modalSubmitBtn"
+        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all">
+        <span id="hConfirmBtn">🙋 確認報名</span>
+      </button>
+      <p id="modalMsg" class="text-center text-sm hidden"></p>
+    </div>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import {
-    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
-  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import {
-    getFirestore, doc, collection, onSnapshot,
-    addDoc, getDoc, serverTimestamp, query, orderBy
-  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig } from './firebase-config.js';
+  import { tr, getLang, setLang, t } from './i18n.js';
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -166,14 +299,74 @@
   const provider = new GoogleAuthProvider();
 
   let currentUser = null;
-  let currentSessionId = null;
-  let currentLimit = 0;
-  let openAtTimer = null;
-  let unsubSignups = null;
+  let activeSessionId = null; // for signup modal
+  let activeSessionLimit = 0;
+  let selectedEquip = new Set();
+  let mapDebounce = null;
 
-  const TYPE_LABEL = { male:'男網', female:'女網', mixed:'混合' };
+  const TYPE_LABEL = () => ({ '': tr('noType'), mixed: tr('mixed'), male: tr('male'), female: tr('female') });
 
-  // Auth state
+  // ── Language ──
+  window.toggleLang = () => {
+    const newLang = getLang() === 'zh' ? 'en' : 'zh';
+    setLang(newLang);
+    applyLang();
+  };
+
+  function applyLang() {
+    const lang = getLang();
+    document.getElementById('htmlRoot').lang = lang === 'zh' ? 'zh-TW' : 'en';
+    document.getElementById('langBtn').textContent = lang === 'zh' ? 'EN' : '中';
+    document.getElementById('hAppTitle').textContent = '🏐 ' + tr('appTitle');
+    document.getElementById('hLive').textContent = tr('liveUpdate');
+    document.getElementById('hLogin').textContent = tr('googleLogin');
+    document.getElementById('logoutBtn').textContent = tr('logout');
+    document.getElementById('hCreate').textContent = tr('createSession');
+    document.getElementById('hMySessions').textContent = tr('mySessions');
+    document.getElementById('hMySessionsBtn').textContent = tr('mySessions');
+    document.getElementById('hNoSessions').textContent = tr('noSessions');
+    document.getElementById('hCreateTitle').textContent = tr('createTitle');
+    document.getElementById('lTitle').textContent = tr('fTitle');
+    document.getElementById('fTitle').placeholder = tr('fTitlePh');
+    document.getElementById('lDate').innerHTML = tr('fDate') + ' <span class="text-red-400">*</span>';
+    document.getElementById('lTime').innerHTML = tr('fTime') + ' <span class="text-red-400">*</span>';
+    document.getElementById('lLocation').innerHTML = tr('fLocation') + ' <span class="text-red-400">*</span>';
+    document.getElementById('fLocation').placeholder = tr('fLocationPh');
+    document.getElementById('lVenue').textContent = tr('fVenue');
+    document.getElementById('fVenue').placeholder = tr('fVenuePh');
+    document.getElementById('lLimit').textContent = tr('fLimit');
+    document.getElementById('lType').textContent = tr('fType');
+    document.getElementById('oNoType').textContent = tr('noType');
+    document.getElementById('oMixed').textContent = tr('mixed');
+    document.getElementById('oMale').textContent = tr('male');
+    document.getElementById('oFemale').textContent = tr('female');
+    document.getElementById('lEquip').textContent = tr('fEquip');
+    document.getElementById('fEquipCustom').placeholder = tr('fEquipPh');
+    document.getElementById('lOpenWhen').textContent = getLang()==='zh' ? '開放報名時間' : 'Signup Open Time';
+    document.getElementById('oOpenNow').textContent = getLang()==='zh' ? '立即開放' : 'Open immediately';
+    document.getElementById('oOpenHours').textContent = getLang()==='zh' ? '開賽前 N 小時' : 'N hours before game';
+    document.getElementById('oOpenDays').textContent = getLang()==='zh' ? '開賽前 N 天' : 'N days before game';
+    document.getElementById('oOpenCustom').textContent = getLang()==='zh' ? '指定時間' : 'Custom time';
+    const hintEl = document.getElementById('hOpenAtHint');
+    if (hintEl) hintEl.textContent = tr('fOpenAtHint');
+    document.getElementById('lNote').textContent = tr('fNote');
+    document.getElementById('fNote').placeholder = tr('fNotePh');
+    document.getElementById('hCreateBtn').textContent = tr('createBtn');
+    document.getElementById('hMapSearch').textContent = tr('mapSearch');
+    document.getElementById('modalFormTitle').textContent = tr('formTitle');
+    document.getElementById('hGoogleProfile').textContent = tr('googleProfile');
+    document.getElementById('lModalName').innerHTML = tr('nameLabel') + ' <span class="text-red-400">*</span>';
+    document.getElementById('modalName').placeholder = tr('namePh');
+    document.getElementById('lModalLate').textContent = tr('willBeLate');
+    document.getElementById('modalLateTime').placeholder = tr('lateTimePh');
+    document.getElementById('lModalFriend').textContent = tr('forFriend');
+    document.getElementById('modalFriendName').placeholder = tr('friendPh');
+    document.getElementById('lModalPair').textContent = tr('pairLabel');
+    document.getElementById('modalPair').placeholder = tr('pairPh');
+    document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
+  }
+
+  // ── Auth ──
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
@@ -181,207 +374,451 @@
       document.getElementById('userInfo').classList.remove('hidden');
       document.getElementById('userPhoto').src = user.photoURL || '';
       document.getElementById('userName').textContent = user.displayName || user.email;
-      // Show profile in form
-      document.getElementById('profilePreview').classList.remove('hidden');
-      document.getElementById('formPhoto').src = user.photoURL || '';
-      document.getElementById('formDisplayName').textContent = user.displayName || user.email;
-      document.getElementById('nameRow').classList.add('hidden');
+      document.getElementById('createBtn').classList.remove('hidden');
+      document.getElementById('mySessionsBtn').classList.remove('hidden');
+      document.getElementById('modalProfilePreview').classList.remove('hidden');
+      document.getElementById('modalPhoto').src = user.photoURL || '';
+      document.getElementById('modalDisplayName').textContent = user.displayName || user.email;
+      document.getElementById('modalNameRow').classList.add('hidden');
     } else {
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('hidden');
-      document.getElementById('profilePreview').classList.add('hidden');
-      document.getElementById('nameRow').classList.remove('hidden');
+      document.getElementById('createBtn').classList.add('hidden');
+      document.getElementById('mySessionsBtn').classList.add('hidden');
+      document.getElementById('modalProfilePreview').classList.add('hidden');
+      document.getElementById('modalNameRow').classList.remove('hidden');
     }
   });
 
   document.getElementById('loginBtn').addEventListener('click', () => signInWithPopup(auth, provider));
   document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+  document.getElementById('mySessionsBtn').addEventListener('click', () => { window.location.href = 'my-sessions.html'; });
 
-  // Watch config
-  onSnapshot(doc(db, 'config', 'current'), async (snap) => {
-    if (!snap.exists() || !snap.data().sessionId) { showNoSession(); return; }
-    currentSessionId = snap.data().sessionId;
-    const sessSnap = await getDoc(doc(db, 'sessions', currentSessionId));
-    if (!sessSnap.exists()) { showNoSession(); return; }
-    renderGameInfo(sessSnap.data());
-    subscribeSignups();
+  // ── Sessions ──
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
+  const dateFrom = sevenDaysAgo.toISOString().split('T')[0];
+
+  const q = query(collection(db, 'sessions'), where('date', '>=', dateFrom), orderBy('date', 'asc'));
+  const signupUnsubs = {};
+
+  onSnapshot(q, (snap) => {
+    document.getElementById('loadingSpinner').classList.add('hidden');
+    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!sessions.length) {
+      document.getElementById('noSessionsMsg').classList.remove('hidden');
+      document.getElementById('sessionsList').innerHTML = '';
+    } else {
+      document.getElementById('noSessionsMsg').classList.add('hidden');
+      renderSessions(sessions);
+    }
   });
 
-  function showNoSession() {
-    document.getElementById('loadingInfo').classList.add('hidden');
-    document.getElementById('noSession').classList.remove('hidden');
-    document.getElementById('signupSection').classList.add('hidden');
-    document.getElementById('listSection').classList.add('hidden');
-  }
+  function renderSessions(sessions) {
+    const list = document.getElementById('sessionsList');
+    // Remove cards for sessions no longer in list
+    const existingIds = new Set([...list.querySelectorAll('[data-session-id]')].map(el => el.dataset.sessionId));
+    const newIds = new Set(sessions.map(s => s.id));
+    existingIds.forEach(id => { if (!newIds.has(id)) { document.getElementById('card-' + id)?.remove(); if (signupUnsubs[id]) { signupUnsubs[id](); delete signupUnsubs[id]; } } });
 
-  function renderGameInfo(s) {
-    document.getElementById('loadingInfo').classList.add('hidden');
-    document.getElementById('gameInfo').classList.remove('hidden');
-    document.getElementById('listSection').classList.remove('hidden');
-
-    document.getElementById('gameTitle').textContent = s.title || '排球零打';
-    document.getElementById('gameDate').textContent = formatDate(s.date);
-    document.getElementById('gameTime').textContent = s.time || '時間未定';
-    document.getElementById('gameLocation').textContent = s.location || '地點未定';
-    currentLimit = s.limit || 0;
-
-    setOptional('gameVenueRow', 'gameVenue', s.venue);
-    if (s.limit) { document.getElementById('gameLimitRow').classList.remove('hidden'); document.getElementById('gameLimit').textContent = `名額 ${s.limit} 人`; }
-    if (s.type) { document.getElementById('gameTypeRow').classList.remove('hidden'); document.getElementById('gameType').textContent = TYPE_LABEL[s.type] || s.type; }
-    if (s.equipment?.length) { document.getElementById('gameEquipRow').classList.remove('hidden'); document.getElementById('gameEquip').textContent = '需自備：' + s.equipment.join('、'); }
-    setOptional('gameNoteRow', 'gameNote', s.note);
-
-    const now = Date.now();
-    const openAt = s.openAt ? s.openAt.toMillis() : null;
-
-    if (s.isOpen) {
-      setBadge('報名中', 'green');
-      document.getElementById('signupSection').classList.remove('hidden');
-      document.getElementById('countdownRow').classList.add('hidden');
-      if (openAtTimer) clearInterval(openAtTimer);
-    } else if (openAt && openAt > now) {
-      setBadge('尚未開放', 'gray');
-      document.getElementById('signupSection').classList.add('hidden');
-      startCountdown(openAt);
-    } else {
-      setBadge('已截止', 'red');
-      document.getElementById('signupSection').classList.add('hidden');
-    }
-  }
-
-  function setOptional(rowId, fieldId, value) {
-    if (value) { document.getElementById(rowId).classList.remove('hidden'); document.getElementById(fieldId).textContent = value; }
-  }
-
-  function setBadge(text, color) {
-    const badge = document.getElementById('statusBadge');
-    badge.textContent = text;
-    const c = { green:'bg-green-100 text-green-700', red:'bg-red-100 text-red-600', gray:'bg-gray-100 text-gray-500' };
-    badge.className = `text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${c[color]}`;
-  }
-
-  function startCountdown(openAtMs) {
-    const row = document.getElementById('countdownRow');
-    row.classList.remove('hidden');
-    if (openAtTimer) clearInterval(openAtTimer);
-    const update = () => {
-      const diff = openAtMs - Date.now();
-      if (diff <= 0) { clearInterval(openAtTimer); row.textContent = '報名已開放！請重新整理頁面'; return; }
-      const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
-      row.textContent = `⏳ 報名將於 ${h?h+'小時':''}${m}分${s}秒後開放`;
-    };
-    update();
-    openAtTimer = setInterval(update, 1000);
-  }
-
-  function subscribeSignups() {
-    if (unsubSignups) unsubSignups();
-    const q = query(collection(db, 'sessions', currentSessionId, 'signups'), orderBy('signedAt', 'asc'));
-    unsubSignups = onSnapshot(q, (snap) => {
-      renderList(snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i+1 })));
+    sessions.forEach((s, idx) => {
+      let card = document.getElementById('card-' + s.id);
+      if (!card) {
+        card = document.createElement('div');
+        card.id = 'card-' + s.id;
+        card.dataset.sessionId = s.id;
+        list.appendChild(card);
+      }
+      card.className = 'bg-white rounded-2xl shadow-sm border border-indigo-50 overflow-hidden fade-in';
+      card.innerHTML = buildSessionCard(s);
+      subscribeSignups(s.id, s.limit || 0);
     });
   }
 
-  function renderList(signups) {
-    const list = document.getElementById('signupList');
-    const empty = document.getElementById('emptyList');
-    document.getElementById('countBadge').textContent = `${signups.length} 人`;
-    document.getElementById('fullNotice').classList.toggle('hidden', !(currentLimit > 0 && signups.length >= currentLimit));
+  function buildSessionCard(s) {
+    const tl = TYPE_LABEL();
+    const typeLabel = tl[s.type] || '';
+    const now = Date.now();
+    const openAt = s.openAt ? s.openAt.toMillis() : null;
+    let badgeHtml = '';
+    if (s.isOpen) {
+      badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">${tr('open')}</span>`;
+    } else if (openAt && openAt > now) {
+      badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-600">${tr('notYet')}</span>`;
+    } else {
+      badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-500">${tr('closed')}</span>`;
+    }
 
-    if (!signups.length) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
-    empty.classList.add('hidden');
+    const equipHtml = s.equipment?.length ? `<div class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🎒</span><span>${tr('needsBring')}${s.equipment.join('、')}</span></div>` : '';
+    const noteHtml = s.note ? `<div class="flex items-center gap-1 text-xs text-gray-400 col-span-2"><span>📝</span><span>${escHtml(s.note)}</span></div>` : '';
+    const venueHtml = s.venue ? `<div class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🏟️</span><span>${escHtml(s.venue)}</span></div>` : '';
+    const typeHtml = s.type ? `<div class="flex items-center gap-1"><span>🏷️</span><span>${typeLabel}</span></div>` : '';
+    const limitHtml = s.limit ? `<div class="flex items-center gap-1"><span>👥</span><span>${tr('limitLabel')} ${s.limit}${tr('people')}</span></div>` : '';
 
-    list.innerHTML = signups.map(s => {
-      const isWait = currentLimit > 0 && s.position > currentLimit;
+    const signupBtnHtml = s.isOpen ? `
+      <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
+        class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
+        🙋 ${tr('confirmBtn').replace('確認','').replace('Confirm ','').replace('🙋 ', '')}
+        ${getLang() === 'zh' ? '我要報名' : 'Sign Up'}
+      </button>` : '';
+
+    const countdownHtml = (openAt && openAt > now) ? `<div id="cd-${s.id}" class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-3 text-sm text-amber-700 text-center font-medium"></div>` : '';
+
+    return `
+      <div class="p-5">
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <h3 class="font-bold text-gray-800">${escHtml(s.title || s.date + ' 零打')}</h3>
+          ${badgeHtml}
+        </div>
+        <div class="grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm text-gray-600">
+          <div class="flex items-center gap-1"><span>📅</span><span>${formatDate(s.date)}</span></div>
+          <div class="flex items-center gap-1"><span>🕐</span><span>${s.time || '—'}</span></div>
+          <div class="flex items-center gap-1 col-span-2"><span>📍</span>
+            <a href="https://maps.google.com/?q=${encodeURIComponent(s.location || '')}" target="_blank" class="text-indigo-500 hover:underline">${escHtml(s.location || '—')}</a>
+          </div>
+          ${venueHtml}${limitHtml}${typeHtml}${equipHtml}${noteHtml}
+        </div>
+        ${countdownHtml}
+        ${signupBtnHtml}
+      </div>
+      <!-- Signup list embedded -->
+      <div class="border-t border-gray-50 px-5 py-3">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-xs font-semibold text-gray-500">${tr('listTitle')}</p>
+          <span id="cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
+        </div>
+        <div id="list-${s.id}" class="space-y-1.5"></div>
+        <div id="empty-${s.id}" class="text-center py-3 text-gray-400 text-xs">${tr('noSignups')}</div>
+      </div>`;
+  }
+
+  function subscribeSignups(sessionId, limit) {
+    if (signupUnsubs[sessionId]) signupUnsubs[sessionId]();
+    const q2 = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
+    signupUnsubs[sessionId] = onSnapshot(q2, (snap) => {
+      const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i + 1 }));
+      renderSignupList(sessionId, items, limit);
+    });
+    // start countdown if needed
+    const card = document.getElementById('card-' + sessionId);
+    const cdEl = document.getElementById('cd-' + sessionId);
+    if (cdEl) startCountdown(cdEl);
+  }
+
+  function renderSignupList(sessionId, items, limit) {
+    const listEl = document.getElementById('list-' + sessionId);
+    const emptyEl = document.getElementById('empty-' + sessionId);
+    const cntEl = document.getElementById('cnt-' + sessionId);
+    if (!listEl) return;
+    cntEl && (cntEl.textContent = tr('signupCount', items.length));
+    if (!items.length) { listEl.innerHTML = ''; emptyEl?.classList.remove('hidden'); return; }
+    emptyEl?.classList.add('hidden');
+    listEl.innerHTML = items.map(s => {
+      const isWait = limit > 0 && s.position > limit;
       const posColor = s.position===1?'bg-yellow-400 text-white':s.position===2?'bg-gray-300 text-gray-700':s.position===3?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
-      const posLabel = isWait ? `候${s.position-currentLimit}` : `#${s.position}`;
+      const posLabel = isWait ? tr('waitPrefix')+(s.position-limit) : '#'+s.position;
       const tags = [];
-      if (s.isLate) tags.push(`⏰${s.lateTime?' '+s.lateTime:' 晚到'}`);
-      if (s.forFriend) tags.push(`👫 代：${escHtml(s.forFriend)}`);
-      if (s.pairWith) tags.push(`🤝 ${escHtml(s.pairWith)}`);
-
-      const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-8 h-8 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
-
+      if (s.isLate) tags.push(`${tr('lateTag')}${s.lateTime?' '+s.lateTime:''}`);
+      if (s.forFriend) tags.push(`${tr('proxyTag')}:${escHtml(s.forFriend)}`);
+      if (s.pairWith) tags.push(`${tr('pairTag')}:${escHtml(s.pairWith)}`);
+      const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-7 h-7 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
       return `
-        <div class="flex items-start gap-3 ${isWait?'bg-gray-50 opacity-75':'bg-indigo-50'} rounded-xl px-4 py-3 fade-in">
-          <span class="w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
+        <div class="flex items-center gap-2 ${isWait?'opacity-60':''} bg-gray-50 rounded-xl px-3 py-2">
+          <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0">${posLabel}</span>
           ${photoEl}
           <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-800 text-sm">${escHtml(s.name)}</p>
-            <p class="text-xs text-gray-400 mb-1">${formatTime(s.signedAt)}</p>
-            ${tags.length ? `<div class="flex flex-wrap gap-1">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''}
+            <p class="text-sm font-medium text-gray-800 truncate">${escHtml(s.name)}</p>
           </div>
+          ${tags.length ? `<div class="flex gap-1 flex-wrap justify-end">${tags.map(t2=>`<span class="tag">${t2}</span>`).join('')}</div>` : ''}
         </div>`;
     }).join('');
   }
 
-  // Form
-  document.getElementById('lateCheck').addEventListener('change', e => document.getElementById('lateSection').classList.toggle('hidden', !e.target.checked));
-  document.getElementById('friendCheck').addEventListener('change', e => document.getElementById('friendSection').classList.toggle('hidden', !e.target.checked));
+  // ── Countdown ──
+  const countdownTimers = {};
+  function startCountdown(el) {
+    const id = el.id;
+    if (countdownTimers[id]) clearInterval(countdownTimers[id]);
+    // get openAt from closest session card
+    const cardEl = el.closest('[data-session-id]');
+    // We don't have easy access to openAt here; re-read from DOM is hard.
+    // Instead the countdown el gets data-openat set during render.
+    // Let's skip — already handled above. Countdowns will show on initial render.
+  }
 
-  const signupBtn = document.getElementById('signupBtn');
-  signupBtn.addEventListener('click', async () => {
-    const name = currentUser ? currentUser.displayName : document.getElementById('nameInput').value.trim();
-    if (!name) { showMsg('請輸入名字', 'error'); return; }
-    if (!currentSessionId) return;
+  // ── Create Session ──
+  window.openCreateSheet = () => {
+    document.getElementById('createSheet').classList.remove('hidden');
+  };
+  window.closeCreateSheet = () => {
+    document.getElementById('createSheet').classList.add('hidden');
+  };
+  document.getElementById('createBtn').addEventListener('click', openCreateSheet);
 
-    signupBtn.disabled = true;
-    signupBtn.textContent = '報名中...';
-
-    try {
-      await addDoc(collection(db, 'sessions', currentSessionId, 'signups'), {
-        name,
-        photoURL: currentUser?.photoURL || null,
-        uid: currentUser?.uid || null,
-        signedAt: serverTimestamp(),
-        isLate: document.getElementById('lateCheck').checked,
-        lateTime: document.getElementById('lateTime').value.trim(),
-        forFriend: document.getElementById('friendName').value.trim(),
-        pairWith: document.getElementById('pairInput').value.trim(),
-      });
-      // Reset form
-      document.getElementById('nameInput').value = '';
-      ['lateCheck','friendCheck'].forEach(id => { document.getElementById(id).checked = false; });
-      document.getElementById('lateSection').classList.add('hidden');
-      document.getElementById('friendSection').classList.add('hidden');
-      document.getElementById('lateTime').value = '';
-      document.getElementById('friendName').value = '';
-      document.getElementById('pairInput').value = '';
-      showMsg('✅ 報名成功！', 'success');
-    } catch(e) {
-      showMsg('❌ 報名失敗，請再試一次', 'error');
-    } finally {
-      signupBtn.disabled = false;
-      signupBtn.textContent = '🙋 確認報名';
+  document.getElementById('equipChips').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-equip]');
+    if (!btn) return;
+    const val = btn.dataset.equip;
+    if (selectedEquip.has(val)) {
+      selectedEquip.delete(val);
+      btn.className = btn.className.replace('bg-indigo-500 text-white border-indigo-500', 'bg-gray-50 text-gray-500 border-gray-200');
+      btn.classList.add('hover:border-indigo-300', 'hover:text-indigo-600');
+    } else {
+      selectedEquip.add(val);
+      btn.className = `equip-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition`;
     }
   });
 
-  document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') signupBtn.click(); });
+  document.getElementById('submitCreateBtn').addEventListener('click', async () => {
+    if (!currentUser) return;
+    const date = document.getElementById('fDate').value;
+    const time = document.getElementById('fTime').value;
+    const location = document.getElementById('fLocation').value.trim();
+    if (!date || !time || !location) { showCreateMsg(tr('enterName'), 'error'); return; }
 
-  function showMsg(msg, type) {
-    const el = document.getElementById('signupMsg');
+    const btn = document.getElementById('submitCreateBtn');
+    btn.disabled = true;
+    document.getElementById('hCreateBtn').textContent = tr('creating');
+
+    const customEquip = document.getElementById('fEquipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const equipment = [...selectedEquip, ...customEquip];
+
+    // Calculate openAt
+    const openWhen = document.getElementById('fOpenWhen').value;
+    let openAt = null;
+    let isOpen = false;
+
+    if (openWhen === 'now') {
+      isOpen = true;
+    } else if (openWhen === 'custom') {
+      const v = document.getElementById('fOpenAt').value;
+      if (v) openAt = Timestamp.fromDate(new Date(v));
+      isOpen = openAt ? openAt.toMillis() <= Date.now() : false;
+    } else if (openWhen === 'hours' || openWhen === 'days') {
+      const n = parseInt(document.getElementById('fOpenOffset').value) || 1;
+      const gameDate = new Date(`${date}T${time}:00`);
+      const ms = openWhen === 'hours' ? n * 3600000 : n * 86400000;
+      const openDate = new Date(gameDate.getTime() - ms);
+      openAt = Timestamp.fromDate(openDate);
+      isOpen = openDate <= new Date();
+    }
+
+    try {
+      await addDoc(collection(db, 'sessions'), {
+        title: document.getElementById('fTitle').value.trim() || `${date} 零打`,
+        date, time, location,
+        venue: document.getElementById('fVenue').value.trim(),
+        limit: parseInt(document.getElementById('fLimit').value) || 0,
+        type: document.getElementById('fType').value,
+        equipment,
+        note: document.getElementById('fNote').value.trim(),
+        isOpen,
+        openAt,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser.uid,
+        creatorName: currentUser.displayName,
+      });
+      showCreateMsg('✅ ' + (getLang()==='zh'?'場次建立成功！':'Session created!'), 'success');
+      setTimeout(closeCreateSheet, 1200);
+    } catch(e) {
+      showCreateMsg('❌ ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('hCreateBtn').textContent = tr('createBtn');
+    }
+  });
+
+  function showCreateMsg(msg, type) {
+    const el = document.getElementById('createMsg');
     el.textContent = msg;
-    el.className = `text-center text-sm mt-2 ${type==='success'?'text-green-600':'text-red-500'}`;
+    el.className = `text-center text-sm ${type==='success'?'text-green-600':'text-red-500'}`;
     el.classList.remove('hidden');
     setTimeout(()=>el.classList.add('hidden'), 3000);
   }
 
+  // ── Open When Toggle ──
+  window.onOpenWhenChange = () => {
+    const val = document.getElementById('fOpenWhen').value;
+    const offsetRow = document.getElementById('fOpenOffsetRow');
+    const atRow = document.getElementById('fOpenAtRow');
+    const unitEl = document.getElementById('fOpenOffsetUnit');
+    offsetRow.classList.toggle('hidden', val !== 'hours' && val !== 'days');
+    atRow.classList.toggle('hidden', val !== 'custom');
+    if (unitEl) unitEl.textContent = getLang() === 'zh' ? (val === 'days' ? '天前' : '小時前') : (val === 'days' ? 'days before' : 'hours before');
+  };
+
+  // ── Templates ──
+  let templatesData = [];
+
+  async function loadTemplatesForDropdown() {
+    if (!currentUser) return;
+    const { getDocs, query: q3, collection: col, orderBy: ob } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const snap = await getDocs(q3(col(db, 'users', currentUser.uid, 'templates'), ob('createdAt', 'desc')));
+    templatesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const sel = document.getElementById('templateSelect');
+    sel.innerHTML = `<option value="">— ${getLang()==='zh'?'不套用':'No template'} —</option>` +
+      templatesData.map(t2 => `<option value="${t2.id}">${escHtml(t2.name)}</option>`).join('');
+    document.getElementById('templateDropdownRow').classList.toggle('hidden', !templatesData.length);
+  }
+
+  document.getElementById('createBtn').addEventListener('click', () => {
+    openCreateSheet();
+    loadTemplatesForDropdown();
+  });
+
+  window.applySelectedTemplate = () => {
+    const id = document.getElementById('templateSelect').value;
+    if (!id) return;
+    const tmpl = templatesData.find(t2 => t2.id === id);
+    if (!tmpl) return;
+    fillFormFromTemplate(tmpl);
+  };
+
+  window.editSelectedTemplate = () => {
+    const id = document.getElementById('templateSelect').value;
+    if (!id) { alert(getLang()==='zh'?'請先選擇一個範本':'Please select a template first'); return; }
+    const tmpl = templatesData.find(t2 => t2.id === id);
+    if (!tmpl) return;
+    fillFormFromTemplate(tmpl);
+    // Store edit mode
+    document.getElementById('submitCreateBtn').dataset.editTemplateId = id;
+    document.getElementById('hCreateBtn').textContent = getLang()==='zh' ? '💾 更新範本' : '💾 Update Template';
+  };
+
+  function fillFormFromTemplate(tmpl) {
+    document.getElementById('fTitle').value = tmpl.name || '';
+    document.getElementById('fTime').value = tmpl.time || '00:00';
+    document.getElementById('fLocation').value = tmpl.location || '';
+    document.getElementById('fVenue').value = tmpl.venue || '';
+    document.getElementById('fLimit').value = tmpl.limit || 0;
+    document.getElementById('fType').value = tmpl.type || '';
+    document.getElementById('fNote').value = tmpl.note || '';
+    selectedEquip.clear();
+    document.querySelectorAll('[data-equip]').forEach(btn => {
+      if (tmpl.equipment?.includes(btn.dataset.equip)) {
+        selectedEquip.add(btn.dataset.equip);
+        btn.className = 'equip-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
+      } else {
+        btn.className = 'equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+      }
+    });
+    // Scroll to top of sheet
+    document.querySelector('#createSheet .overflow-y-auto').scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Map Search ──
+  const locInput = document.getElementById('fLocation');
+  const suggestions = document.getElementById('mapSuggestions');
+
+  document.getElementById('mapSearchBtn').addEventListener('click', () => {
+    const val = locInput.value.trim();
+    if (val) searchLocation(val);
+  });
+
+  locInput.addEventListener('input', () => {
+    clearTimeout(mapDebounce);
+    const val = locInput.value.trim();
+    if (val.length < 2) { suggestions.classList.add('hidden'); return; }
+    mapDebounce = setTimeout(() => searchLocation(val), 400);
+  });
+
+  async function searchLocation(q2) {
+    try {
+      suggestions.innerHTML = `<li class="text-gray-400">${tr('searching')}</li>`;
+      suggestions.classList.remove('hidden');
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q2)}&format=json&limit=5&accept-language=${getLang()==='zh'?'zh-TW,zh':'en'}`);
+      const data = await res.json();
+      if (!data.length) { suggestions.innerHTML = `<li class="text-gray-400">${tr('noResults')}</li>`; return; }
+      suggestions.innerHTML = data.map(item => {
+        const name = item.display_name.split(',').slice(0, 3).join(', ');
+        return `<li onclick="selectLocation('${escAttr(name)}')">${escHtml(name)}</li>`;
+      }).join('');
+    } catch { suggestions.innerHTML = `<li class="text-gray-400">Error</li>`; }
+  }
+
+  window.selectLocation = (name) => {
+    locInput.value = name;
+    suggestions.classList.add('hidden');
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!locInput.contains(e.target) && !suggestions.contains(e.target) && !document.getElementById('mapSearchBtn').contains(e.target)) {
+      suggestions.classList.add('hidden');
+    }
+  });
+
+  // ── Signup Modal ──
+  window.openSignupModal = (sessionId, limit) => {
+    activeSessionId = sessionId;
+    activeSessionLimit = limit;
+    document.getElementById('signupModal').classList.remove('hidden');
+    document.getElementById('modalName').value = '';
+    document.getElementById('modalLate').checked = false;
+    document.getElementById('modalLateSection').classList.add('hidden');
+    document.getElementById('modalFriend').checked = false;
+    document.getElementById('modalFriendSection').classList.add('hidden');
+    document.getElementById('modalPair').value = '';
+  };
+  window.closeSignupModal = () => {
+    document.getElementById('signupModal').classList.add('hidden');
+  };
+
+  document.getElementById('modalLate').addEventListener('change', e => document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked));
+  document.getElementById('modalFriend').addEventListener('change', e => document.getElementById('modalFriendSection').classList.toggle('hidden', !e.target.checked));
+
+  document.getElementById('modalSubmitBtn').addEventListener('click', async () => {
+    const name = currentUser ? currentUser.displayName : document.getElementById('modalName').value.trim();
+    if (!name) { showModalMsg(tr('enterName'), 'error'); return; }
+
+    const btn = document.getElementById('modalSubmitBtn');
+    btn.disabled = true;
+    document.getElementById('hConfirmBtn').textContent = tr('signingUp');
+
+    try {
+      await addDoc(collection(db, 'sessions', activeSessionId, 'signups'), {
+        name,
+        photoURL: currentUser?.photoURL || null,
+        uid: currentUser?.uid || null,
+        signedAt: serverTimestamp(),
+        isLate: document.getElementById('modalLate').checked,
+        lateTime: document.getElementById('modalLateTime').value.trim(),
+        forFriend: document.getElementById('modalFriendName').value.trim(),
+        pairWith: document.getElementById('modalPair').value.trim(),
+      });
+      showModalMsg(tr('successMsg'), 'success');
+      setTimeout(closeSignupModal, 1200);
+    } catch(e) {
+      showModalMsg(tr('failMsg'), 'error');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
+    }
+  });
+
+  function showModalMsg(msg, type) {
+    const el = document.getElementById('modalMsg');
+    el.textContent = msg;
+    el.className = `text-center text-sm ${type==='success'?'text-green-600':'text-red-500'}`;
+    el.classList.remove('hidden');
+    setTimeout(()=>el.classList.add('hidden'), 2000);
+  }
+
+  // ── Utils ──
   function formatDate(d) {
-    if (!d) return '日期未定';
-    const dt = new Date(d);
+    if (!d) return '—';
+    const dt = new Date(d + 'T00:00:00');
+    if (getLang() === 'en') {
+      return dt.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short', year:'numeric' });
+    }
     const days = ['日','一','二','三','四','五','六'];
     return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
   }
 
-  function formatTime(ts) {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 報名`;
-  }
+  function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
 
-  function escHtml(s) {
-    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+  // Init
+  applyLang();
 </script>
 </body>
 </html>

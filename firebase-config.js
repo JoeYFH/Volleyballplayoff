@@ -8,7 +8,10 @@ const firebaseConfig = {
   measurementId: "G-7Y2WV1K8H0"
 };
 
-// 管理員密碼（可自行修改）
-const ADMIN_PASSWORD = "volleyball2024";
+// Super Admin 電子信箱清單（可加入多個）
+// 這裡的人可以管理所有人的場次
+const ADMIN_EMAILS = [
+  // "your-email@gmail.com",   ← 將您的 Gmail 貼在這裡
+];
 
-export { firebaseConfig, ADMIN_PASSWORD };
+export { firebaseConfig, ADMIN_EMAILS };
