@@ -22,16 +22,20 @@
 <!-- Login Screen -->
 <div id="loginScreen" class="flex items-center justify-center min-h-screen px-4">
   <div class="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-center">
+    <div class="flex justify-end mb-2">
+      <button id="langBtnLogin" onclick="toggleLang()"
+        class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:text-indigo-600 transition">EN</button>
+    </div>
     <div class="text-5xl mb-3">🏐</div>
     <h1 id="hLoginTitle" class="text-xl font-bold text-gray-800 mb-1">我的開場</h1>
-    <p class="text-sm text-gray-400 mb-6">請先登入</p>
+    <p id="hLoginHint" class="text-sm text-gray-400 mb-6">請先登入</p>
     <button id="googleLoginBtn"
       class="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" />
       <span id="hGoogleLogin">使用 Google 帳號登入</span>
     </button>
     <div class="mt-6 border-t pt-4">
-      <a href="index.html" class="text-xs text-gray-400 hover:text-gray-500">← 回到報名頁面</a>
+      <a href="index.html" id="hBackLink" class="text-xs text-gray-400 hover:text-gray-500">← 回到報名頁面</a>
     </div>
   </div>
 </div>
@@ -81,6 +85,7 @@
     <div id="noMySessions" class="hidden text-center py-10 text-gray-400">
       <div class="text-4xl mb-2">📭</div>
       <p id="hNoMySessions" class="text-sm">還沒有建立任何場次</p>
+      <p class="text-xs mt-2 text-gray-300">只顯示透過本網頁建立的場次</p>
     </div>
   </div>
 
@@ -109,6 +114,19 @@
       <button onclick="closeSessionSheet()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
     <div class="px-5 py-4 space-y-4">
+
+      <!-- Template Dropdown -->
+      <div id="sf_templateDropdownRow" class="hidden">
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sf_lTemplatePick">套用範本</label>
+        <div class="flex gap-2">
+          <select id="sf_templateSelect"
+            class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="">— 不套用 —</option>
+          </select>
+          <button type="button" onclick="sfApplySelectedTemplate()"
+            class="px-3 py-2 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition shrink-0" id="sf_applyTemplBtn">套用</button>
+        </div>
+      </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱</label>
@@ -220,14 +238,15 @@
   </div>
 </div>
 
-<!-- Export Modal -->
+<!-- Reminder Modal -->
 <div id="exportModal" class="fixed inset-0 bg-black/40 flex items-end justify-center z-50 hidden">
   <div class="bg-white rounded-t-2xl w-full max-w-md p-5 pb-8">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-semibold text-gray-700">📤 匯出名單</h3>
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-semibold text-gray-700">💬 提醒訊息</h3>
       <button onclick="document.getElementById('exportModal').classList.add('hidden')" class="text-gray-400 text-xl">✕</button>
     </div>
-    <textarea id="exportText" rows="10"
+    <p class="text-xs text-gray-400 mb-3">可直接複製貼到群組通知大家</p>
+    <textarea id="exportText" rows="12"
       class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 resize-none font-mono" readonly></textarea>
     <button id="copyExportBtn" onclick="copyExport()"
       class="mt-3 w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 transition">
@@ -268,7 +287,22 @@
 
   function applyLang() {
     const l = getLang();
-    document.getElementById('langBtn2').textContent = l === 'zh' ? 'EN' : '中';
+    const zh = l === 'zh';
+    document.getElementById('langBtn2').textContent = zh ? 'EN' : '中';
+    const loginBtn = document.getElementById('langBtnLogin');
+    if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';
+    document.getElementById('hLoginTitle').textContent = zh ? '我的開場' : 'My Sessions';
+    document.getElementById('hLoginHint').textContent = zh ? '請先登入' : 'Please sign in';
+    document.getElementById('hGoogleLogin').textContent = zh ? '使用 Google 帳號登入' : 'Sign in with Google';
+    document.getElementById('hBackLink').textContent = zh ? '← 回到報名頁面' : '← Back to sign-ups';
+    document.getElementById('hPageTitle').textContent = zh ? '📋 我的開場' : '📋 My Sessions';
+    document.getElementById('hCreateNew').textContent = zh ? '建立新場次' : 'New Session';
+    document.getElementById('hNoMySessions').textContent = zh ? '還沒有建立任何場次' : 'No sessions created yet';
+    document.getElementById('tabSessions').textContent = zh ? '我的場次' : 'My Sessions';
+    document.getElementById('tabTemplates').textContent = zh ? '我的範本' : 'My Templates';
+    const adminTab = document.getElementById('tabAdmin');
+    if (adminTab) adminTab.textContent = zh ? '所有場次' : 'All Sessions';
+    document.getElementById('logoutBtn2').textContent = zh ? '登出' : 'Logout';
   }
 
   // ── Auth ──
@@ -373,8 +407,8 @@
               ✏️ ${getLang()==='zh'?'編輯':'Edit'}
             </button>
             <button onclick="exportSession('${s.id}')"
-              class="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
-              📤 ${getLang()==='zh'?'匯出':'Export'}
+              class="text-xs px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition">
+              💬 ${getLang()==='zh'?'提醒訊息':'Reminder'}
             </button>
             <button onclick="deleteSession('${s.id}')"
               class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">
@@ -450,15 +484,46 @@
     const items = snap.docs.map((d, i) => ({ ...d.data(), position: i+1 }));
     const sessSnap = await getDoc(doc(db, 'sessions', id));
     const s = sessSnap.data();
-    const lines = items.map(item => {
+    const limit = s?.limit || 0;
+
+    const confirmed = limit > 0 ? items.slice(0, limit) : items;
+    const waitlist = limit > 0 ? items.slice(limit) : [];
+
+    const lines = confirmed.map(item => {
       let line = `${item.position}. ${item.name}`;
       if (item.isLate) line += item.lateTime ? `（晚到${item.lateTime}）` : '（晚到）';
       if (item.forFriend) line += `（代報：${item.forFriend}）`;
       if (item.pairWith) line += `（搭檔：${item.pairWith}）`;
       return line;
     });
-    document.getElementById('exportText').value =
-      `🏐 ${s?.title || id}\n📅 ${s?.date} ${s?.time||''}\n📍 ${s?.location||''}\n${'─'.repeat(20)}\n${lines.join('\n')}\n${'─'.repeat(20)}\n共 ${items.length} 人`;
+
+    const waitLines = waitlist.map(item => {
+      let line = `候${item.position - limit}. ${item.name}`;
+      if (item.isLate) line += item.lateTime ? `（晚到${item.lateTime}）` : '（晚到）';
+      if (item.forFriend) line += `（代報：${item.forFriend}）`;
+      return line;
+    });
+
+    const TYPE_LABEL = { '':'不限', mixed:'混合', male:'男網', female:'女網' };
+    const typeStr = s?.type ? `｜${TYPE_LABEL[s.type]||s.type}` : '';
+    const limitStr = limit ? `｜${limit}人` : '';
+
+    let msg = `🏐 ${s?.title || '零打'}\n`;
+    msg += `📅 ${s?.date || ''} ${s?.time || ''}\n`;
+    msg += `📍 ${s?.location || ''}`;
+    if (s?.venue) msg += `\n🏟️ ${s.venue}`;
+    if (typeStr || limitStr) msg += `\n🏷️${typeStr}${limitStr}`;
+    msg += `\n${'─'.repeat(18)}\n`;
+    msg += `✅ 正取名單（${confirmed.length}人）\n`;
+    msg += lines.join('\n');
+    if (waitLines.length) {
+      msg += `\n\n⏳ 候補名單\n${waitLines.join('\n')}`;
+    }
+    msg += `\n${'─'.repeat(18)}\n`;
+    msg += `共報名 ${items.length} 人`;
+    if (s?.note) msg += `\n📝 ${s.note}`;
+
+    document.getElementById('exportText').value = msg;
     document.getElementById('exportModal').classList.remove('hidden');
   };
 
@@ -472,7 +537,10 @@
   };
 
   // ── Create / Edit Session Sheet ──
-  document.getElementById('createNewBtn').addEventListener('click', () => openSessionSheet());
+  document.getElementById('createNewBtn').addEventListener('click', () => {
+    openSessionSheet();
+    populateTemplateDropdown();
+  });
 
   window.openEditSession = async (id) => {
     const snap = await getDoc(doc(db, 'sessions', id));
@@ -512,6 +580,47 @@
   window.closeSessionSheet = () => {
     document.getElementById('sessionSheet').classList.add('hidden');
     editingSessionId = null;
+  };
+
+  async function populateTemplateDropdown() {
+    if (!currentUser) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc')));
+      const tmpls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const sel = document.getElementById('sf_templateSelect');
+      sel.innerHTML = `<option value="">— ${getLang()==='zh'?'不套用':'No template'} —</option>` +
+        tmpls.map(t2 => `<option value="${t2.id}">${escHtml(t2.name)}</option>`).join('');
+      document.getElementById('sf_templateDropdownRow').classList.toggle('hidden', !tmpls.length);
+      // store for apply
+      sel._templatesData = tmpls;
+    } catch(e) {}
+  }
+
+  window.sfApplySelectedTemplate = () => {
+    const sel = document.getElementById('sf_templateSelect');
+    const id = sel.value;
+    if (!id) return;
+    const tmpls = sel._templatesData || [];
+    const tmpl = tmpls.find(t2 => t2.id === id);
+    if (!tmpl) return;
+    // Pre-fill form fields
+    document.getElementById('sf_time').value = tmpl.time || '00:00';
+    document.getElementById('sf_location').value = tmpl.location || '';
+    document.getElementById('sf_venue').value = tmpl.venue || '';
+    document.getElementById('sf_limit').value = tmpl.limit ?? 12;
+    document.getElementById('sf_type').value = tmpl.type || '';
+    document.getElementById('sf_note').value = tmpl.note || '';
+    sfSelectedEquip.clear();
+    document.querySelectorAll('[data-equip]').forEach(btn => {
+      const active = tmpl.equipment?.includes(btn.dataset.equip);
+      if (active) {
+        sfSelectedEquip.add(btn.dataset.equip);
+        btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
+      } else {
+        btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+      }
+    });
+    showSfMsg(getLang()==='zh'?'✅ 已套用範本，請確認並調整日期':'✅ Template applied', 'success');
   };
 
   document.getElementById('sf_equipChips').addEventListener('click', (e) => {
