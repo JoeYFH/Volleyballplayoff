@@ -503,6 +503,10 @@
               class="text-xs px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition">
               💬 ${getLang()==='zh'?'提醒訊息':'Reminder'}
             </button>
+            <button onclick="shareSignupLink('${s.id}')"
+              class="text-xs px-3 py-1.5 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 transition">
+              🔗 ${getLang()==='zh'?'分享報名連結':'Share Link'}
+            </button>
             <button onclick="deleteSession('${s.id}')"
               class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">
               🗑️ ${getLang()==='zh'?'刪除':'Delete'}
@@ -581,6 +585,17 @@
         </div>`;
     }).join('');
   }
+
+  // ── Share Signup Link ──
+  window.shareSignupLink = (id) => {
+    const base = window.location.origin + window.location.pathname.replace('my-sessions.html', 'index.html');
+    const url = `${base}?session=${id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert(getLang()==='zh' ? `✅ 報名連結已複製！\n\n${url}` : `✅ Link copied!\n\n${url}`);
+    }).catch(() => {
+      prompt(getLang()==='zh' ? '複製以下連結：' : 'Copy this link:', url);
+    });
+  };
 
   // ── Session Actions ──
   window.toggleOpen = async (id, currentOpen) => {

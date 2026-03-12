@@ -490,10 +490,22 @@
   const q = query(collection(db, 'sessions'), where('date', '>=', dateFrom), orderBy('date', 'asc'));
   const signupUnsubs = {};
 
+  let deepLinkHandled = false;
   onSnapshot(q, (snap) => {
     document.getElementById('loadingSpinner').classList.add('hidden');
     allSessionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     applyFilter();
+    // 處理直接報名連結 / handle direct signup deep link
+    if (!deepLinkHandled) {
+      deepLinkHandled = true;
+      const urlSessionId = new URLSearchParams(window.location.search).get('session');
+      if (urlSessionId) {
+        const target = allSessionsCache.find(s => s.id === urlSessionId);
+        if (target && target.isOpen) {
+          setTimeout(() => window.openSignupModal(urlSessionId), 300);
+        }
+      }
+    }
   });
 
   window.setFilter = (filter) => {
