@@ -217,9 +217,9 @@
           <label class="block text-sm font-medium text-gray-600 mb-1" id="sl6">性別分類</label>
           <select id="sf_type" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">不限</option>
-            <option value="mixed">混合</option>
-            <option value="male">男網</option>
-            <option value="female">女網</option>
+            <option value="mixed">混排</option>
+            <option value="male">男生</option>
+            <option value="female">女生</option>
           </select>
         </div>
       </div>
@@ -461,7 +461,7 @@
   }
 
   function buildMgmtCard(s, canEdit) {
-    const TYPE_LABEL = { '':'不限', mixed:'混合', male:'男網', female:'女網' };
+    const TYPE_LABEL = { '':'不限', mixed:'混排', male:'男生', female:'女生' };
     const isOpen = s.isOpen;
     const badgeCls = isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
     const badgeText = isOpen ? (getLang()==='zh'?'報名中':'Open') : (getLang()==='zh'?'已關閉':'Closed');
@@ -617,7 +617,7 @@
       return line;
     });
 
-    const TYPE_LABEL = { '':'不限', mixed:'混合', male:'男網', female:'女網' };
+    const TYPE_LABEL = { '':'不限', mixed:'混排', male:'男生', female:'女生' };
     const typeStr = s?.type ? `｜${TYPE_LABEL[s.type]||s.type}` : '';
     const limitStr = limit ? `｜${limit}人` : '';
 

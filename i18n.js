@@ -15,7 +15,7 @@ const t = {
     noteLabel: '備註', venueLabel: '場地',
     needsBring: '需自備：', people: '人',
     // types
-    mixed: '混合', male: '男網', female: '女網', noType: '不限',
+    mixed: '混排', male: '男生', female: '女生', noType: '不限',
     // countdown
     countdownTpl: (h, m, s) => `⏳ 報名將於 ${h ? h + '小時' : ''}${m}分${s}秒後開放`,
     countdownDone: '報名已開放！請重新整理頁面',
@@ -88,7 +88,7 @@ const t = {
     limitLabel: 'Limit', typeLabel: 'Type', equipLabel: 'Bring',
     noteLabel: 'Note', venueLabel: 'Venue',
     needsBring: 'Bring: ', people: ' players',
-    mixed: 'Mixed', male: "Men's", female: "Women's", noType: 'All',
+    mixed: 'Mixed', male: 'Male', female: 'Female', noType: 'All',
     countdownTpl: (h, m, s) => `⏳ Opens in ${h ? h + 'h ' : ''}${m}m ${s}s`,
     countdownDone: 'Signup is open! Please refresh.',
     formTitle: '✍️ Sign Up',
