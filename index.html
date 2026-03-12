@@ -186,7 +186,6 @@
         <div>
           <label id="lType" class="block text-sm font-medium text-gray-600 mb-1">性別分類</label>
           <select id="fType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="" id="oNoType">不限</option>
             <option value="mixed" id="oMixed">混排</option>
             <option value="male" id="oMale">男生</option>
             <option value="female" id="oFemale">女生</option>
@@ -398,7 +397,6 @@
     document.getElementById('fVenue').placeholder = tr('fVenuePh');
     document.getElementById('lLimit').textContent = tr('fLimit');
     document.getElementById('lType').textContent = tr('fType');
-    document.getElementById('oNoType').textContent = tr('noType');
     document.getElementById('oMixed').textContent = tr('mixed');
     document.getElementById('oMale').textContent = tr('male');
     document.getElementById('oFemale').textContent = tr('female');
@@ -518,8 +516,9 @@
       if (currentFilter === 'past') return (s.date || '') < today;
       return true;
     });
+    const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
     if (!filtered.length) {
-      document.getElementById('noSessionsMsg').classList.remove('hidden');
+      document.getElementById('noSessionsMsg').classList.toggle('hidden', isLoading);
       document.getElementById('sessionsList').innerHTML = '';
     } else {
       document.getElementById('noSessionsMsg').classList.add('hidden');
