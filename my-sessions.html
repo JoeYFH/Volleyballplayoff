@@ -78,7 +78,7 @@
 
   <div class="px-4 pt-4">
   <!-- Tabs -->
-  <div class="flex gap-2 mb-5">
+  <div class="flex flex-wrap gap-2 mb-5">
     <button id="tabSessions" onclick="switchTab('sessions')"
       class="text-xs font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white transition">我的場次</button>
     <button id="tabTemplates" onclick="switchTab('templates')"
@@ -240,10 +240,10 @@
         <label class="block text-sm font-medium text-gray-600 mb-1" id="sl8">開放報名時間</label>
         <select id="sf_openWhen" onchange="onSfOpenWhenChange()"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
-          <option value="now">立即開放</option>
-          <option value="hours">開賽前 N 小時</option>
-          <option value="days">開賽前 N 天</option>
-          <option value="custom">指定時間</option>
+          <option value="now" id="sfOpenNow">立即開放</option>
+          <option value="hours" id="sfOpenHours">開賽前 N 小時</option>
+          <option value="days" id="sfOpenDays">開賽前 N 天</option>
+          <option value="custom" id="sfOpenCustom">指定時間</option>
         </select>
         <div id="sf_offsetRow" class="hidden flex items-center gap-2">
           <input id="sf_offset" type="number" min="1" max="999" value="1"
@@ -365,6 +365,19 @@
       const btn = document.getElementById('filter-' + k);
       if (btn) btn.textContent = v;
     });
+    // Open time options
+    document.getElementById('sfOpenNow').textContent = zh ? '立即開放' : 'Open immediately';
+    document.getElementById('sfOpenHours').textContent = zh ? '開賽前 N 小時' : 'N hours before game';
+    document.getElementById('sfOpenDays').textContent = zh ? '開賽前 N 天' : 'N days before game';
+    document.getElementById('sfOpenCustom').textContent = zh ? '指定時間' : 'Custom time';
+    document.getElementById('sl7').textContent = zh ? '需要攜帶的用具' : 'Required Equipment';
+    document.getElementById('sl8').textContent = zh ? '開放報名時間' : 'Signup Open Time';
+    // Equipment chip labels
+    const sfChipLabels = { '標竿': zh?'🏁 標竿':'🏁 Pole', '音響': zh?'🔊 音響':'🔊 Speaker', '球': zh?'🏐 球':'🏐 Ball', '其他': zh?'📦 其他':'📦 Other' };
+    document.querySelectorAll('#sf_equipChips [data-equip]').forEach(btn => {
+      if (sfChipLabels[btn.dataset.equip]) btn.textContent = sfChipLabels[btn.dataset.equip];
+    });
+    document.getElementById('sf_equipCustom').placeholder = zh ? '其他用具（逗號分隔）' : 'Other items (comma separated)';
     // Re-render cards to pick up new language
     if (mySessionsCache.length) applySessionFilter();
     if (allSessionsCache.length) renderSessionMgmtList('allSessionsList', allSessionsCache, true);
