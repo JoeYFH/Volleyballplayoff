@@ -89,9 +89,9 @@
     <!-- Session Filters -->
     <div class="flex gap-1.5 mb-4 overflow-x-auto pb-1">
       <button id="filter-all" onclick="setSessionFilter('all')"
-        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">所有</button>
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="filter-open" onclick="setSessionFilter('open')"
-        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">報名中</button>
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">報名中</button>
       <button id="filter-closed" onclick="setSessionFilter('closed')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已關閉</button>
       <button id="filter-past" onclick="setSessionFilter('past')"
@@ -314,7 +314,7 @@
   let exportSignups = [];
   let mySessionsCache = [];
   let allSessionsCache = [];
-  let currentSessionFilter = 'all';
+  let currentSessionFilter = 'open';
 
   // ── Language ──
   window.toggleLang = () => {
