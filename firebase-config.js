@@ -11,7 +11,8 @@ const firebaseConfig = {
 // Super Admin 電子信箱清單（可加入多個）
 // 這裡的人可以管理所有人的場次
 const ADMIN_EMAILS = [
-  // "your-email@gmail.com",   ← 將您的 Gmail 貼在這裡
+  "anc8038570@gmail.com",
+  "joehuangyf@gmail.com",
 ];
 
 export { firebaseConfig, ADMIN_EMAILS };
