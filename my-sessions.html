@@ -41,13 +41,14 @@
 </div>
 
 <!-- Main App -->
-<div id="mainApp" class="hidden max-w-2xl mx-auto px-4 py-5 pb-20">
+<div id="mainApp" class="hidden max-w-2xl mx-auto pb-20">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-5">
+  <!-- Sticky Header -->
+  <div class="sticky top-0 z-10 bg-gray-50 px-4 pt-4 pb-3 border-b border-gray-100">
+  <div class="flex items-center justify-between">
     <div>
       <h1 id="hPageTitle" class="text-xl font-bold text-gray-800">📋 我的開場</h1>
-      <a href="index.html" class="text-xs text-indigo-500 hover:underline">← 報名頁面</a>
+      <a href="index.html" id="hMainBackLink" class="text-xs text-indigo-500 hover:underline">← 報名頁面</a>
     </div>
     <div class="flex items-center gap-2">
       <button id="langBtn2" onclick="toggleLang()"
@@ -64,7 +65,9 @@
       </div>
     </div>
   </div>
+  </div><!-- end sticky header -->
 
+  <div class="px-4 pt-4">
   <!-- Tabs -->
   <div class="flex gap-2 mb-5">
     <button id="tabSessions" onclick="switchTab('sessions')"
@@ -78,9 +81,20 @@
   <!-- Sessions Tab -->
   <div id="contentSessions">
     <button id="createNewBtn"
-      class="w-full mb-4 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
+      class="w-full mb-3 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
       + <span id="hCreateNew">建立新場次</span>
     </button>
+    <!-- Session Filters -->
+    <div class="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+      <button id="filter-all" onclick="setSessionFilter('all')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">所有</button>
+      <button id="filter-open" onclick="setSessionFilter('open')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">報名中</button>
+      <button id="filter-closed" onclick="setSessionFilter('closed')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已關閉</button>
+      <button id="filter-past" onclick="setSessionFilter('past')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
+    </div>
     <div id="mySessionsList" class="space-y-4"></div>
     <div id="noMySessions" class="hidden text-center py-10 text-gray-400">
       <div class="text-4xl mb-2">📭</div>
@@ -103,6 +117,7 @@
   <div id="contentAdmin" class="hidden">
     <div id="allSessionsList" class="space-y-4"></div>
   </div>
+  </div><!-- end px-4 wrapper -->
 </div>
 
 <!-- Create/Edit Session Sheet -->
@@ -278,6 +293,9 @@
   let mapDebounce2 = null;
   let signupUnsubs = {};
   let exportSignups = [];
+  let mySessionsCache = [];
+  let allSessionsCache = [];
+  let currentSessionFilter = 'all';
 
   // ── Language ──
   window.toggleLang = () => {
@@ -303,6 +321,23 @@
     const adminTab = document.getElementById('tabAdmin');
     if (adminTab) adminTab.textContent = zh ? '所有場次' : 'All Sessions';
     document.getElementById('logoutBtn2').textContent = zh ? '登出' : 'Logout';
+    const backLink = document.getElementById('hMainBackLink');
+    if (backLink) backLink.textContent = zh ? '← 報名頁面' : '← Sign-ups';
+    // Update filter button labels
+    const filterLabels = {
+      all: zh ? '所有' : 'All',
+      open: zh ? '報名中' : 'Open',
+      closed: zh ? '已關閉' : 'Closed',
+      past: zh ? '過去' : 'Past'
+    };
+    Object.entries(filterLabels).forEach(([k, v]) => {
+      const btn = document.getElementById('filter-' + k);
+      if (btn) btn.textContent = v;
+    });
+    // Re-render cards to pick up new language
+    if (mySessionsCache.length) applySessionFilter();
+    if (allSessionsCache.length) renderSessionMgmtList('allSessionsList', allSessionsCache, true);
+    renderTemplates();
   }
 
   // ── Auth ──
@@ -349,12 +384,36 @@
     onSnapshot(q, (snap) => {
       const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      document.getElementById('noMySessions').classList.toggle('hidden', sessions.length > 0);
-      renderSessionMgmtList('mySessionsList', sessions, true);
+      mySessionsCache = sessions;
+      applySessionFilter();
     }, (err) => {
       console.error('loadMySessions error:', err);
       document.getElementById('noMySessions').classList.remove('hidden');
     });
+  }
+
+  window.setSessionFilter = (filter) => {
+    currentSessionFilter = filter;
+    const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
+    const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
+    ['all','open','closed','past'].forEach(f => {
+      const btn = document.getElementById('filter-' + f);
+      if (btn) btn.className = f === filter ? activeClass : idleClass;
+    });
+    applySessionFilter();
+  };
+
+  function applySessionFilter() {
+    const today = new Date().toISOString().split('T')[0];
+    const filtered = mySessionsCache.filter(s => {
+      if (currentSessionFilter === 'all') return true;
+      if (currentSessionFilter === 'open') return s.isOpen && s.date >= today;
+      if (currentSessionFilter === 'closed') return !s.isOpen && s.date >= today;
+      if (currentSessionFilter === 'past') return s.date < today;
+      return true;
+    });
+    document.getElementById('noMySessions').classList.toggle('hidden', filtered.length > 0);
+    renderSessionMgmtList('mySessionsList', filtered, true);
   }
 
   function loadAllSessions() {
@@ -362,6 +421,7 @@
     onSnapshot(q, (snap) => {
       const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      allSessionsCache = sessions;
       renderSessionMgmtList('allSessionsList', sessions, true);
     });
   }
@@ -422,6 +482,15 @@
             <p class="text-xs font-semibold text-gray-500">${getLang()==='zh'?'報名名單':'Sign-ups'}</p>
             <span id="mgmt-cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
           </div>
+          ${s.limit ? `<div class="mb-2">
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
+              <span id="mgmt-prog-text-${s.id}">0 / ${s.limit}</span>
+            </div>
+            <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
+              <div id="mgmt-prog-bar-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-indigo-400" style="width:0%"></div>
+            </div>
+          </div>` : ''}
           <div id="mgmt-list-${s.id}" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
           <div id="mgmt-empty-${s.id}" class="text-center py-3 text-gray-400 text-xs">${getLang()==='zh'?'還沒有報名':'No signups yet'}</div>
         </div>
@@ -429,7 +498,10 @@
   }
 
   function subscribeSignupsMgmt(sessionId, limit) {
-    if (signupUnsubs[sessionId]) return;
+    if (signupUnsubs[sessionId]) {
+      signupUnsubs[sessionId]();
+      delete signupUnsubs[sessionId];
+    }
     const q = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
     signupUnsubs[sessionId] = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i+1 }));
@@ -443,6 +515,18 @@
     const cntEl = document.getElementById('mgmt-cnt-' + sessionId);
     if (!listEl) return;
     cntEl && (cntEl.textContent = items.length);
+    // Update progress bar
+    if (limit > 0) {
+      const filled = Math.min(items.length, limit);
+      const pct = Math.round((filled / limit) * 100);
+      const barEl = document.getElementById('mgmt-prog-bar-' + sessionId);
+      const textEl = document.getElementById('mgmt-prog-text-' + sessionId);
+      if (barEl) {
+        barEl.style.width = pct + '%';
+        barEl.className = `h-2 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-indigo-400'}`;
+      }
+      if (textEl) textEl.textContent = `${filled} / ${limit}`;
+    }
     if (!items.length) { listEl.innerHTML = ''; emptyEl?.classList.remove('hidden'); return; }
     emptyEl?.classList.add('hidden');
 
@@ -706,6 +790,10 @@
     if (!currentUser) return;
     const name = prompt(getLang()==='zh'?'範本名稱：':'Template name:', document.getElementById('sf_title').value || '');
     if (!name) return;
+    if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
+      showSfMsg(getLang()==='zh' ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
+      return;
+    }
     const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
       name,

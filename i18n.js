@@ -143,7 +143,9 @@ const t = {
   }
 };
 
-let currentLang = localStorage.getItem('lang') || 'zh';
+const browserLang = (navigator.language || 'zh').toLowerCase();
+const deviceDefault = browserLang.startsWith('zh') ? 'zh' : 'en';
+let currentLang = localStorage.getItem('lang') || deviceDefault;
 
 function getLang() { return currentLang; }
 

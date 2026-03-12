@@ -282,8 +282,10 @@
 
       <div>
         <label id="lModalPair" class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
-        <input id="modalPair" type="text" maxlength="20"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <select id="modalPair"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <option value="">— 不指定 —</option>
+        </select>
       </div>
 
       <button id="modalSubmitBtn"
@@ -298,7 +300,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+  import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig } from './firebase-config.js';
   import { tr, getLang, setLang, t } from './i18n.js';
 
@@ -315,6 +317,8 @@
   let mapDebounce = null;
   let userSignupMap = {}; // sessionId -> signupId for current user
   let sessionsData = {}; // sessionId -> session object
+  let signupsCache = {}; // sessionId -> signup items[]
+  let editingSignupId = null; // if set, edit mode in signup modal
 
   const TYPE_LABEL = () => ({ '': tr('noType'), mixed: tr('mixed'), male: tr('male'), female: tr('female') });
 
@@ -389,7 +393,10 @@
     document.getElementById('lModalFriend').textContent = tr('forFriend');
     document.getElementById('modalFriendName').placeholder = tr('friendPh');
     document.getElementById('lModalPair').textContent = tr('pairLabel');
-    document.getElementById('modalPair').placeholder = tr('pairPh');
+    const pairSel = document.getElementById('modalPair');
+    if (pairSel.options[0] && pairSel.options[0].value === '') {
+      pairSel.options[0].textContent = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
+    }
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
   }
 
@@ -503,6 +510,12 @@
         </div>
       </div>` : '';
 
+    const isOrganizer = currentUser && s.createdBy === currentUser.uid;
+    const manageBtn = isOrganizer ? `
+      <a href="my-sessions.html"
+        class="block w-full mt-2 text-center bg-amber-50 text-amber-700 border border-amber-200 rounded-xl py-2 font-semibold text-xs hover:bg-amber-100 transition">
+        ⚙️ ${getLang() === 'zh' ? '管理場次' : 'Manage Session'}
+      </a>` : '';
     const signupBtnHtml = s.isOpen ? `
       <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
         class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
@@ -534,6 +547,7 @@
         ${progressBar}
         ${countdownHtml}
         ${signupBtnHtml}
+        ${manageBtn}
       </div>
       <!-- Signup list embedded -->
       <div class="border-t border-gray-50 px-5 py-3">
@@ -579,6 +593,8 @@
       if (textEl) textEl.textContent = `${filled} / ${limit}`;
     }
 
+    signupsCache[sessionId] = items;
+
     if (!items.length) { listEl.innerHTML = ''; emptyEl?.classList.remove('hidden'); return; }
     emptyEl?.classList.add('hidden');
 
@@ -602,7 +618,10 @@
       if (s.pairWith) tags.push(`${tr('pairTag')}:${escHtml(s.pairWith)}`);
       const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-7 h-7 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
       const isOwn = currentUser && s.uid && s.uid === currentUser.uid;
-      const deleteBtn = isOwn ? `<button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
+      const ownBtns = isOwn ? `
+        <button onclick="openEditSignupModal('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" title="${getLang()==='zh'?'編輯報名':'Edit signup'}">✏️</button>
+        <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
+      const deleteBtn = ownBtns;
       return `
         <div class="flex items-center gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} rounded-xl px-3 py-2">
           <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0">${posLabel}</span>
@@ -645,8 +664,6 @@
   window.closeCreateSheet = () => {
     document.getElementById('createSheet').classList.add('hidden');
   };
-  document.getElementById('createBtn').addEventListener('click', openCreateSheet);
-
   document.getElementById('equipChips').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-equip]');
     if (!btn) return;
@@ -666,7 +683,10 @@
     const date = document.getElementById('fDate').value;
     const time = document.getElementById('fTime').value;
     const location = document.getElementById('fLocation').value.trim();
-    if (!date || !time || !location) { showCreateMsg(tr('enterName'), 'error'); return; }
+    if (!date || !time || !location) {
+      showCreateMsg(getLang()==='zh' ? '❌ 請填寫日期、時間和地點' : '❌ Please fill in date, time and location', 'error');
+      return;
+    }
 
     const btn = document.getElementById('submitCreateBtn');
     btn.disabled = true;
@@ -733,6 +753,10 @@
     if (!currentUser) return;
     const name = prompt(getLang()==='zh' ? '範本名稱：' : 'Template name:', document.getElementById('fTitle').value || '');
     if (!name) return;
+    if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
+      showCreateMsg(getLang()==='zh' ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
+      return;
+    }
     const customEquip = document.getElementById('fEquipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
       name,
@@ -869,10 +893,42 @@
     document.getElementById('modalLateSection').classList.add('hidden');
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
-    document.getElementById('modalPair').value = '';
+    // Populate pair-with dropdown from current signups
+    const pairSel = document.getElementById('modalPair');
+    const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
+    const signups = signupsCache[sessionId] || [];
+    pairSel.innerHTML = `<option value="">${noPreference}</option>` +
+      signups
+        .filter(s => !currentUser || s.uid !== currentUser.uid)
+        .map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`)
+        .join('');
   };
   window.closeSignupModal = () => {
     document.getElementById('signupModal').classList.add('hidden');
+    editingSignupId = null;
+  };
+
+  window.openEditSignupModal = (sessionId, signupId) => {
+    const signups = signupsCache[sessionId] || [];
+    const signup = signups.find(s => s.id === signupId);
+    if (!signup) return;
+    activeSessionId = sessionId;
+    editingSignupId = signupId;
+    document.getElementById('signupModal').classList.remove('hidden');
+    document.getElementById('modalLate').checked = !!signup.isLate;
+    document.getElementById('modalLateSection').classList.toggle('hidden', !signup.isLate);
+    document.getElementById('modalLateTime').value = signup.lateTime || '';
+    document.getElementById('modalFriend').checked = !!signup.forFriend;
+    document.getElementById('modalFriendSection').classList.toggle('hidden', !signup.forFriend);
+    document.getElementById('modalFriendName').value = signup.forFriend || '';
+    // Populate pair dropdown
+    const pairSel = document.getElementById('modalPair');
+    const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
+    const allSignups = signupsCache[sessionId] || [];
+    pairSel.innerHTML = `<option value="">${noPreference}</option>` +
+      allSignups.filter(s => s.id !== signupId).map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
+    pairSel.value = signup.pairWith || '';
+    document.getElementById('hConfirmBtn').textContent = getLang() === 'zh' ? '💾 更新報名' : '💾 Update';
   };
 
   document.getElementById('modalLate').addEventListener('change', e => document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked));
@@ -887,30 +943,40 @@
     document.getElementById('hConfirmBtn').textContent = tr('signingUp');
 
     try {
-      const signupRef = await addDoc(collection(db, 'sessions', activeSessionId, 'signups'), {
-        name,
-        photoURL: currentUser?.photoURL || null,
-        uid: currentUser?.uid || null,
-        signedAt: serverTimestamp(),
+      const signupPayload = {
         isLate: document.getElementById('modalLate').checked,
         lateTime: document.getElementById('modalLateTime').value.trim(),
         forFriend: document.getElementById('modalFriendName').value.trim(),
         pairWith: document.getElementById('modalPair').value.trim(),
-      });
-      // Track in user's mySignups for "My Signups" page
-      if (currentUser) {
-        await setDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupRef.id), {
-          sessionId: activeSessionId,
-          signupId: signupRef.id,
-          sessionTitle: activeSessionData.title || activeSessionData.date + ' 零打',
-          sessionDate: activeSessionData.date || '',
-          sessionTime: activeSessionData.time || '',
-          sessionLocation: activeSessionData.location || '',
-          sessionVenue: activeSessionData.venue || '',
-          signedAt: Timestamp.now(),
+      };
+
+      if (editingSignupId) {
+        // Update existing signup
+        await updateDoc(doc(db, 'sessions', activeSessionId, 'signups', editingSignupId), signupPayload);
+        showModalMsg(getLang()==='zh' ? '✅ 已更新！' : '✅ Updated!', 'success');
+      } else {
+        // Create new signup
+        const signupRef = await addDoc(collection(db, 'sessions', activeSessionId, 'signups'), {
+          name,
+          photoURL: currentUser?.photoURL || null,
+          uid: currentUser?.uid || null,
+          signedAt: serverTimestamp(),
+          ...signupPayload,
         });
+        if (currentUser) {
+          await setDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupRef.id), {
+            sessionId: activeSessionId,
+            signupId: signupRef.id,
+            sessionTitle: activeSessionData.title || activeSessionData.date + ' 零打',
+            sessionDate: activeSessionData.date || '',
+            sessionTime: activeSessionData.time || '',
+            sessionLocation: activeSessionData.location || '',
+            sessionVenue: activeSessionData.venue || '',
+            signedAt: Timestamp.now(),
+          });
+        }
+        showModalMsg(tr('successMsg'), 'success');
       }
-      showModalMsg(tr('successMsg'), 'success');
       setTimeout(closeSignupModal, 1200);
     } catch(e) {
       showModalMsg(tr('failMsg'), 'error');
