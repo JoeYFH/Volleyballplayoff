@@ -192,11 +192,13 @@
           <label id="lDate" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
           <input id="fDate" type="date"
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="fDateErr" class="hidden text-xs text-red-500 mt-1"></p>
         </div>
         <div>
           <label id="lTime" class="block text-sm font-medium text-gray-600 mb-1">時間 <span class="text-red-400">*</span></label>
           <input id="fTime" type="time" value="00:00"
             class="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="fTimeErr" class="hidden text-xs text-red-500 mt-1"></p>
         </div>
       </div>
 
@@ -208,6 +210,7 @@
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
           <ul id="mapSuggestions" class="hidden"></ul>
         </div>
+        <p id="fLocationErr" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
 
       <!-- Venue -->
@@ -373,8 +376,8 @@
       <div id="modalFriendSection" class="hidden ml-6 space-y-2">
         <input id="modalFriendName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <!-- 代報名性別 / gender for proxy -->
-        <div id="modalFriendGenderRow" class="flex gap-2">
+        <!-- 代報名性別（混排才顯示）/ gender for proxy (mixed sessions only) -->
+        <div id="modalFriendGenderRow" class="hidden flex gap-2">
           <button type="button" id="gFriendMale" data-gender="male"
             class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
           <button type="button" id="gFriendFemale" data-gender="female"
@@ -969,19 +972,64 @@
     if (e.key === 'Enter') { e.preventDefault(); addCustomEquipItem(); }
   });
 
+  // Helper: mark a create-form field as error
+  function setFieldError(inputId, errId, msg) {
+    const input = document.getElementById(inputId);
+    const err = document.getElementById(errId);
+    input.classList.add('border-red-400', 'ring-2', 'ring-red-200');
+    input.classList.remove('border-gray-200');
+    err.textContent = msg;
+    err.classList.remove('hidden');
+  }
+  function clearFieldError(inputId, errId) {
+    const input = document.getElementById(inputId);
+    const err = document.getElementById(errId);
+    input.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+    input.classList.add('border-gray-200');
+    err.classList.add('hidden');
+  }
+  // Clear errors on input
+  ['fDate','fTime','fLocation'].forEach(id => {
+    const errId = id + 'Err';
+    document.getElementById(id).addEventListener('input', () => clearFieldError(id, errId));
+    document.getElementById(id).addEventListener('change', () => clearFieldError(id, errId));
+  });
+
   document.getElementById('submitCreateBtn').addEventListener('click', async () => {
     if (!currentUser) return;
     const date = document.getElementById('fDate').value;
     const time = document.getElementById('fTime').value;
     const location = document.getElementById('fLocation').value.trim();
-    if (!date || !time || !location) {
-      showCreateMsg(getLang()==='zh' ? '❌ 請填寫日期、時間和地點' : '❌ Please fill in date, time and location', 'error');
+    const zh = getLang() === 'zh';
+
+    // Clear previous errors
+    clearFieldError('fDate', 'fDateErr');
+    clearFieldError('fTime', 'fTimeErr');
+    clearFieldError('fLocation', 'fLocationErr');
+
+    let firstErrorEl = null;
+    if (!date) {
+      setFieldError('fDate', 'fDateErr', zh ? '請選擇日期' : 'Please select a date');
+      if (!firstErrorEl) firstErrorEl = document.getElementById('fDate');
+    }
+    if (!time) {
+      setFieldError('fTime', 'fTimeErr', zh ? '請選擇時間' : 'Please select a time');
+      if (!firstErrorEl) firstErrorEl = document.getElementById('fTime');
+    }
+    if (!location) {
+      setFieldError('fLocation', 'fLocationErr', zh ? '請填寫地點' : 'Please enter a location');
+      if (!firstErrorEl) firstErrorEl = document.getElementById('fLocation');
+    }
+    if (firstErrorEl) {
+      firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstErrorEl.focus();
       return;
     }
 
     const btn = document.getElementById('submitCreateBtn');
     btn.disabled = true;
     document.getElementById('hCreateBtn').textContent = tr('creating');
+    document.getElementById('createMsg').classList.add('hidden');
 
     const customEquip = customEquipItems.slice();
     const equipment = [...selectedEquip, ...customEquip];
@@ -1045,7 +1093,8 @@
     el.textContent = msg;
     el.className = `text-center text-sm ${type==='success'?'text-green-600':'text-red-500'}`;
     el.classList.remove('hidden');
-    setTimeout(()=>el.classList.add('hidden'), 3000);
+    if (type === 'success') setTimeout(()=>el.classList.add('hidden'), 3000);
+    // errors stay visible until user fixes them
   }
 
   // ── Save Template ──
@@ -1261,6 +1310,7 @@
     // 混排場次才顯示性別欄 / show gender row for mixed sessions
     const isMixedSession = activeSessionData.type === 'mixed';
     document.getElementById('modalGenderRow').classList.toggle('hidden', !isMixedSession);
+    document.getElementById('modalFriendGenderRow').classList.toggle('hidden', !isMixedSession);
     // Populate pair-with dropdown from current signups
     const pairSel = document.getElementById('modalPair');
     const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
