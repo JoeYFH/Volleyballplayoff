@@ -1125,11 +1125,15 @@
   });
 
   function showModalMsg(msg, type) {
+    if (type === 'error') {
+      alert(msg);
+      return;
+    }
     const el = document.getElementById('modalMsg');
     el.textContent = msg;
-    el.className = `text-center text-sm ${type==='success'?'text-green-600':'text-red-500'}`;
+    el.className = 'text-center text-sm text-green-600';
     el.classList.remove('hidden');
-    setTimeout(()=>el.classList.add('hidden'), 2000);
+    setTimeout(() => el.classList.add('hidden'), 2000);
   }
 
   // ── Utils ──
