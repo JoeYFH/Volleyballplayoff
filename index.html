@@ -319,7 +319,7 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig } from './firebase-config.js';
   import { tr, getLang, setLang, t } from './i18n.js';
@@ -328,6 +328,15 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // 處理 redirect 登入結果 / handle redirect login result
+  getRedirectResult(auth).catch(() => {});
+
+  function signIn() {
+    if (isMobile) signInWithRedirect(auth, provider);
+    else signInWithPopup(auth, provider);
+  }
 
   let currentUser = null;
   let activeSessionId = null; // for signup modal
@@ -457,7 +466,7 @@
     }
   });
 
-  document.getElementById('loginBtn').addEventListener('click', () => signInWithPopup(auth, provider));
+  document.getElementById('loginBtn').addEventListener('click', signIn);
   document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
   document.getElementById('mySessionsBtn').addEventListener('click', () => { window.location.href = 'my-sessions.html'; });
   document.getElementById('mySignupsBtn').addEventListener('click', () => { window.location.href = 'my-signups.html'; });

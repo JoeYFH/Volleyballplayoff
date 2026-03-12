@@ -223,7 +223,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
   import {
-    getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import {
     getFirestore, doc, collection, addDoc, setDoc, getDoc,
@@ -235,6 +235,12 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  getRedirectResult(auth).catch(() => {});
+  function signIn() {
+    if (isMobile) signInWithRedirect(auth, provider);
+    else signInWithPopup(auth, provider);
+  }
 
   let currentUser = null;
   let currentSessionId = null;
@@ -245,7 +251,7 @@
   // Auth
   document.getElementById('googleLoginBtn').addEventListener('click', async () => {
     try {
-      await signInWithPopup(auth, provider);
+      await signIn();
     } catch (e) {
       document.getElementById('loginError').textContent = '登入失敗：' + e.message;
       document.getElementById('loginError').classList.remove('hidden');
