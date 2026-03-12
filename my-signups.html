@@ -45,9 +45,16 @@
   <!-- Sticky Header -->
   <div class="sticky top-0 z-10 bg-gray-50 px-4 pt-4 pb-3 border-b border-gray-100">
     <div class="flex items-center justify-between">
-      <div>
-        <h1 id="hPageTitle" class="text-xl font-bold text-gray-800">✅ 我的報名</h1>
-        <a href="index.html" id="hMainBackLink" class="text-xs text-indigo-500 hover:underline">← 報名頁面</a>
+      <div class="flex items-center gap-3">
+        <a href="index.html" title="回主頁"
+          class="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition shadow-sm shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+        </a>
+        <div>
+          <h1 id="hPageTitle" class="text-xl font-bold text-gray-800">✅ 我的報名</h1>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <button id="langBtn3" onclick="toggleLang()"
@@ -62,6 +69,7 @@
       </div>
     </div>
   </div>
+
 
   <div class="px-4 pt-4">
     <!-- Skeleton Loading -->
@@ -98,7 +106,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import {
-    getFirestore, doc, collectionGroup, collection, query, where, orderBy,
+    getFirestore, doc, collection, query, orderBy,
     onSnapshot, deleteDoc, getDoc
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig } from './firebase-config.js';
@@ -127,7 +135,6 @@
     document.getElementById('hGoogleLogin').textContent = zh ? '使用 Google 帳號登入' : 'Sign in with Google';
     document.getElementById('hBackLinkLogin').textContent = zh ? '← 回到報名頁面' : '← Back to sign-ups';
     document.getElementById('hPageTitle').textContent = zh ? '✅ 我的報名' : '✅ My Sign-ups';
-    document.getElementById('hMainBackLink').textContent = zh ? '← 報名頁面' : '← Sign-ups';
     document.getElementById('hNoSignups').textContent = zh ? '還沒有報名任何場次' : 'No sign-ups yet';
     document.getElementById('hGoSignup').textContent = zh ? '去報名 →' : 'Browse sessions →';
     document.getElementById('logoutBtn').textContent = zh ? '登出' : 'Logout';
@@ -154,10 +161,12 @@
     }
   });
 
-  // ── Load My Signups via collectionGroup ──
+  // ── Load My Signups via users/{uid}/mySignups ──
   function loadMySignups() {
-    // Query across ALL sessions' signups subcollections for this user's uid
-    const q = query(collectionGroup(db, 'signups'), where('uid', '==', currentUser.uid));
+    const q = query(
+      collection(db, 'users', currentUser.uid, 'mySignups'),
+      orderBy('signedAt', 'desc')
+    );
     onSnapshot(q, async (snap) => {
       document.getElementById('loadingSkeletons').classList.add('hidden');
 
@@ -168,20 +177,31 @@
         return;
       }
 
-      // Extract sessionId from document path: sessions/{sessionId}/signups/{signupId}
-      const raw = snap.docs.map(d => ({
-        id: d.id,
-        sessionId: d.ref.parent.parent.id,
-        ...d.data()
-      })).sort((a, b) => (b.signedAt?.seconds || 0) - (a.signedAt?.seconds || 0));
+      // Each doc: { sessionId, signupId, signedAt, ... }
+      const raw = snap.docs.map(d => ({ mirrorId: d.id, ...d.data() }));
 
-      // Enrich with live session data
-      const enriched = await Promise.all(raw.map(async (s) => {
+      // Fetch session + signup details in parallel
+      const enriched = await Promise.all(raw.map(async (m) => {
         try {
-          const sessionSnap = await getDoc(doc(db, 'sessions', s.sessionId));
-          return { ...s, session: sessionSnap.exists() ? sessionSnap.data() : null };
+          const [sessionSnap, signupSnap] = await Promise.all([
+            getDoc(doc(db, 'sessions', m.sessionId)),
+            m.signupId ? getDoc(doc(db, 'sessions', m.sessionId, 'signups', m.signupId)) : null,
+          ]);
+          const signupData = signupSnap?.exists() ? signupSnap.data() : {};
+          return {
+            id: m.signupId || m.mirrorId,
+            sessionId: m.sessionId,
+            signedAt: m.signedAt,
+            ...signupData,
+            session: sessionSnap.exists() ? sessionSnap.data() : null,
+          };
         } catch(e) {
-          return { ...s, session: null };
+          return {
+            id: m.signupId || m.mirrorId,
+            sessionId: m.sessionId,
+            signedAt: m.signedAt,
+            session: null,
+          };
         }
       }));
 

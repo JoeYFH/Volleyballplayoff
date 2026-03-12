@@ -273,6 +273,7 @@
         <label id="lModalName" class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
         <input id="modalName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="modalNameError" class="hidden mt-1 text-xs text-red-500"></p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -979,6 +980,8 @@
     activeSessionData = sessionsData[sessionId] || {};
     document.getElementById('signupModal').classList.remove('hidden');
     document.getElementById('modalName').value = '';
+    document.getElementById('modalName').classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+    document.getElementById('modalNameError').classList.add('hidden');
     document.getElementById('modalLate').checked = false;
     document.getElementById('modalLateSection').classList.add('hidden');
     document.getElementById('modalFriend').checked = false;
@@ -1028,10 +1031,24 @@
 
   document.getElementById('modalLate').addEventListener('change', e => document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked));
   document.getElementById('modalFriend').addEventListener('change', e => document.getElementById('modalFriendSection').classList.toggle('hidden', !e.target.checked));
+  document.getElementById('modalName').addEventListener('input', () => {
+    document.getElementById('modalName').classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+    document.getElementById('modalNameError').classList.add('hidden');
+  });
 
   document.getElementById('modalSubmitBtn').addEventListener('click', async () => {
-    const name = currentUser ? currentUser.displayName : document.getElementById('modalName').value.trim();
-    if (!name) { showModalMsg(tr('enterName'), 'error'); return; }
+    const nameInput = document.getElementById('modalName');
+    const name = currentUser ? currentUser.displayName : nameInput.value.trim();
+    if (!name) {
+      nameInput.classList.add('border-red-400', 'ring-2', 'ring-red-200');
+      const errEl = document.getElementById('modalNameError');
+      errEl.textContent = tr('enterName');
+      errEl.classList.remove('hidden');
+      nameInput.focus();
+      return;
+    }
+    nameInput.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+    document.getElementById('modalNameError').classList.add('hidden');
 
     const btn = document.getElementById('modalSubmitBtn');
     btn.disabled = true;
