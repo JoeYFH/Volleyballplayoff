@@ -194,17 +194,25 @@
         </div>
       </div>
 
-      <!-- Equipment chips -->
+      <!-- Equipment addable list -->
       <div>
         <label id="lEquip" class="block text-sm font-medium text-gray-600 mb-2">需要攜帶的用具</label>
+        <!-- Quick preset chips -->
         <div class="flex flex-wrap gap-2 mb-2" id="equipChips">
           <button type="button" data-equip="標竿" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏁 標竿</button>
           <button type="button" data-equip="音響" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🔊 音響</button>
           <button type="button" data-equip="球" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
           <button type="button" data-equip="其他" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">📦 其他</button>
         </div>
-        <input id="fEquipCustom" type="text"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <!-- Custom items list -->
+        <div id="equipCustomList" class="flex flex-wrap gap-2 mb-2"></div>
+        <!-- Add custom item row -->
+        <div class="flex gap-2">
+          <input id="fEquipCustom" type="text" placeholder="新增用具名稱..."
+            class="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <button type="button" id="addEquipBtn"
+            class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-xl hover:bg-indigo-100 transition">＋</button>
+        </div>
       </div>
 
       <!-- Open Time -->
@@ -343,6 +351,7 @@
   let activeSessionLimit = 0;
   let activeSessionData = {}; // store session info for mySignups
   let selectedEquip = new Set();
+  let customEquipItems = []; // 自訂新增的用具 / custom equipment items
   let selectedBringEquip = new Set();
   let mapDebounce = null;
   let userSignupMap = {}; // sessionId -> signupId for current user
@@ -747,6 +756,37 @@
     }
   });
 
+  function renderCustomEquipList() {
+    const list = document.getElementById('equipCustomList');
+    list.innerHTML = customEquipItems.map((item, i) =>
+      `<span class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-50 text-indigo-700">
+        ${escHtml(item)}
+        <button type="button" onclick="removeCustomEquip(${i})" class="ml-1 text-indigo-400 hover:text-red-500 font-bold leading-none">✕</button>
+      </span>`
+    ).join('');
+  }
+
+  window.removeCustomEquip = (i) => {
+    customEquipItems.splice(i, 1);
+    renderCustomEquipList();
+  };
+
+  function addCustomEquipItem() {
+    const input = document.getElementById('fEquipCustom');
+    const val = input.value.trim();
+    if (!val) return;
+    val.split(/[,，]/).map(s => s.trim()).filter(Boolean).forEach(v => {
+      if (!customEquipItems.includes(v)) customEquipItems.push(v);
+    });
+    input.value = '';
+    renderCustomEquipList();
+  }
+
+  document.getElementById('addEquipBtn').addEventListener('click', addCustomEquipItem);
+  document.getElementById('fEquipCustom').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addCustomEquipItem(); }
+  });
+
   document.getElementById('submitCreateBtn').addEventListener('click', async () => {
     if (!currentUser) return;
     const date = document.getElementById('fDate').value;
@@ -761,7 +801,7 @@
     btn.disabled = true;
     document.getElementById('hCreateBtn').textContent = tr('creating');
 
-    const customEquip = document.getElementById('fEquipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const customEquip = customEquipItems.slice();
     const equipment = [...selectedEquip, ...customEquip];
 
     // Calculate openAt
@@ -827,7 +867,7 @@
       showCreateMsg(getLang()==='zh' ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
       return;
     }
-    const customEquip = document.getElementById('fEquipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const customEquip = customEquipItems.slice();
     await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
       name,
       time: document.getElementById('fTime').value,
@@ -902,6 +942,8 @@
     document.getElementById('fType').value = tmpl.type || '';
     document.getElementById('fNote').value = tmpl.note || '';
     selectedEquip.clear();
+    customEquipItems.length = 0;
+    const presetKeys = ['標竿','音響','球','其他'];
     document.querySelectorAll('[data-equip]').forEach(btn => {
       if (tmpl.equipment?.includes(btn.dataset.equip)) {
         selectedEquip.add(btn.dataset.equip);
@@ -910,6 +952,8 @@
         btn.className = 'equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
       }
     });
+    (tmpl.equipment || []).filter(e => !presetKeys.includes(e)).forEach(e => customEquipItems.push(e));
+    renderCustomEquipList();
     // Scroll to top of sheet
     document.querySelector('#createSheet .overflow-y-auto').scrollTo({ top: 0, behavior: 'smooth' });
   }
