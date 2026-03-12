@@ -108,6 +108,51 @@
     </button>
   </div>
 </div>
+<!-- Feedback FAB -->
+<button id="feedbackBtn" onclick="openFeedbackModal()"
+  class="fixed bottom-6 left-4 z-30 bg-white border border-gray-200 text-gray-500 rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:bg-gray-50 hover:text-indigo-600 transition text-lg"
+  title="意見回饋">💬</button>
+
+<!-- Feedback Modal -->
+<div id="feedbackModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeFeedbackModal()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl px-5 py-6 space-y-4">
+    <div class="flex items-center justify-between mb-2">
+      <h2 id="hFeedbackTitle" class="font-bold text-gray-800">💬 意見回饋</h2>
+      <button onclick="closeFeedbackModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div>
+      <label id="lFeedbackEmail" class="block text-sm font-medium text-gray-600 mb-1">Email（選填）</label>
+      <input id="fbEmail" type="email" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+    </div>
+    <div>
+      <label id="lFeedbackType" class="block text-sm font-medium text-gray-600 mb-1">類型</label>
+      <select id="fbType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        <option value="bug" id="fbOptBug">🐛 Bug / 錯誤回報</option>
+        <option value="feature" id="fbOptFeature">💡 功能建議</option>
+        <option value="question" id="fbOptQuestion">❓ 使用問題</option>
+        <option value="other" id="fbOptOther">💬 其他</option>
+      </select>
+    </div>
+    <div>
+      <label id="lFeedbackUrgency" class="block text-sm font-medium text-gray-600 mb-1">緊急程度</label>
+      <select id="fbUrgency" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        <option value="low" id="fbOptLow">🟢 低</option>
+        <option value="medium" id="fbOptMedium">🟡 中</option>
+        <option value="high" id="fbOptHigh">🔴 高</option>
+      </select>
+    </div>
+    <div>
+      <label id="lFeedbackDesc" class="block text-sm font-medium text-gray-600 mb-1">描述 <span class="text-red-400">*</span></label>
+      <textarea id="fbDesc" rows="4" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+    </div>
+    <button id="fbSubmitBtn"
+      class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
+      <span id="hFbSubmit">📨 送出意見</span>
+    </button>
+    <p id="fbMsg" class="text-center text-sm hidden"></p>
+  </div>
+</div>
 
 <!-- Create Session Sheet -->
 <div id="createSheet" class="fixed inset-0 z-40 hidden">
@@ -405,6 +450,7 @@
     const newLang = getLang() === 'zh' ? 'en' : 'zh';
     setLang(newLang);
     applyLang();
+    applyFeedbackLang();
     // Re-render session cards with updated language
     const allSessions = Object.values(sessionsData);
     if (allSessions.length) renderSessions(allSessions);
@@ -1407,8 +1453,74 @@
   function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
 
+  // ── Feedback ──
+  window.openFeedbackModal = () => {
+    document.getElementById('feedbackModal').classList.remove('hidden');
+    document.getElementById('fbDesc').value = '';
+    document.getElementById('fbMsg').classList.add('hidden');
+    // Pre-fill email if logged in
+    if (currentUser?.email) document.getElementById('fbEmail').value = currentUser.email;
+  };
+  window.closeFeedbackModal = () => {
+    document.getElementById('feedbackModal').classList.add('hidden');
+  };
+
+  document.getElementById('fbSubmitBtn').addEventListener('click', async () => {
+    const desc = document.getElementById('fbDesc').value.trim();
+    if (!desc) {
+      document.getElementById('fbDesc').focus();
+      return;
+    }
+    const btn = document.getElementById('fbSubmitBtn');
+    btn.disabled = true;
+    document.getElementById('hFbSubmit').textContent = getLang()==='zh' ? '送出中...' : 'Submitting...';
+    try {
+      await addDoc(collection(db, 'feedback'), {
+        email: document.getElementById('fbEmail').value.trim() || null,
+        type: document.getElementById('fbType').value,
+        urgency: document.getElementById('fbUrgency').value,
+        description: desc,
+        uid: currentUser?.uid || null,
+        userName: currentUser?.displayName || null,
+        createdAt: serverTimestamp(),
+      });
+      const el = document.getElementById('fbMsg');
+      el.textContent = getLang()==='zh' ? '✅ 感謝你的意見！' : '✅ Thanks for your feedback!';
+      el.className = 'text-center text-sm text-green-600';
+      el.classList.remove('hidden');
+      setTimeout(closeFeedbackModal, 1500);
+    } catch(e) {
+      const el = document.getElementById('fbMsg');
+      el.textContent = getLang()==='zh' ? '❌ 送出失敗，請再試一次' : '❌ Failed, please try again';
+      el.className = 'text-center text-sm text-red-500';
+      el.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('hFbSubmit').textContent = getLang()==='zh' ? '📨 送出意見' : '📨 Submit';
+    }
+  });
+
+  // ── Feedback i18n (in applyLang) ──
+  function applyFeedbackLang() {
+    const zh = getLang() === 'zh';
+    document.getElementById('hFeedbackTitle').textContent = zh ? '💬 意見回饋' : '💬 Feedback';
+    document.getElementById('lFeedbackEmail').textContent = zh ? 'Email（選填）' : 'Email (optional)';
+    document.getElementById('lFeedbackType').textContent = zh ? '類型' : 'Type';
+    document.getElementById('fbOptBug').textContent = zh ? '🐛 Bug / 錯誤回報' : '🐛 Bug Report';
+    document.getElementById('fbOptFeature').textContent = zh ? '💡 功能建議' : '💡 Feature Request';
+    document.getElementById('fbOptQuestion').textContent = zh ? '❓ 使用問題' : '❓ Question';
+    document.getElementById('fbOptOther').textContent = zh ? '💬 其他' : '💬 Other';
+    document.getElementById('lFeedbackUrgency').textContent = zh ? '緊急程度' : 'Urgency';
+    document.getElementById('fbOptLow').textContent = zh ? '🟢 低' : '🟢 Low';
+    document.getElementById('fbOptMedium').textContent = zh ? '🟡 中' : '🟡 Medium';
+    document.getElementById('fbOptHigh').textContent = zh ? '🔴 高' : '🔴 High';
+    document.getElementById('lFeedbackDesc').innerHTML = (zh ? '描述' : 'Description') + ' <span class="text-red-400">*</span>';
+    document.getElementById('hFbSubmit').textContent = zh ? '📨 送出意見' : '📨 Submit';
+  }
+
   // Init
   applyLang();
+  applyFeedbackLang();
 </script>
 </body>
 </html>

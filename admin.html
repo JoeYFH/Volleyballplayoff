@@ -81,9 +81,10 @@
   </div>
 
   <!-- Tabs -->
-  <div class="flex gap-2 mb-4">
+  <div class="flex gap-2 mb-4 flex-wrap">
     <button id="tabNew" class="chip chip-active" onclick="switchTab('new')">➕ 建立新場次</button>
     <button id="tabTemplate" class="chip chip-idle" onclick="switchTab('template')">📋 我的範本</button>
+    <button id="tabFeedback" class="chip chip-idle hidden" onclick="switchTab('feedback')">💬 意見回饋</button>
   </div>
 
   <!-- New Session Form -->
@@ -201,6 +202,13 @@
       還沒有儲存任何範本<br><span class="text-xs">在建立場次時點「存為範本」</span>
     </div>
   </div>
+
+  <!-- Feedback Tab (super admin only) -->
+  <div id="tabFeedbackContent" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <h2 class="font-semibold text-gray-700 mb-4">💬 用戶意見回饋</h2>
+    <div id="feedbackList" class="space-y-3"></div>
+    <div id="emptyFeedback" class="text-center py-8 text-gray-400 text-sm">載入中...</div>
+  </div>
 </div>
 
 <!-- Export Modal -->
@@ -226,9 +234,9 @@
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import {
     getFirestore, doc, collection, addDoc, setDoc, getDoc,
-    onSnapshot, query, orderBy, deleteDoc, Timestamp, updateDoc
+    onSnapshot, query, orderBy, deleteDoc, Timestamp, updateDoc, getDocs
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig } from './firebase-config.js';
+  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -270,6 +278,10 @@
       if (user.photoURL) { photo.src = user.photoURL; photo.classList.remove('hidden'); }
       name.textContent = user.displayName || user.email;
       name.classList.remove('hidden');
+      // Show feedback tab for super admins
+      if (ADMIN_EMAILS.includes(user.email)) {
+        document.getElementById('tabFeedback').classList.remove('hidden');
+      }
       loadCurrentSession();
       loadTemplates();
     } else {
@@ -297,8 +309,11 @@
   window.switchTab = (tab) => {
     document.getElementById('tabNew').className = tab==='new' ? 'chip chip-active' : 'chip chip-idle';
     document.getElementById('tabTemplate').className = tab==='template' ? 'chip chip-active' : 'chip chip-idle';
+    document.getElementById('tabFeedback').className = tab==='feedback' ? 'chip chip-active' : 'chip chip-idle';
     document.getElementById('tabNewContent').classList.toggle('hidden', tab!=='new');
     document.getElementById('tabTemplateContent').classList.toggle('hidden', tab!=='template');
+    document.getElementById('tabFeedbackContent').classList.toggle('hidden', tab!=='feedback');
+    if (tab === 'feedback') loadFeedback();
   };
 
   // Load current session
@@ -545,6 +560,40 @@
     if (!confirm('確定刪除此範本？')) return;
     await deleteDoc(doc(db, 'users', currentUser.uid, 'templates', id));
   };
+
+  async function loadFeedback() {
+    if (!ADMIN_EMAILS.includes(currentUser?.email)) return;
+    const listEl = document.getElementById('feedbackList');
+    const emptyEl = document.getElementById('emptyFeedback');
+    emptyEl.textContent = '載入中...';
+    emptyEl.classList.remove('hidden');
+    listEl.innerHTML = '';
+    try {
+      const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
+      if (!snap.docs.length) { emptyEl.textContent = '目前沒有任何意見回饋'; return; }
+      emptyEl.classList.add('hidden');
+      const urgencyLabel = { low: '🟢 低', medium: '🟡 中', high: '🔴 高' };
+      const typeLabel = { bug: '🐛 Bug', feature: '💡 功能建議', question: '❓ 問題', other: '💬 其他' };
+      listEl.innerHTML = snap.docs.map(d => {
+        const f = d.data();
+        const ts = f.createdAt ? new Date(f.createdAt.toMillis()) : null;
+        const dateStr = ts ? `${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}` : '';
+        return `<div class="bg-gray-50 rounded-xl p-4 space-y-1">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex gap-2 text-xs">
+              <span class="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">${typeLabel[f.type] || f.type}</span>
+              <span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">${urgencyLabel[f.urgency] || f.urgency}</span>
+            </div>
+            <span class="text-xs text-gray-400 shrink-0">${dateStr}</span>
+          </div>
+          <p class="text-sm text-gray-800">${escHtml(f.description)}</p>
+          ${f.userName ? `<p class="text-xs text-gray-400">👤 ${escHtml(f.userName)}${f.email?' · '+escHtml(f.email):''}</p>` : (f.email ? `<p class="text-xs text-gray-400">📧 ${escHtml(f.email)}</p>` : '')}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      emptyEl.textContent = '載入失敗';
+    }
+  }
 
   function escHtml(s) {
     return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
