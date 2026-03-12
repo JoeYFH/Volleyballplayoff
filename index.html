@@ -63,9 +63,9 @@
     <!-- Session Filter Tabs -->
     <div class="flex gap-1.5 mt-3 overflow-x-auto pb-0.5">
       <button id="sf-all" onclick="setFilter('all')"
-        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">所有</button>
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="sf-open" onclick="setFilter('open')"
-        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">報名中</button>
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">報名中</button>
       <button id="sf-closed" onclick="setFilter('closed')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已截止</button>
       <button id="sf-past" onclick="setFilter('past')"
@@ -340,7 +340,7 @@
   let signupsCache = {}; // sessionId -> signup items[]
   let editingSignupId = null; // if set, edit mode in signup modal
   let allSessionsCache = []; // all loaded sessions for filtering
-  let currentFilter = 'all';
+  let currentFilter = 'open';
 
   const TYPE_LABEL = () => ({ '': tr('noType'), mixed: tr('mixed'), male: tr('male'), female: tr('female') });
 
