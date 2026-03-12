@@ -185,11 +185,24 @@
         </div>
         <div>
           <label id="lType" class="block text-sm font-medium text-gray-600 mb-1">性別分類</label>
-          <select id="fType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <select id="fType" onchange="onTypeChange()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="mixed" id="oMixed">混排</option>
             <option value="male" id="oMale">男生</option>
             <option value="female" id="oFemale">女生</option>
           </select>
+        </div>
+      </div>
+      <!-- Mixed session gender sub-limits -->
+      <div id="mixedLimitsRow" class="grid grid-cols-2 gap-3">
+        <div>
+          <label id="lMaleLimit" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
+          <input id="fMaleLimit" type="number" min="0" max="100" value="0"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label id="lFemaleLimit" class="block text-sm font-medium text-gray-600 mb-1">女生名額（0=不限）</label>
+          <input id="fFemaleLimit" type="number" min="0" max="100" value="0"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         </div>
       </div>
 
@@ -417,6 +430,8 @@
     document.getElementById('fVenue').placeholder = tr('fVenuePh');
     document.getElementById('lLimit').textContent = tr('fLimit');
     document.getElementById('lType').textContent = tr('fType');
+    document.getElementById('lMaleLimit').textContent = getLang()==='zh' ? '男生名額（0=不限）' : 'Male Limit (0=unlimited)';
+    document.getElementById('lFemaleLimit').textContent = getLang()==='zh' ? '女生名額（0=不限）' : 'Female Limit (0=unlimited)';
     document.getElementById('oMixed').textContent = tr('mixed');
     document.getElementById('oMale').textContent = tr('male');
     document.getElementById('oFemale').textContent = tr('female');
@@ -490,7 +505,7 @@
       // Re-subscribe signups to update "signed" badges for logged-in user
       Object.keys(signupUnsubs).forEach(id => { signupUnsubs[id](); delete signupUnsubs[id]; });
       const allSessions = Object.values(sessionsData);
-      if (allSessions.length) allSessions.forEach(s => subscribeSignups(s.id, s.limit || 0));
+      if (allSessions.length) allSessions.forEach(s => subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0));
     } else {
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('hidden');
@@ -585,7 +600,7 @@
       }
       card.className = 'bg-white rounded-2xl shadow-sm border border-indigo-50 overflow-hidden fade-in';
       card.innerHTML = buildSessionCard(s);
-      subscribeSignups(s.id, s.limit || 0);
+      subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0);
     });
   }
 
@@ -676,12 +691,12 @@
       </div>`;
   }
 
-  function subscribeSignups(sessionId, limit) {
+  function subscribeSignups(sessionId, limit, maleLimit = 0, femaleLimit = 0) {
     if (signupUnsubs[sessionId]) signupUnsubs[sessionId]();
     const q2 = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
     signupUnsubs[sessionId] = onSnapshot(q2, (snap) => {
       const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i + 1 }));
-      renderSignupList(sessionId, items, limit);
+      renderSignupList(sessionId, items, limit, maleLimit, femaleLimit);
     });
     // start countdown if needed
     const card = document.getElementById('card-' + sessionId);
@@ -689,7 +704,7 @@
     if (cdEl) startCountdown(cdEl);
   }
 
-  function renderSignupList(sessionId, items, limit) {
+  function renderSignupList(sessionId, items, limit, maleLimit = 0, femaleLimit = 0) {
     const listEl = document.getElementById('list-' + sessionId);
     const emptyEl = document.getElementById('empty-' + sessionId);
     const cntEl = document.getElementById('cnt-' + sessionId);
@@ -724,8 +739,18 @@
     const badge = document.getElementById('signed-badge-' + sessionId);
     if (badge) badge.classList.toggle('hidden', !foundOwnSignup);
 
+    // Compute gender positions for sub-limit waitlisting
+    if (maleLimit > 0 || femaleLimit > 0) {
+      let maleCount = 0, femaleCount = 0;
+      items.forEach(s => {
+        if (s.gender === 'male') { maleCount++; s.genderPosition = maleCount; s.genderWait = maleLimit > 0 && maleCount > maleLimit; }
+        else if (s.gender === 'female') { femaleCount++; s.genderPosition = femaleCount; s.genderWait = femaleLimit > 0 && femaleCount > femaleLimit; }
+        else { s.genderWait = false; }
+      });
+    }
+
     const isFull = limit > 0 && items.length > limit;
-    const waitItems = isFull ? items.filter(s => s.position > limit) : [];
+    const waitItems = isFull ? items.filter(s => s.position > limit) : (maleLimit > 0 || femaleLimit > 0 ? items.filter(s => s.genderWait) : []);
     const ownIsWaitlisted = currentUser && waitItems.some(s => s.uid === currentUser.uid);
 
     let html = '';
@@ -740,15 +765,16 @@
 
     let separatorAdded = false;
     html += items.map(s => {
-      const isWait = limit > 0 && s.position > limit;
+      const isWait = (limit > 0 && s.position > limit) || !!s.genderWait;
       let sep = '';
       if (isWait && !separatorAdded) {
         separatorAdded = true;
         const sepLabel = getLang() === 'zh' ? '候補名單' : 'Waitlist';
         sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
       }
+      const waitOffset = limit > 0 ? limit : 0;
       const posColor = s.position===1?'bg-yellow-400 text-white':s.position===2?'bg-gray-300 text-gray-700':s.position===3?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
-      const posLabel = isWait ? tr('waitPrefix')+(s.position-limit) : '#'+s.position;
+      const posLabel = isWait ? tr('waitPrefix')+(waitOffset > 0 ? s.position-waitOffset : (s.genderPosition || s.position)) : '#'+s.position;
       const tags = [];
       if (s.isLate) tags.push(`<span class="tag">${tr('lateTag')}${s.lateTime?' '+s.lateTime:''}</span>`);
       if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
@@ -894,6 +920,8 @@
         venue: document.getElementById('fVenue').value.trim(),
         limit: parseInt(document.getElementById('fLimit').value) || 0,
         type: document.getElementById('fType').value,
+        maleLimit: document.getElementById('fType').value === 'mixed' ? (parseInt(document.getElementById('fMaleLimit').value) || 0) : 0,
+        femaleLimit: document.getElementById('fType').value === 'mixed' ? (parseInt(document.getElementById('fFemaleLimit').value) || 0) : 0,
         equipment,
         note: document.getElementById('fNote').value.trim(),
         isOpen,
@@ -938,12 +966,21 @@
       venue: document.getElementById('fVenue').value.trim(),
       limit: parseInt(document.getElementById('fLimit').value) || 0,
       type: document.getElementById('fType').value,
+      maleLimit: document.getElementById('fType').value === 'mixed' ? (parseInt(document.getElementById('fMaleLimit').value) || 0) : 0,
+      femaleLimit: document.getElementById('fType').value === 'mixed' ? (parseInt(document.getElementById('fFemaleLimit').value) || 0) : 0,
       equipment: [...selectedEquip, ...customEquip],
       note: document.getElementById('fNote').value.trim(),
       createdAt: Timestamp.now(),
     });
     showCreateMsg(getLang()==='zh' ? '✅ 已儲存為範本！' : '✅ Saved as template!', 'success');
   });
+
+  // ── Type Change Toggle ──
+  window.onTypeChange = () => {
+    const type = document.getElementById('fType').value;
+    document.getElementById('mixedLimitsRow').classList.toggle('hidden', type !== 'mixed');
+  };
+  onTypeChange(); // initialize on load
 
   // ── Open When Toggle ──
   window.onOpenWhenChange = () => {
