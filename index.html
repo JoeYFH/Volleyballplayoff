@@ -551,7 +551,11 @@
     const typeHtml = s.type ? `<div class="flex items-center gap-1"><span>🏷️</span><span>${typeLabel}</span></div>` : '';
     const limitHtml = s.limit ? `<div class="flex items-center gap-1"><span>👥</span><span>${tr('limitLabel')} ${s.limit}${tr('people')}</span></div>` : '';
 
-    const organizerHtml = s.creatorName ? `<p class="text-xs text-gray-400 mt-1">👤 ${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(s.creatorName)}</p>` : '';
+    const organizerHtml = s.creatorName ? `
+      <div class="flex items-center gap-1.5 mt-1">
+        ${s.creatorPhoto ? `<img src="${escHtml(s.creatorPhoto)}" class="w-5 h-5 rounded-full border border-gray-200 shrink-0" alt="" onerror="this.style.display='none'" />` : ''}
+        <p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(s.creatorName)}</p>
+      </div>` : '';
     const signedBadge = `<span id="signed-badge-${s.id}" class="hidden text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full shrink-0">✅ ${getLang()==='zh'?'已報名':'Signed up'}</span>`;
     const progressBar = s.limit ? `
       <div id="progress-wrap-${s.id}" class="mt-3">
@@ -785,6 +789,7 @@
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
         creatorName: currentUser.displayName,
+        creatorPhoto: currentUser.photoURL || null,
       });
       showCreateMsg('✅ ' + (getLang()==='zh'?'場次建立成功！':'Session created!'), 'success');
       setTimeout(closeCreateSheet, 1200);
