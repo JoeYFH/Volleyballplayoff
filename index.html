@@ -249,6 +249,14 @@
         </div>
       </div>
 
+      <!-- Close Time -->
+      <div>
+        <label id="lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間（選填，預設為活動開始時間）</label>
+        <input id="fCloseAt" type="datetime-local"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="hCloseAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
+      </div>
+
       <!-- Note -->
       <div>
         <label id="lNote" class="block text-sm font-medium text-gray-600 mb-1">備註（選填）</label>
@@ -444,6 +452,10 @@
     document.getElementById('oOpenCustom').textContent = getLang()==='zh' ? '指定時間' : 'Custom time';
     const hintEl = document.getElementById('hOpenAtHint');
     if (hintEl) hintEl.textContent = tr('fOpenAtHint');
+    document.getElementById('lCloseAt').textContent = getLang()==='zh'
+      ? '結束報名時間（選填，預設為活動開始時間）'
+      : 'Signup Close Time (optional, defaults to session start time)';
+    document.getElementById('hCloseAtHint').textContent = getLang()==='zh' ? '到時自動關閉報名' : 'Signup will close automatically';
     document.getElementById('lNote').textContent = tr('fNote');
     document.getElementById('lNoteHint').textContent = getLang()==='zh'
       ? '⚠️ 此備註只有開場者能看到，不會顯示在公開報名頁面上'
@@ -609,8 +621,11 @@
     const typeLabel = tl[s.type] || '';
     const now = Date.now();
     const openAt = s.openAt ? s.openAt.toMillis() : null;
+    const closeAt = s.closeAt ? s.closeAt.toMillis() : null;
+    const isPastClose = closeAt && closeAt < now;
+    const effectivelyOpen = s.isOpen && !isPastClose;
     let badgeHtml = '';
-    if (s.isOpen) {
+    if (effectivelyOpen) {
       badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">${tr('open')}</span>`;
     } else if (openAt && openAt > now) {
       badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-600">${tr('notYet')}</span>`;
@@ -647,7 +662,12 @@
         class="block w-full mt-2 text-center bg-amber-50 text-amber-700 border border-amber-200 rounded-xl py-2 font-semibold text-xs hover:bg-amber-100 transition">
         ⚙️ ${getLang() === 'zh' ? '管理場次' : 'Manage Session'}
       </a>` : '';
-    const signupBtnHtml = s.isOpen ? `
+    const closeAtFmt = closeAt ? (() => {
+      const d = new Date(closeAt);
+      return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    })() : null;
+    const closeAtHtml = closeAt && !isPastClose ? `<div class="text-xs text-gray-400 mt-1">🔒 ${getLang()==='zh'?'報名截止':'Closes'}: ${closeAtFmt}</div>` : '';
+    const signupBtnHtml = effectivelyOpen ? `
       <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
         class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
         🙋 ${getLang() === 'zh' ? '我要報名' : 'Sign Up'}
@@ -677,6 +697,7 @@
         </div>
         ${progressBar}
         ${countdownHtml}
+        ${closeAtHtml}
         ${signupBtnHtml}
         ${manageBtn}
       </div>
@@ -856,6 +877,8 @@
   // ── Create Session ──
   window.openCreateSheet = () => {
     document.getElementById('createSheet').classList.remove('hidden');
+    // Clear close time so auto-fill works fresh
+    document.getElementById('fCloseAt').value = '';
   };
   window.closeCreateSheet = () => {
     document.getElementById('createSheet').classList.add('hidden');
@@ -955,6 +978,12 @@
         note: document.getElementById('fNote').value.trim(),
         isOpen,
         openAt,
+        closeAt: (() => {
+          const v = document.getElementById('fCloseAt').value;
+          if (v) return Timestamp.fromDate(new Date(v));
+          // Default: session start time
+          return Timestamp.fromDate(new Date(`${date}T${time}:00`));
+        })(),
         createdAt: serverTimestamp(),
         createdBy: currentUser.uid,
         creatorName: currentUser.displayName,
@@ -1003,6 +1032,17 @@
     });
     showCreateMsg(getLang()==='zh' ? '✅ 已儲存為範本！' : '✅ Saved as template!', 'success');
   });
+
+  // ── Auto-fill Close Time from Date+Time ──
+  function syncCloseAtDefault() {
+    const closeAtEl = document.getElementById('fCloseAt');
+    if (closeAtEl.value) return; // don't override user input
+    const date = document.getElementById('fDate').value;
+    const time = document.getElementById('fTime').value;
+    if (date && time) closeAtEl.value = `${date}T${time}`;
+  }
+  document.getElementById('fDate').addEventListener('change', syncCloseAtDefault);
+  document.getElementById('fTime').addEventListener('change', syncCloseAtDefault);
 
   // ── Type Change Toggle ──
   window.onTypeChange = () => {
