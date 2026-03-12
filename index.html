@@ -293,13 +293,31 @@
           class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       </div>
 
+      <!-- 自己的性別（混排場次用）/ own gender for mixed sessions -->
+      <div id="modalGenderRow" class="hidden">
+        <label id="lModalGender" class="block text-sm font-medium text-gray-600 mb-2">性別</label>
+        <div class="flex gap-2">
+          <button type="button" id="gSelfMale" data-gender="male"
+            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
+          <button type="button" id="gSelfFemale" data-gender="female"
+            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
+        </div>
+      </div>
+
       <div class="flex items-center gap-2">
         <input type="checkbox" id="modalFriend" class="w-4 h-4" />
         <label id="lModalFriend" for="modalFriend" class="text-sm text-gray-600">幫朋友報名</label>
       </div>
-      <div id="modalFriendSection" class="hidden ml-6">
+      <div id="modalFriendSection" class="hidden ml-6 space-y-2">
         <input id="modalFriendName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <!-- 代報名性別 / gender for proxy -->
+        <div id="modalFriendGenderRow" class="flex gap-2">
+          <button type="button" id="gFriendMale" data-gender="male"
+            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
+          <button type="button" id="gFriendFemale" data-gender="female"
+            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
+        </div>
       </div>
 
       <div>
@@ -353,6 +371,8 @@
   let selectedEquip = new Set();
   let customEquipItems = []; // 自訂新增的用具 / custom equipment items
   let selectedBringEquip = new Set();
+  let selectedSelfGender = ''; // 自己的性別 / own gender
+  let selectedFriendGender = ''; // 代報名朋友的性別 / friend gender
   let mapDebounce = null;
   let userSignupMap = {}; // sessionId -> signupId for current user
   let sessionsData = {}; // sessionId -> session object
@@ -442,6 +462,11 @@
     }
     const lBring = document.getElementById('lModalBringEquip');
     if (lBring) lBring.textContent = getLang()==='zh' ? '🎒 我可以幫忙帶' : '🎒 I can bring';
+    document.getElementById('lModalGender').textContent = getLang()==='zh' ? '性別' : 'Gender';
+    document.getElementById('gSelfMale').textContent = getLang()==='zh' ? '♂ 男生' : '♂ Male';
+    document.getElementById('gSelfFemale').textContent = getLang()==='zh' ? '♀ 女生' : '♀ Female';
+    document.getElementById('gFriendMale').textContent = getLang()==='zh' ? '♂ 男生' : '♂ Male';
+    document.getElementById('gFriendFemale').textContent = getLang()==='zh' ? '♀ 女生' : '♀ Female';
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
     // Re-apply filter with updated labels
     applyFilter();
@@ -715,8 +740,9 @@
       const ownBtns = isOwn ? `
         <button onclick="openEditSignupModal('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" title="${getLang()==='zh'?'編輯報名':'Edit signup'}">✏️</button>
         <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
+      const genderBorder = s.gender === 'male' ? 'border-l-4 border-l-blue-400' : s.gender === 'female' ? 'border-l-4 border-l-pink-400' : '';
       return `
-        <div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} rounded-xl px-3 py-2">
+        <div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} ${genderBorder} rounded-xl px-3 py-2">
           <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
           ${photoEl}
           <div class="flex-1 min-w-0">
@@ -1063,6 +1089,14 @@
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
+    // 重置性別 / reset gender
+    selectedSelfGender = '';
+    selectedFriendGender = '';
+    resetGenderBtns('self');
+    resetGenderBtns('friend');
+    // 混排場次才顯示性別欄 / show gender row for mixed sessions
+    const isMixedSession = activeSessionData.type === 'mixed';
+    document.getElementById('modalGenderRow').classList.toggle('hidden', !isMixedSession);
     // Populate pair-with dropdown from current signups
     const pairSel = document.getElementById('modalPair');
     const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
@@ -1114,7 +1148,43 @@
         String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     }
   });
-  document.getElementById('modalFriend').addEventListener('change', e => document.getElementById('modalFriendSection').classList.toggle('hidden', !e.target.checked));
+  document.getElementById('modalFriend').addEventListener('change', e => {
+    document.getElementById('modalFriendSection').classList.toggle('hidden', !e.target.checked);
+  });
+
+  // ── Gender selection helpers ──
+  function resetGenderBtns(who) {
+    const maleCls = 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition';
+    const femCls  = 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition';
+    document.getElementById(who === 'self' ? 'gSelfMale' : 'gFriendMale').className = maleCls;
+    document.getElementById(who === 'self' ? 'gSelfFemale' : 'gFriendFemale').className = femCls;
+  }
+
+  function selectGenderBtn(who, gender) {
+    resetGenderBtns(who);
+    const btnId = who === 'self' ? (gender === 'male' ? 'gSelfMale' : 'gSelfFemale') : (gender === 'male' ? 'gFriendMale' : 'gFriendFemale');
+    const activeCls = gender === 'male'
+      ? 'flex-1 text-xs py-2 rounded-xl border border-blue-500 bg-blue-500 text-white transition'
+      : 'flex-1 text-xs py-2 rounded-xl border border-pink-500 bg-pink-500 text-white transition';
+    document.getElementById(btnId).className = activeCls;
+  }
+
+  ['gSelfMale','gSelfFemale'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+      const g = document.getElementById(id).dataset.gender;
+      selectedSelfGender = g;
+      selectGenderBtn('self', g);
+    });
+  });
+
+  ['gFriendMale','gFriendFemale'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+      const g = document.getElementById(id).dataset.gender;
+      selectedFriendGender = g;
+      selectGenderBtn('friend', g);
+    });
+  });
+
   document.getElementById('modalName').addEventListener('input', () => {
     document.getElementById('modalName').classList.remove('border-red-400', 'ring-2', 'ring-red-200');
     document.getElementById('modalNameError').classList.add('hidden');
@@ -1139,12 +1209,22 @@
     document.getElementById('hConfirmBtn').textContent = tr('signingUp');
 
     try {
+      // Determine gender for this signup
+      const forFriendName = document.getElementById('modalFriendName').value.trim();
+      let signupGender = '';
+      if (activeSessionData.type === 'male') signupGender = 'male';
+      else if (activeSessionData.type === 'female') signupGender = 'female';
+      else if (activeSessionData.type === 'mixed') {
+        signupGender = forFriendName ? selectedFriendGender : selectedSelfGender;
+      }
+
       const signupPayload = {
         isLate: document.getElementById('modalLate').checked,
         lateTime: document.getElementById('modalLateTime').value.trim(),
-        forFriend: document.getElementById('modalFriendName').value.trim(),
+        forFriend: forFriendName,
         pairWith: document.getElementById('modalPair').value.trim(),
         bringEquip: [...selectedBringEquip],
+        gender: signupGender,
       };
 
       if (editingSignupId) {
