@@ -25,41 +25,55 @@
   </style>
 </head>
 <body class="bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 min-h-screen">
-<div class="max-w-md mx-auto px-4 py-5 pb-24">
+<div class="max-w-md mx-auto pb-24">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800">🏐 排球零打報名</h1>
-      <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-        <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
-        <span id="hLive">即時更新</span>
-      </p>
-    </div>
-    <div class="flex items-center gap-2">
-      <!-- Lang toggle -->
-      <button id="langBtn" onclick="toggleLang()"
-        class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">
-        EN
-      </button>
-      <!-- User -->
-      <div id="userArea">
-        <button id="loginBtn"
-          class="flex items-center gap-1.5 border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 active:scale-95 transition shadow-sm">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
-          <span id="hLogin">Google 登入</span>
+  <!-- Sticky Header -->
+  <div class="sticky top-0 z-20 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-100 px-4 pt-4 pb-3 border-b border-indigo-100/60">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800">🏐 排球零打報名</h1>
+        <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+          <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
+          <span id="hLive">即時更新</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Lang toggle -->
+        <button id="langBtn" onclick="toggleLang()"
+          class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">
+          EN
         </button>
-        <div id="userInfo" class="hidden flex items-center gap-2">
-          <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-          <div class="text-right">
-            <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-            <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+        <!-- User -->
+        <div id="userArea">
+          <button id="loginBtn"
+            class="flex items-center gap-1.5 border border-gray-200 bg-white rounded-xl px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 active:scale-95 transition shadow-sm">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
+            <span id="hLogin">Google 登入</span>
+          </button>
+          <div id="userInfo" class="hidden flex items-center gap-2">
+            <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+            <div class="text-right">
+              <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
+              <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+    <!-- Session Filter Tabs -->
+    <div class="flex gap-1.5 mt-3 overflow-x-auto pb-0.5">
+      <button id="sf-all" onclick="setFilter('all')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">所有</button>
+      <button id="sf-open" onclick="setFilter('open')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">報名中</button>
+      <button id="sf-closed" onclick="setFilter('closed')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已截止</button>
+      <button id="sf-past" onclick="setFilter('past')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
+    </div>
   </div>
 
+  <div class="px-4 pt-4">
   <!-- Sessions List -->
   <div id="sessionsList" class="space-y-4"></div>
   <div id="noSessionsMsg" class="hidden text-center py-10 text-gray-400">
@@ -69,8 +83,7 @@
   <div id="loadingSpinner" class="text-center py-10 text-gray-400">
     <div class="animate-spin text-3xl">⏳</div>
   </div>
-
-</div>
+  </div>
 
 <!-- FAB: Create Session -->
 <div class="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-30">
@@ -288,6 +301,12 @@
         </select>
       </div>
 
+      <!-- Bring Equipment -->
+      <div id="modalBringEquipRow" class="hidden">
+        <label id="lModalBringEquip" class="block text-sm font-medium text-gray-600 mb-2">🎒 我可以幫忙帶</label>
+        <div id="modalBringChips" class="flex flex-wrap gap-2"></div>
+      </div>
+
       <button id="modalSubmitBtn"
         class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all">
         <span id="hConfirmBtn">🙋 確認報名</span>
@@ -314,11 +333,14 @@
   let activeSessionLimit = 0;
   let activeSessionData = {}; // store session info for mySignups
   let selectedEquip = new Set();
+  let selectedBringEquip = new Set();
   let mapDebounce = null;
   let userSignupMap = {}; // sessionId -> signupId for current user
   let sessionsData = {}; // sessionId -> session object
   let signupsCache = {}; // sessionId -> signup items[]
   let editingSignupId = null; // if set, edit mode in signup modal
+  let allSessionsCache = []; // all loaded sessions for filtering
+  let currentFilter = 'all';
 
   const TYPE_LABEL = () => ({ '': tr('noType'), mixed: tr('mixed'), male: tr('male'), female: tr('female') });
 
@@ -397,7 +419,11 @@
     if (pairSel.options[0] && pairSel.options[0].value === '') {
       pairSel.options[0].textContent = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
     }
+    const lBring = document.getElementById('lModalBringEquip');
+    if (lBring) lBring.textContent = getLang()==='zh' ? '🎒 我可以幫忙帶' : '🎒 I can bring';
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
+    // Re-apply filter with updated labels
+    applyFilter();
   }
 
   // ── Auth ──
@@ -445,15 +471,42 @@
 
   onSnapshot(q, (snap) => {
     document.getElementById('loadingSpinner').classList.add('hidden');
-    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (!sessions.length) {
+    allSessionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    applyFilter();
+  });
+
+  window.setFilter = (filter) => {
+    currentFilter = filter;
+    const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
+    const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
+    ['all','open','closed','past'].forEach(f => {
+      const btn = document.getElementById('sf-' + f);
+      if (btn) btn.className = f === filter ? activeClass : idleClass;
+    });
+    applyFilter();
+  };
+
+  function applyFilter() {
+    const today = new Date().toISOString().split('T')[0];
+    const filtered = allSessionsCache.filter(s => {
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'open') return s.isOpen && (s.date || '') >= today;
+      if (currentFilter === 'closed') return !s.isOpen && (s.date || '') >= today;
+      if (currentFilter === 'past') return (s.date || '') < today;
+      return true;
+    });
+    if (!filtered.length) {
       document.getElementById('noSessionsMsg').classList.remove('hidden');
       document.getElementById('sessionsList').innerHTML = '';
     } else {
       document.getElementById('noSessionsMsg').classList.add('hidden');
-      renderSessions(sessions);
+      renderSessions(filtered);
     }
-  });
+    // Update filter button labels on lang change
+    const zh = getLang() === 'zh';
+    const labels = { all: zh?'所有':'All', open: zh?'報名中':'Open', closed: zh?'已截止':'Closed', past: zh?'過去':'Past' };
+    Object.entries(labels).forEach(([k, v]) => { const b = document.getElementById('sf-' + k); if (b) b.textContent = v; });
+  }
 
   function renderSessions(sessions) {
     const list = document.getElementById('sessionsList');
@@ -613,24 +666,26 @@
       const posColor = s.position===1?'bg-yellow-400 text-white':s.position===2?'bg-gray-300 text-gray-700':s.position===3?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
       const posLabel = isWait ? tr('waitPrefix')+(s.position-limit) : '#'+s.position;
       const tags = [];
-      if (s.isLate) tags.push(`${tr('lateTag')}${s.lateTime?' '+s.lateTime:''}`);
-      if (s.forFriend) tags.push(`${tr('proxyTag')}:${escHtml(s.forFriend)}`);
-      if (s.pairWith) tags.push(`${tr('pairTag')}:${escHtml(s.pairWith)}`);
+      if (s.isLate) tags.push(`<span class="tag">${tr('lateTag')}${s.lateTime?' '+s.lateTime:''}</span>`);
+      if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
+      if (s.pairWith) tags.push(`<span class="tag">${tr('pairTag')}:${escHtml(s.pairWith)}</span>`);
+      if (s.bringEquip && s.bringEquip.length) {
+        s.bringEquip.forEach(e => tags.push(`<span class="tag" style="background:#d1fae5;color:#065f46">🎒${escHtml(e)}</span>`));
+      }
       const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-7 h-7 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
       const isOwn = currentUser && s.uid && s.uid === currentUser.uid;
       const ownBtns = isOwn ? `
         <button onclick="openEditSignupModal('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" title="${getLang()==='zh'?'編輯報名':'Edit signup'}">✏️</button>
         <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
-      const deleteBtn = ownBtns;
       return `
-        <div class="flex items-center gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} rounded-xl px-3 py-2">
-          <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0">${posLabel}</span>
+        <div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} rounded-xl px-3 py-2">
+          <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
           ${photoEl}
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-800 truncate">${escHtml(s.name)}${isOwn?` <span class="text-xs text-indigo-400">(${getLang()==='zh'?'我':'me'})</span>`:''}</p>
+            ${tags.length ? `<div class="flex gap-1 flex-wrap mt-0.5">${tags.join('')}</div>` : ''}
           </div>
-          ${tags.length ? `<div class="flex gap-1 flex-wrap justify-end">${tags.map(t2=>`<span class="tag">${t2}</span>`).join('')}</div>` : ''}
-          ${deleteBtn}
+          ${ownBtns}
         </div>`;
     }).join('');
   }
@@ -883,6 +938,41 @@
   });
 
   // ── Signup Modal ──
+  function populateBringChips(sessionId, preselected = []) {
+    selectedBringEquip.clear();
+    const session = sessionsData[sessionId] || {};
+    const equipment = session.equipment || [];
+    const bringRow = document.getElementById('modalBringEquipRow');
+    const bringChips = document.getElementById('modalBringChips');
+    if (equipment.length) {
+      bringRow.classList.remove('hidden');
+      bringChips.innerHTML = equipment.map(e => {
+        const active = preselected.includes(e);
+        if (active) selectedBringEquip.add(e);
+        const cls = active
+          ? 'bring-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition'
+          : 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+        return `<button type="button" data-bring="${escHtml(e)}" class="${cls}">${escHtml(e)}</button>`;
+      }).join('');
+    } else {
+      bringRow.classList.add('hidden');
+      bringChips.innerHTML = '';
+    }
+  }
+
+  document.getElementById('modalBringEquipRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-bring]');
+    if (!btn) return;
+    const val = btn.dataset.bring;
+    if (selectedBringEquip.has(val)) {
+      selectedBringEquip.delete(val);
+      btn.className = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+    } else {
+      selectedBringEquip.add(val);
+      btn.className = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
+    }
+  });
+
   window.openSignupModal = (sessionId, limit) => {
     activeSessionId = sessionId;
     activeSessionLimit = limit;
@@ -893,6 +983,7 @@
     document.getElementById('modalLateSection').classList.add('hidden');
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
+    document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
     // Populate pair-with dropdown from current signups
     const pairSel = document.getElementById('modalPair');
     const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
@@ -902,6 +993,8 @@
         .filter(s => !currentUser || s.uid !== currentUser.uid)
         .map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`)
         .join('');
+    // Populate bring-equipment chips
+    populateBringChips(sessionId);
   };
   window.closeSignupModal = () => {
     document.getElementById('signupModal').classList.add('hidden');
@@ -929,6 +1022,8 @@
       allSignups.filter(s => s.id !== signupId).map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
     pairSel.value = signup.pairWith || '';
     document.getElementById('hConfirmBtn').textContent = getLang() === 'zh' ? '💾 更新報名' : '💾 Update';
+    // Populate bring-equipment chips with preselected
+    populateBringChips(sessionId, signup.bringEquip || []);
   };
 
   document.getElementById('modalLate').addEventListener('change', e => document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked));
@@ -948,6 +1043,7 @@
         lateTime: document.getElementById('modalLateTime').value.trim(),
         forFriend: document.getElementById('modalFriendName').value.trim(),
         pairWith: document.getElementById('modalPair').value.trim(),
+        bringEquip: [...selectedBringEquip],
       };
 
       if (editingSignupId) {

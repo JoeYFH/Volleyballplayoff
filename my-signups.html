@@ -10,6 +10,10 @@
     body { font-family: 'Noto Sans TC', sans-serif; }
     .fade-in { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
+    .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .tag{display:inline-flex;align-items:center;gap:4px;background:#e0e7ff;color:#4338ca;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500}
+    .tag-green{background:#d1fae5;color:#065f46}
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -17,56 +21,76 @@
 <!-- Login Screen -->
 <div id="loginScreen" class="flex items-center justify-center min-h-screen px-4">
   <div class="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-center">
+    <div class="flex justify-end mb-2">
+      <button id="langBtnLogin" onclick="toggleLang()"
+        class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:text-indigo-600 transition">EN</button>
+    </div>
     <div class="text-5xl mb-3">🏐</div>
-    <h1 class="text-xl font-bold text-gray-800 mb-1">我的報名</h1>
-    <p class="text-sm text-gray-400 mb-6">請先登入</p>
+    <h1 id="hLoginTitle" class="text-xl font-bold text-gray-800 mb-1">我的報名</h1>
+    <p id="hLoginHint" class="text-sm text-gray-400 mb-6">請先登入</p>
     <button id="googleLoginBtn"
       class="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" />
-      <span>使用 Google 帳號登入</span>
+      <span id="hGoogleLogin">使用 Google 帳號登入</span>
     </button>
     <div class="mt-6 border-t pt-4">
-      <a href="index.html" class="text-xs text-gray-400 hover:text-gray-500">← 回到報名頁面</a>
+      <a href="index.html" id="hBackLinkLogin" class="text-xs text-gray-400 hover:text-gray-500">← 回到報名頁面</a>
     </div>
   </div>
 </div>
 
 <!-- Main App -->
-<div id="mainApp" class="hidden max-w-2xl mx-auto px-4 py-5 pb-20">
+<div id="mainApp" class="hidden max-w-2xl mx-auto pb-20">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 id="hPageTitle" class="text-xl font-bold text-gray-800">✅ 我的報名</h1>
-      <a href="index.html" class="text-xs text-indigo-500 hover:underline">← 報名頁面</a>
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="langBtn3" onclick="toggleLang()"
-        class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">EN</button>
+  <!-- Sticky Header -->
+  <div class="sticky top-0 z-10 bg-gray-50 px-4 pt-4 pb-3 border-b border-gray-100">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 id="hPageTitle" class="text-xl font-bold text-gray-800">✅ 我的報名</h1>
+        <a href="index.html" id="hMainBackLink" class="text-xs text-indigo-500 hover:underline">← 報名頁面</a>
+      </div>
       <div class="flex items-center gap-2">
-        <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
-        <div>
-          <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-          <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+        <button id="langBtn3" onclick="toggleLang()"
+          class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">EN</button>
+        <div class="flex items-center gap-2">
+          <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
+          <div>
+            <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
+            <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Loading -->
-  <div id="loadingSpinner" class="text-center py-10 text-gray-400">
-    <div class="animate-spin text-3xl mb-2">⏳</div>
-    <p class="text-sm">載入中...</p>
-  </div>
+  <div class="px-4 pt-4">
+    <!-- Skeleton Loading -->
+    <div id="loadingSkeletons" class="space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div class="skeleton h-5 w-2/3 rounded-lg mb-2"></div>
+        <div class="skeleton h-3 w-1/3 rounded mb-4"></div>
+        <div class="skeleton h-3 w-1/2 rounded mb-2"></div>
+        <div class="skeleton h-3 w-1/3 rounded mb-4"></div>
+        <div class="skeleton h-9 w-full rounded-xl"></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div class="skeleton h-5 w-3/4 rounded-lg mb-2"></div>
+        <div class="skeleton h-3 w-1/4 rounded mb-4"></div>
+        <div class="skeleton h-3 w-2/5 rounded mb-2"></div>
+        <div class="skeleton h-3 w-1/3 rounded mb-4"></div>
+        <div class="skeleton h-9 w-full rounded-xl"></div>
+      </div>
+    </div>
 
-  <!-- Signups List -->
-  <div id="signupsList" class="space-y-4 hidden"></div>
+    <!-- Signups List -->
+    <div id="signupsList" class="space-y-4 hidden"></div>
 
-  <!-- Empty State -->
-  <div id="noSignups" class="hidden text-center py-12 text-gray-400">
-    <div class="text-5xl mb-3">📋</div>
-    <p id="hNoSignups" class="text-sm font-medium">還沒有報名任何場次</p>
-    <a href="index.html" class="mt-4 inline-block text-sm text-indigo-500 hover:underline">去報名 →</a>
+    <!-- Empty State -->
+    <div id="noSignups" class="hidden text-center py-12 text-gray-400">
+      <div class="text-5xl mb-3">📋</div>
+      <p id="hNoSignups" class="text-sm font-medium">還沒有報名任何場次</p>
+      <a href="index.html" id="hGoSignup" class="mt-4 inline-block text-sm text-indigo-500 hover:underline">去報名 →</a>
+    </div>
   </div>
 </div>
 
@@ -74,8 +98,8 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import {
-    getFirestore, doc, collection, query, orderBy,
-    onSnapshot, deleteDoc, getDoc, getDocs
+    getFirestore, doc, collectionGroup, collection, query, where, orderBy,
+    onSnapshot, deleteDoc, getDoc
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
@@ -85,6 +109,7 @@
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
   let currentUser = null;
+  let currentSignups = [];
 
   // ── Language ──
   window.toggleLang = () => {
@@ -93,12 +118,21 @@
   };
 
   function applyLang() {
-    const l = getLang();
-    document.getElementById('langBtn3').textContent = l === 'zh' ? 'EN' : '中';
-    document.getElementById('hPageTitle').textContent = l === 'zh' ? '✅ 我的報名' : '✅ My Sign-ups';
-    document.getElementById('hNoSignups').textContent = l === 'zh' ? '還沒有報名任何場次' : 'No sign-ups yet';
-    document.getElementById('logoutBtn').textContent = l === 'zh' ? '登出' : 'Logout';
-    document.getElementById('loadingSpinner').querySelector('p').textContent = l === 'zh' ? '載入中...' : 'Loading...';
+    const zh = getLang() === 'zh';
+    document.getElementById('langBtn3').textContent = zh ? 'EN' : '中';
+    const loginBtn = document.getElementById('langBtnLogin');
+    if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';
+    document.getElementById('hLoginTitle').textContent = zh ? '我的報名' : 'My Sign-ups';
+    document.getElementById('hLoginHint').textContent = zh ? '請先登入' : 'Please sign in';
+    document.getElementById('hGoogleLogin').textContent = zh ? '使用 Google 帳號登入' : 'Sign in with Google';
+    document.getElementById('hBackLinkLogin').textContent = zh ? '← 回到報名頁面' : '← Back to sign-ups';
+    document.getElementById('hPageTitle').textContent = zh ? '✅ 我的報名' : '✅ My Sign-ups';
+    document.getElementById('hMainBackLink').textContent = zh ? '← 報名頁面' : '← Sign-ups';
+    document.getElementById('hNoSignups').textContent = zh ? '還沒有報名任何場次' : 'No sign-ups yet';
+    document.getElementById('hGoSignup').textContent = zh ? '去報名 →' : 'Browse sessions →';
+    document.getElementById('logoutBtn').textContent = zh ? '登出' : 'Logout';
+    // Re-render if we have data
+    if (currentSignups.length) renderSignups(currentSignups);
   }
 
   // ── Auth ──
@@ -120,97 +154,126 @@
     }
   });
 
-  // ── Load My Signups ──
+  // ── Load My Signups via collectionGroup ──
   function loadMySignups() {
-    const q = query(collection(db, 'users', currentUser.uid, 'mySignups'), orderBy('signedAt', 'desc'));
+    // Query across ALL sessions' signups subcollections for this user's uid
+    const q = query(collectionGroup(db, 'signups'), where('uid', '==', currentUser.uid));
     onSnapshot(q, async (snap) => {
-      document.getElementById('loadingSpinner').classList.add('hidden');
-      const signups = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById('loadingSkeletons').classList.add('hidden');
 
-      if (!signups.length) {
+      if (snap.empty) {
         document.getElementById('noSignups').classList.remove('hidden');
         document.getElementById('signupsList').classList.add('hidden');
+        currentSignups = [];
         return;
       }
 
-      document.getElementById('noSignups').classList.add('hidden');
-      document.getElementById('signupsList').classList.remove('hidden');
+      // Extract sessionId from document path: sessions/{sessionId}/signups/{signupId}
+      const raw = snap.docs.map(d => ({
+        id: d.id,
+        sessionId: d.ref.parent.parent.id,
+        ...d.data()
+      })).sort((a, b) => (b.signedAt?.seconds || 0) - (a.signedAt?.seconds || 0));
 
       // Enrich with live session data
-      const enriched = await Promise.all(signups.map(async (s) => {
+      const enriched = await Promise.all(raw.map(async (s) => {
         try {
           const sessionSnap = await getDoc(doc(db, 'sessions', s.sessionId));
-          if (sessionSnap.exists()) {
-            return { ...s, session: sessionSnap.data() };
-          }
-        } catch(e) {}
-        return { ...s, session: null };
+          return { ...s, session: sessionSnap.exists() ? sessionSnap.data() : null };
+        } catch(e) {
+          return { ...s, session: null };
+        }
       }));
 
+      currentSignups = enriched;
+      document.getElementById('noSignups').classList.add('hidden');
+      document.getElementById('signupsList').classList.remove('hidden');
       renderSignups(enriched);
     }, (err) => {
       console.error('loadMySignups error:', err);
-      document.getElementById('loadingSpinner').classList.add('hidden');
+      document.getElementById('loadingSkeletons').classList.add('hidden');
       document.getElementById('noSignups').classList.remove('hidden');
     });
   }
 
   function renderSignups(signups) {
-    const list = document.getElementById('signupsList');
-    list.innerHTML = signups.map(s => buildSignupCard(s)).join('');
+    document.getElementById('signupsList').innerHTML = signups.map(s => buildSignupCard(s)).join('');
   }
 
   function buildSignupCard(s) {
     const sess = s.session;
-    const title = sess?.title || s.sessionTitle || '—';
-    const date = sess?.date || s.sessionDate || '';
-    const time = sess?.time || s.sessionTime || '';
-    const location = sess?.location || s.sessionLocation || '';
-    const venue = sess?.venue || s.sessionVenue || '';
+    const zh = getLang() === 'zh';
+    const title = sess?.title || (sess?.date ? sess.date + (zh ? ' 零打' : ' Pickup') : '—');
+    const date = sess?.date || '';
+    const time = sess?.time || '';
+    const location = sess?.location || '';
+    const venue = sess?.venue || '';
 
     const isOpen = sess?.isOpen;
     const isPast = date && date < new Date().toISOString().split('T')[0];
     const statusBadge = isPast
-      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${getLang()==='zh'?'已結束':'Ended'}</span>`
+      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已結束':'Ended'}</span>`
       : isOpen
-        ? `<span class="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700">${getLang()==='zh'?'報名中':'Open'}</span>`
-        : `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${getLang()==='zh'?'已截止':'Closed'}</span>`;
+        ? `<span class="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700">${zh?'報名中':'Open'}</span>`
+        : `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已截止':'Closed'}</span>`;
+
+    // Tags: late, friend, pair, bringEquip
+    const tags = [];
+    if (s.isLate) tags.push(`<span class="tag">${zh?'晚到':'Late'}${s.lateTime?' '+s.lateTime:''}</span>`);
+    if (s.forFriend) tags.push(`<span class="tag">${zh?'代':'For'}:${escHtml(s.forFriend)}</span>`);
+    if (s.pairWith) tags.push(`<span class="tag">${zh?'搭檔':'Pair'}:${escHtml(s.pairWith)}</span>`);
+    if (s.bringEquip && s.bringEquip.length) {
+      s.bringEquip.forEach(e => tags.push(`<span class="tag tag-green">🎒 ${escHtml(e)}</span>`));
+    }
 
     const calLinks = buildCalendarLinks({ title, date, time, location, venue });
 
+    // Signup time
+    let signedAtStr = '';
+    if (s.signedAt) {
+      const dt = s.signedAt.toDate ? s.signedAt.toDate() : new Date(s.signedAt.seconds * 1000);
+      if (zh) {
+        signedAtStr = `${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')} 報名`;
+      } else {
+        signedAtStr = `Signed ${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+      }
+    }
+
     return `
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 fade-in">
-        <div class="flex items-start justify-between gap-2 mb-3">
+        <div class="flex items-start justify-between gap-2 mb-2">
           <div>
             <p class="font-bold text-gray-800">${escHtml(title)}</p>
             ${sess?.creatorName ? `<p class="text-xs text-gray-400 mt-0.5">👤 ${escHtml(sess.creatorName)}</p>` : ''}
           </div>
           ${statusBadge}
         </div>
+        ${tags.length ? `<div class="flex flex-wrap gap-1.5 mb-3">${tags.join('')}</div>` : ''}
         <div class="space-y-1.5 text-sm text-gray-600 mb-4">
           ${date ? `<div class="flex items-center gap-2"><span>📅</span><span>${formatDate(date)}</span></div>` : ''}
           ${time ? `<div class="flex items-center gap-2"><span>🕐</span><span>${time}</span></div>` : ''}
           ${location ? `<div class="flex items-center gap-2"><span>📍</span><a href="https://maps.google.com/?q=${encodeURIComponent(location)}" target="_blank" class="text-indigo-500 hover:underline">${escHtml(location)}</a></div>` : ''}
           ${venue ? `<div class="flex items-center gap-2"><span>🏟️</span><span>${escHtml(venue)}</span></div>` : ''}
+          ${signedAtStr ? `<div class="flex items-center gap-2"><span>⏱️</span><span class="text-xs text-gray-400">${signedAtStr}</span></div>` : ''}
         </div>
         <!-- Calendar buttons -->
         <div class="flex flex-wrap gap-2 mb-3">
           <a href="${calLinks.google}" target="_blank"
             class="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition font-medium">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-            Google ${getLang()==='zh'?'日曆':'Calendar'}
+            Google ${zh?'日曆':'Calendar'}
           </a>
           <a href="${calLinks.apple}" download="event.ics"
             class="flex items-center gap-1.5 text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition font-medium">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            Apple ${getLang()==='zh'?'日曆':'Calendar'}
+            Apple ${zh?'日曆':'Calendar'}
           </a>
         </div>
         <!-- Cancel button (only for upcoming sessions) -->
-        ${!isPast ? `<button onclick="cancelMySignup('${s.sessionId}', '${s.signupId || s.id}')"
+        ${!isPast ? `<button onclick="cancelMySignup('${s.sessionId}', '${s.id}')"
           class="w-full text-xs text-red-400 border border-red-100 rounded-xl py-2 hover:bg-red-50 transition">
-          ✕ ${getLang()==='zh'?'取消報名':'Cancel Sign-up'}
-        </button>` : `<p class="text-center text-xs text-gray-300">${getLang()==='zh'?'已結束場次':'Past session'}</p>`}
+          ✕ ${zh?'取消報名':'Cancel Sign-up'}
+        </button>` : `<p class="text-center text-xs text-gray-300">${zh?'已結束場次':'Past session'}</p>`}
       </div>`;
   }
 
@@ -219,7 +282,7 @@
     const [year, month, day] = date.split('-');
     const [hh, mm] = (time || '00:00').split(':');
     const start = new Date(year, month - 1, day, hh, mm);
-    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
 
     const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const utcStart = fmt(start);
@@ -228,18 +291,12 @@
 
     const google = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('🏐 ' + title)}&dates=${utcStart}/${utcEnd}&details=${encodeURIComponent('排球零打 - ' + title)}&location=${encodeURIComponent(fullLocation)}`;
 
-    // Apple Calendar uses .ics file
     const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'BEGIN:VEVENT',
-      `DTSTART:${utcStart}`,
-      `DTEND:${utcEnd}`,
-      `SUMMARY:🏐 ${title}`,
-      `LOCATION:${fullLocation}`,
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
+      `DTSTART:${utcStart}`, `DTEND:${utcEnd}`,
+      `SUMMARY:🏐 ${title}`, `LOCATION:${fullLocation}`,
       `DESCRIPTION:排球零打 - ${title}`,
-      'END:VEVENT',
-      'END:VCALENDAR'
+      'END:VEVENT', 'END:VCALENDAR'
     ].join('\n');
     const apple = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
 
@@ -247,13 +304,14 @@
   }
 
   window.cancelMySignup = async (sessionId, signupId) => {
-    const msg = getLang()==='zh' ? '確定要取消報名？' : 'Cancel your signup?';
-    if (!confirm(msg)) return;
+    const zh = getLang() === 'zh';
+    if (!confirm(zh ? '確定要取消報名？' : 'Cancel your signup?')) return;
     try {
       await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupId));
+      // Also clean up mirror if exists
+      try { await deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupId)); } catch(e) {}
     } catch(e) {
-      alert(getLang()==='zh' ? '取消失敗：' + e.message : 'Failed: ' + e.message);
+      alert((zh ? '取消失敗：' : 'Failed: ') + e.message);
     }
   };
 
