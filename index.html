@@ -763,18 +763,10 @@
       html += `<div class="text-xs text-center text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-1">${waitMsg}</div>`;
     }
 
-    let separatorAdded = false;
-    html += items.map(s => {
-      const isWait = (limit > 0 && s.position > limit) || !!s.genderWait;
-      let sep = '';
-      if (isWait && !separatorAdded) {
-        separatorAdded = true;
-        const sepLabel = getLang() === 'zh' ? '候補名單' : 'Waitlist';
-        sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
-      }
+    const renderItem = (s, isWait, posLabelOverride) => {
       const waitOffset = limit > 0 ? limit : 0;
-      const posColor = s.position===1?'bg-yellow-400 text-white':s.position===2?'bg-gray-300 text-gray-700':s.position===3?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
-      const posLabel = isWait ? tr('waitPrefix')+(waitOffset > 0 ? s.position-waitOffset : (s.genderPosition || s.position)) : '#'+s.position;
+      const posColor = s.position===1&&!isWait?'bg-yellow-400 text-white':s.position===2&&!isWait?'bg-gray-300 text-gray-700':s.position===3&&!isWait?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
+      const posLabel = posLabelOverride || (isWait ? tr('waitPrefix')+(waitOffset > 0 ? s.position-waitOffset : (s.genderPosition || s.position)) : '#'+s.position);
       const tags = [];
       if (s.isLate) tags.push(`<span class="tag">${tr('lateTag')}${s.lateTime?' '+s.lateTime:''}</span>`);
       if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
@@ -788,8 +780,7 @@
         <button onclick="openEditSignupModal('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" title="${getLang()==='zh'?'編輯報名':'Edit signup'}">✏️</button>
         <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-4 border-l-blue-400' : s.gender === 'female' ? 'border-l-4 border-l-pink-400' : '';
-      return sep + `
-        <div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} ${genderBorder} rounded-xl px-3 py-2">
+      return `<div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} ${genderBorder} rounded-xl px-3 py-2">
           <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
           ${photoEl}
           <div class="flex-1 min-w-0">
@@ -798,7 +789,45 @@
           </div>
           ${ownBtns}
         </div>`;
-    }).join('');
+    };
+
+    if (maleLimit > 0 || femaleLimit > 0) {
+      // Show gender-separated sections
+      const males = items.filter(s => s.gender === 'male');
+      const females = items.filter(s => s.gender === 'female');
+      const others = items.filter(s => s.gender !== 'male' && s.gender !== 'female');
+      const zh = getLang() === 'zh';
+      const renderSection = (group, gLimit, gLabel, color) => {
+        if (!group.length) return '';
+        const confirmed = gLimit > 0 ? group.filter(s => !s.genderWait) : group;
+        const waiting = gLimit > 0 ? group.filter(s => s.genderWait) : [];
+        let sec = `<div class="text-xs font-semibold ${color} px-1 mt-2 mb-1">${gLabel}${gLimit > 0 ? ` (${confirmed.length}/${gLimit})` : ` (${group.length})`}</div>`;
+        confirmed.forEach((s, i) => { sec += renderItem(s, false, '#'+(i+1)); });
+        if (waiting.length) {
+          sec += `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
+          waiting.forEach((s, i) => { sec += renderItem(s, true, tr('waitPrefix')+(i+1)); });
+        }
+        return sec;
+      };
+      html += renderSection(males, maleLimit, zh ? '♂ 男生' : '♂ Male', 'text-blue-500');
+      html += renderSection(females, femaleLimit, zh ? '♀ 女生' : '♀ Female', 'text-pink-500');
+      if (others.length) {
+        html += `<div class="text-xs font-semibold text-gray-400 px-1 mt-2 mb-1">${zh ? '不限' : 'Other'}</div>`;
+        others.forEach((s, i) => { html += renderItem(s, limit > 0 && s.position > limit, null); });
+      }
+    } else {
+      let separatorAdded = false;
+      html += items.map(s => {
+        const isWait = (limit > 0 && s.position > limit) || !!s.genderWait;
+        let sep = '';
+        if (isWait && !separatorAdded) {
+          separatorAdded = true;
+          const sepLabel = getLang() === 'zh' ? '候補名單' : 'Waitlist';
+          sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
+        }
+        return sep + renderItem(s, isWait, null);
+      }).join('');
+    }
     listEl.innerHTML = html;
   }
 
