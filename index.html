@@ -128,7 +128,7 @@
             <option value="">— 不套用 —</option>
           </select>
           <button id="applyTemplateBtn" type="button" onclick="applySelectedTemplate()"
-            class="px-3 py-2 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition shrink-0">套用</button>
+            class="hidden px-3 py-2 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition shrink-0">套用</button>
           <button id="editTemplateBtn" type="button" onclick="editSelectedTemplate()"
             class="px-3 py-2 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl hover:bg-gray-200 transition shrink-0">編輯</button>
         </div>
@@ -865,6 +865,9 @@
       templatesData.map(t2 => `<option value="${t2.id}">${escHtml(t2.name)}</option>`).join('');
     document.getElementById('templateDropdownRow').classList.toggle('hidden', !templatesData.length);
   }
+
+  // 選擇範本時自動帶入 / auto-apply template on select
+  document.getElementById('templateSelect').addEventListener('change', () => applySelectedTemplate());
 
   document.getElementById('createBtn').addEventListener('click', () => {
     openCreateSheet();
