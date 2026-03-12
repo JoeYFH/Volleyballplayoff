@@ -160,11 +160,7 @@
         <label id="lLocation" class="block text-sm font-medium text-gray-600 mb-1">地點 <span class="text-red-400">*</span></label>
         <div class="relative">
           <input id="fLocation" type="text" autocomplete="off"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 pr-20" />
-          <button id="mapSearchBtn" type="button"
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition">
-            🗺️ <span id="hMapSearch">地圖</span>
-          </button>
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
           <ul id="mapSuggestions" class="hidden"></ul>
         </div>
       </div>
@@ -467,7 +463,6 @@
     document.getElementById('lTemplatePick').textContent = getLang()==='zh' ? '套用範本' : 'Apply Template';
     document.getElementById('applyTemplateBtn').textContent = getLang()==='zh' ? '套用' : 'Apply';
     document.getElementById('editTemplateBtn').textContent = getLang()==='zh' ? '編輯' : 'Edit';
-    document.getElementById('hMapSearch').textContent = tr('mapSearch');
     // Update equipment chip labels
     const chipLabels = { '標竿': getLang()==='zh'?'🏁 標竿':'🏁 Pole', '音響': getLang()==='zh'?'🔊 音響':'🔊 Speaker', '球': getLang()==='zh'?'🏐 球':'🏐 Ball', '其他': getLang()==='zh'?'📦 其他':'📦 Other' };
     document.querySelectorAll('#equipChips [data-equip]').forEach(btn => {
@@ -1131,11 +1126,6 @@
   const locInput = document.getElementById('fLocation');
   const suggestions = document.getElementById('mapSuggestions');
 
-  document.getElementById('mapSearchBtn').addEventListener('click', () => {
-    const val = locInput.value.trim();
-    if (val) searchLocation(val);
-  });
-
   locInput.addEventListener('input', () => {
     clearTimeout(mapDebounce);
     const val = locInput.value.trim();
@@ -1163,7 +1153,7 @@
   };
 
   document.addEventListener('click', (e) => {
-    if (!locInput.contains(e.target) && !suggestions.contains(e.target) && !document.getElementById('mapSearchBtn').contains(e.target)) {
+    if (!locInput.contains(e.target) && !suggestions.contains(e.target)) {
       suggestions.classList.add('hidden');
     }
   });
