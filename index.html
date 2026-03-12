@@ -1043,7 +1043,15 @@
     populateBringChips(sessionId, signup.bringEquip || []);
   };
 
-  document.getElementById('modalLate').addEventListener('change', e => document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked));
+  document.getElementById('modalLate').addEventListener('change', e => {
+    document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked);
+    if (e.target.checked && !document.getElementById('modalLateTime').value && activeSessionData.time) {
+      const [hh, mm] = activeSessionData.time.split(':').map(Number);
+      const d = new Date(0, 0, 0, hh, mm + 30);
+      document.getElementById('modalLateTime').value =
+        String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+  });
   document.getElementById('modalFriend').addEventListener('change', e => document.getElementById('modalFriendSection').classList.toggle('hidden', !e.target.checked));
   document.getElementById('modalName').addEventListener('input', () => {
     document.getElementById('modalName').classList.remove('border-red-400', 'ring-2', 'ring-red-200');
