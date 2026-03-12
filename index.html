@@ -724,8 +724,29 @@
     const badge = document.getElementById('signed-badge-' + sessionId);
     if (badge) badge.classList.toggle('hidden', !foundOwnSignup);
 
-    listEl.innerHTML = items.map(s => {
+    const isFull = limit > 0 && items.length > limit;
+    const waitItems = isFull ? items.filter(s => s.position > limit) : [];
+    const ownIsWaitlisted = currentUser && waitItems.some(s => s.uid === currentUser.uid);
+
+    let html = '';
+    if (isFull) {
+      const fullMsg = getLang() === 'zh' ? '🎉 正取名額已滿！以下為候補名單' : '🎉 Full! Waitlist below';
+      html += `<div class="text-xs text-center text-orange-600 bg-orange-50 rounded-xl px-3 py-2 mb-1">${fullMsg}</div>`;
+    }
+    if (ownIsWaitlisted) {
+      const waitMsg = getLang() === 'zh' ? '⏳ 你目前在候補名單，有人取消時會自動候補' : '⏳ You are on the waitlist — you will be promoted if a spot opens';
+      html += `<div class="text-xs text-center text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-1">${waitMsg}</div>`;
+    }
+
+    let separatorAdded = false;
+    html += items.map(s => {
       const isWait = limit > 0 && s.position > limit;
+      let sep = '';
+      if (isWait && !separatorAdded) {
+        separatorAdded = true;
+        const sepLabel = getLang() === 'zh' ? '候補名單' : 'Waitlist';
+        sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
+      }
       const posColor = s.position===1?'bg-yellow-400 text-white':s.position===2?'bg-gray-300 text-gray-700':s.position===3?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
       const posLabel = isWait ? tr('waitPrefix')+(s.position-limit) : '#'+s.position;
       const tags = [];
@@ -741,7 +762,7 @@
         <button onclick="openEditSignupModal('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" title="${getLang()==='zh'?'編輯報名':'Edit signup'}">✏️</button>
         <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-4 border-l-blue-400' : s.gender === 'female' ? 'border-l-4 border-l-pink-400' : '';
-      return `
+      return sep + `
         <div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} ${genderBorder} rounded-xl px-3 py-2">
           <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
           ${photoEl}
@@ -752,6 +773,7 @@
           ${ownBtns}
         </div>`;
     }).join('');
+    listEl.innerHTML = html;
   }
 
   // ── Cancel own signup ──
