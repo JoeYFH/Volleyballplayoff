@@ -205,7 +205,26 @@
 
   <!-- Feedback Tab (super admin only) -->
   <div id="tabFeedbackContent" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <h2 class="font-semibold text-gray-700 mb-4">💬 用戶意見回饋</h2>
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <h2 class="font-semibold text-gray-700">💬 用戶意見回饋</h2>
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Status filter -->
+        <select id="fbStatusFilter" onchange="loadFeedback()" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <option value="all">全部狀態</option>
+          <option value="pending">🔴 尚未處理</option>
+          <option value="processing">🟡 處理中</option>
+          <option value="resolved">🟢 已解決</option>
+        </select>
+        <!-- Sort -->
+        <select id="fbSortBy" onchange="loadFeedback()" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <option value="date_desc">最新優先</option>
+          <option value="date_asc">最舊優先</option>
+          <option value="urgency_desc">緊急度：高→低</option>
+          <option value="urgency_asc">緊急度：低→高</option>
+          <option value="status">狀態排序</option>
+        </select>
+      </div>
+    </div>
     <div id="feedbackList" class="space-y-3"></div>
     <div id="emptyFeedback" class="text-center py-8 text-gray-400 text-sm">載入中...</div>
   </div>
@@ -571,29 +590,83 @@
     try {
       const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
       if (!snap.docs.length) { emptyEl.textContent = '目前沒有任何意見回饋'; return; }
+
+      const statusFilter = document.getElementById('fbStatusFilter')?.value || 'all';
+      const sortBy = document.getElementById('fbSortBy')?.value || 'date_desc';
+      const urgencyOrder = { high: 0, medium: 1, low: 2 };
+      const statusOrder = { pending: 0, processing: 1, resolved: 2 };
+
+      let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Filter by status
+      if (statusFilter !== 'all') {
+        const filterStatus = statusFilter === 'pending' ? 'pending' : statusFilter === 'processing' ? 'processing' : 'resolved';
+        items = items.filter(f => (f.status || 'pending') === filterStatus);
+      }
+
+      // Sort
+      items.sort((a, b) => {
+        if (sortBy === 'date_desc') return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
+        if (sortBy === 'date_asc') return (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0);
+        if (sortBy === 'urgency_desc') return (urgencyOrder[a.urgency] ?? 99) - (urgencyOrder[b.urgency] ?? 99);
+        if (sortBy === 'urgency_asc') return (urgencyOrder[b.urgency] ?? 99) - (urgencyOrder[a.urgency] ?? 99);
+        if (sortBy === 'status') return (statusOrder[a.status || 'pending'] ?? 99) - (statusOrder[b.status || 'pending'] ?? 99);
+        return 0;
+      });
+
+      if (!items.length) { emptyEl.textContent = '目前沒有符合條件的回饋'; return; }
       emptyEl.classList.add('hidden');
+
       const urgencyLabel = { low: '🟢 低', medium: '🟡 中', high: '🔴 高' };
       const typeLabel = { bug: '🐛 Bug', feature: '💡 功能建議', question: '❓ 問題', other: '💬 其他' };
-      listEl.innerHTML = snap.docs.map(d => {
-        const f = d.data();
+      const statusLabel = { pending: '🔴 尚未處理', processing: '🟡 處理中', resolved: '🟢 已解決' };
+      const statusColors = {
+        pending: 'bg-red-50 text-red-600 hover:bg-red-100',
+        processing: 'bg-amber-50 text-amber-600 hover:bg-amber-100',
+        resolved: 'bg-green-50 text-green-700 hover:bg-green-100',
+      };
+
+      listEl.innerHTML = items.map(f => {
         const ts = f.createdAt ? new Date(f.createdAt.toMillis()) : null;
         const dateStr = ts ? `${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}` : '';
-        return `<div class="bg-gray-50 rounded-xl p-4 space-y-1">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex gap-2 text-xs">
+        const currentStatus = f.status || 'pending';
+        const nextStatuses = ['pending', 'processing', 'resolved'].filter(s => s !== currentStatus);
+        const statusBtns = nextStatuses.map(st =>
+          `<button onclick="updateFeedbackStatus('${f.id}', '${st}')"
+            class="text-xs px-2 py-0.5 rounded-full font-medium transition ${statusColors[st]}">
+            ${statusLabel[st]}
+          </button>`
+        ).join('');
+        return `<div class="bg-gray-50 rounded-xl p-4 space-y-2">
+          <div class="flex items-start justify-between gap-2 flex-wrap">
+            <div class="flex gap-1.5 text-xs flex-wrap">
               <span class="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">${typeLabel[f.type] || f.type}</span>
               <span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">${urgencyLabel[f.urgency] || f.urgency}</span>
+              <span class="px-2 py-0.5 rounded-full font-medium ${statusColors[currentStatus]?.split(' ').slice(0,2).join(' ')}">${statusLabel[currentStatus]}</span>
             </div>
             <span class="text-xs text-gray-400 shrink-0">${dateStr}</span>
           </div>
           <p class="text-sm text-gray-800">${escHtml(f.description)}</p>
           ${f.userName ? `<p class="text-xs text-gray-400">👤 ${escHtml(f.userName)}${f.email?' · '+escHtml(f.email):''}</p>` : (f.email ? `<p class="text-xs text-gray-400">📧 ${escHtml(f.email)}</p>` : '')}
+          <div class="flex items-center gap-1.5 flex-wrap pt-1">
+            <span class="text-xs text-gray-400">更改狀態：</span>
+            ${statusBtns}
+          </div>
         </div>`;
       }).join('');
     } catch(e) {
-      emptyEl.textContent = '載入失敗';
+      emptyEl.textContent = '載入失敗：' + e.message;
     }
   }
+
+  window.updateFeedbackStatus = async (feedbackId, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'feedback', feedbackId), { status: newStatus });
+      loadFeedback(); // reload to reflect changes
+    } catch(e) {
+      alert('更新失敗：' + e.message);
+    }
+  };
 
   function escHtml(s) {
     return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
