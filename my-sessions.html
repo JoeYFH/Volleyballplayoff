@@ -85,6 +85,8 @@
       class="text-xs font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition">我的範本</button>
     <button id="tabAdmin" onclick="switchTab('admin')"
       class="hidden text-xs font-semibold px-4 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 transition">所有場次</button>
+    <button id="tabFeedback" onclick="switchTab('feedback')"
+      class="hidden text-xs font-semibold px-4 py-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition">💬 意見回饋</button>
   </div>
 
   <!-- Sessions Tab -->
@@ -143,6 +145,16 @@
   <div id="contentAdmin" class="hidden">
     <div id="allSessionsList" class="space-y-4"></div>
   </div>
+
+  <!-- Feedback Tab -->
+  <div id="contentFeedback" class="hidden">
+    <div id="feedbackLoadingIndicator" class="text-center py-6 text-gray-400 text-sm">載入中...</div>
+    <div id="feedbackList" class="space-y-3"></div>
+    <div id="noFeedback" class="hidden text-center py-10 text-gray-400">
+      <div class="text-3xl mb-2">💬</div>
+      <p class="text-sm">還沒有意見回饋</p>
+    </div>
+  </div>
   </div><!-- end px-4 wrapper -->
 </div>
 
@@ -180,11 +192,13 @@
           <label class="block text-sm font-medium text-gray-600 mb-1" id="sl1">日期 <span class="text-red-400">*</span></label>
           <input id="sf_date" type="date"
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="sf_dateErr" class="hidden text-xs text-red-500 mt-1"></p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-600 mb-1" id="sl2">時間 <span class="text-red-400">*</span></label>
           <input id="sf_time" type="time" value="00:00"
             class="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="sf_timeErr" class="hidden text-xs text-red-500 mt-1"></p>
         </div>
       </div>
 
@@ -192,13 +206,10 @@
         <label class="block text-sm font-medium text-gray-600 mb-1" id="sl3">地點 <span class="text-red-400">*</span></label>
         <div class="relative">
           <input id="sf_location" type="text" autocomplete="off"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm pr-20 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <button type="button" onclick="searchLoc2()"
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg hover:bg-indigo-100">
-            🗺️ <span id="hMapSearch2">地圖</span>
-          </button>
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
           <ul id="mapSuggestions2" class="hidden"></ul>
         </div>
+        <p id="sf_locationErr" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
 
       <div>
@@ -215,13 +226,27 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-600 mb-1" id="sl6">性別分類</label>
-          <select id="sf_type" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <select id="sf_type" onchange="sfOnTypeChange()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="mixed">混排</option>
             <option value="male">男生</option>
             <option value="female">女生</option>
           </select>
         </div>
       </div>
+      <!-- Mixed session gender sub-limits -->
+      <div id="sf_mixedLimitsRow" class="grid grid-cols-2 gap-3">
+        <div>
+          <label id="sf_lMaleLimit" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
+          <input id="sf_maleLimit" type="number" min="0" max="100" value="0"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label id="sf_lFemaleLimit" class="block text-sm font-medium text-gray-600 mb-1">女生名額（0=不限）</label>
+          <input id="sf_femaleLimit" type="number" min="0" max="100" value="0"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+      </div>
+      <p id="sf_mixedLimitErr" class="hidden text-xs text-red-500 -mt-2"></p>
 
       <div>
         <label class="block text-sm font-medium text-gray-600 mb-2" id="sl7">需要攜帶的用具</label>
@@ -257,6 +282,14 @@
         </div>
       </div>
 
+      <!-- Close Time -->
+      <div>
+        <label id="sf_lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間（選填，預設為活動開始時間）</label>
+        <input id="sf_closeAt" type="datetime-local"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="sf_closeAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
+      </div>
+
       <div>
         <label class="block text-sm font-medium text-gray-600 mb-1" id="sl9">備註（選填）</label>
         <textarea id="sf_note" rows="2"
@@ -274,6 +307,31 @@
         </button>
       </div>
       <p id="sfMsg" class="text-center text-sm hidden"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Session Created Success Modal -->
+<div id="sessionCreatedModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40"></div>
+  <div class="absolute inset-0 flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm relative">
+      <div class="text-center mb-4">
+        <div class="text-5xl mb-3">🎉</div>
+        <h3 class="text-lg font-bold text-gray-800 mb-1">場次建立成功！</h3>
+        <p class="text-sm text-gray-500">分享以下連結讓大家報名</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl px-4 py-3 mb-4 overflow-hidden">
+        <p id="sf_createdSessionUrl" class="text-xs text-indigo-600 break-all font-mono"></p>
+      </div>
+      <button id="sf_copyCreatedUrlBtn" onclick="sfCopyCreatedUrl()"
+        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition mb-2">
+        📋 複製連結
+      </button>
+      <button onclick="document.getElementById('sessionCreatedModal').classList.add('hidden')"
+        class="w-full bg-gray-100 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-200 transition">
+        關閉
+      </button>
     </div>
   </div>
 </div>
@@ -400,6 +458,7 @@
       if (isAdmin) {
         document.getElementById('adminBadge').classList.remove('hidden');
         document.getElementById('tabAdmin').classList.remove('hidden');
+        document.getElementById('tabFeedback').classList.remove('hidden');
       }
       loadMySessions();
       loadTemplates();
@@ -411,14 +470,18 @@
 
   // ── Tabs ──
   window.switchTab = (tab) => {
-    ['sessions','templates','admin'].forEach(t2 => {
-      document.getElementById('content' + t2.charAt(0).toUpperCase() + t2.slice(1)).classList.toggle('hidden', t2 !== tab);
+    ['sessions','templates','admin','feedback'].forEach(t2 => {
+      const content = document.getElementById('content' + t2.charAt(0).toUpperCase() + t2.slice(1));
+      if (content) content.classList.toggle('hidden', t2 !== tab);
       const btn = document.getElementById('tab' + t2.charAt(0).toUpperCase() + t2.slice(1));
-      if (btn) btn.className = btn.className.replace(/bg-indigo-600 text-white|bg-white border border-gray-200 text-gray-600/g, '');
-      if (t2 === tab && btn) btn.classList.add('bg-indigo-600', 'text-white');
-      else if (btn && t2 !== 'admin') btn.classList.add('bg-white', 'border', 'border-gray-200', 'text-gray-600');
+      if (btn) {
+        btn.className = btn.className.replace(/bg-indigo-600 text-white|bg-white border border-gray-200 text-gray-600/g, '');
+        if (t2 === tab) btn.classList.add('bg-indigo-600', 'text-white');
+        else if (t2 !== 'admin' && t2 !== 'feedback') btn.classList.add('bg-white', 'border', 'border-gray-200', 'text-gray-600');
+      }
     });
     if (tab === 'admin') loadAllSessions();
+    if (tab === 'feedback') loadFeedback();
   };
 
   // ── My Sessions ──
@@ -782,6 +845,45 @@
     }
   });
 
+  window.sfOnTypeChange = () => {
+    const type = document.getElementById('sf_type').value;
+    document.getElementById('sf_mixedLimitsRow').classList.toggle('hidden', type !== 'mixed');
+    document.getElementById('sf_mixedLimitErr').classList.add('hidden');
+  };
+  sfOnTypeChange(); // initialize
+
+  // Auto-fill close time from date+time
+  function sfSyncCloseAt() {
+    const el = document.getElementById('sf_closeAt');
+    if (el.value) return;
+    const d = document.getElementById('sf_date').value;
+    const t = document.getElementById('sf_time').value;
+    if (d && t) el.value = `${d}T${t}`;
+  }
+  document.getElementById('sf_date').addEventListener('change', sfSyncCloseAt);
+  document.getElementById('sf_time').addEventListener('change', sfSyncCloseAt);
+
+  // Inline validation helpers
+  function sfSetFieldError(inputId, errId, msg) {
+    const el = document.getElementById(inputId);
+    const err = document.getElementById(errId);
+    el.classList.add('border-red-400', 'ring-2', 'ring-red-200');
+    el.classList.remove('border-gray-200');
+    err.textContent = msg; err.classList.remove('hidden');
+  }
+  function sfClearFieldError(inputId, errId) {
+    const el = document.getElementById(inputId);
+    const err = document.getElementById(errId);
+    el.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+    el.classList.add('border-gray-200');
+    err.classList.add('hidden');
+  }
+  ['sf_date','sf_time','sf_location'].forEach(id => {
+    const errId = id + 'Err';
+    document.getElementById(id).addEventListener('input', () => sfClearFieldError(id, errId));
+    document.getElementById(id).addEventListener('change', () => sfClearFieldError(id, errId));
+  });
+
   window.onSfOpenWhenChange = () => {
     const val = document.getElementById('sf_openWhen').value;
     document.getElementById('sf_offsetRow').classList.toggle('hidden', val !== 'hours' && val !== 'days');
@@ -792,13 +894,41 @@
 
   window.submitSession = async () => {
     if (!currentUser) return;
+    const zh = getLang() === 'zh';
     const date = document.getElementById('sf_date').value;
     const time = document.getElementById('sf_time').value;
     const location = document.getElementById('sf_location').value.trim();
-    if (!date || !time || !location) { showSfMsg('請填寫日期、時間、地點', 'error'); return; }
+    const type = document.getElementById('sf_type').value;
+    const limit = parseInt(document.getElementById('sf_limit').value) || 0;
+    const maleLimit = type === 'mixed' ? (parseInt(document.getElementById('sf_maleLimit').value) || 0) : 0;
+    const femaleLimit = type === 'mixed' ? (parseInt(document.getElementById('sf_femaleLimit').value) || 0) : 0;
+
+    // Inline validation
+    sfClearFieldError('sf_date','sf_dateErr');
+    sfClearFieldError('sf_time','sf_timeErr');
+    sfClearFieldError('sf_location','sf_locationErr');
+    document.getElementById('sf_mixedLimitErr').classList.add('hidden');
+
+    let firstErrorEl = null;
+    if (!date) { sfSetFieldError('sf_date','sf_dateErr', zh?'請選擇日期':'Please select a date'); firstErrorEl = firstErrorEl || document.getElementById('sf_date'); }
+    if (!time) { sfSetFieldError('sf_time','sf_timeErr', zh?'請選擇時間':'Please select a time'); firstErrorEl = firstErrorEl || document.getElementById('sf_time'); }
+    if (!location) { sfSetFieldError('sf_location','sf_locationErr', zh?'請填寫地點':'Please enter a location'); firstErrorEl = firstErrorEl || document.getElementById('sf_location'); }
+    // Mixed limit validation: maleLimit + femaleLimit must equal total limit (if both > 0 and limit > 0)
+    if (type === 'mixed' && limit > 0 && (maleLimit > 0 || femaleLimit > 0) && maleLimit + femaleLimit !== limit) {
+      const errEl = document.getElementById('sf_mixedLimitErr');
+      errEl.textContent = zh ? `❌ 男生名額(${maleLimit}) + 女生名額(${femaleLimit}) 必須等於人數上限(${limit})` : `❌ Male(${maleLimit}) + Female(${femaleLimit}) must equal total limit(${limit})`;
+      errEl.classList.remove('hidden');
+      firstErrorEl = firstErrorEl || document.getElementById('sf_maleLimit');
+    }
+    if (firstErrorEl) {
+      firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstErrorEl.focus();
+      return;
+    }
 
     const btn = document.getElementById('sfSubmitBtn');
     btn.disabled = true;
+    document.getElementById('sfMsg').classList.add('hidden');
 
     const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     const equipment = [...sfSelectedEquip, ...customEquip];
@@ -819,28 +949,55 @@
       isOpen = openDate <= new Date();
     }
 
+    const closeAtEl = document.getElementById('sf_closeAt');
+    const closeAt = closeAtEl.value
+      ? Timestamp.fromDate(new Date(closeAtEl.value))
+      : Timestamp.fromDate(new Date(`${date}T${time}:00`));
+
     const data = {
       title: document.getElementById('sf_title').value.trim() || `${date} 零打`,
       date, time, location,
       venue: document.getElementById('sf_venue').value.trim(),
-      limit: parseInt(document.getElementById('sf_limit').value) || 0,
-      type: document.getElementById('sf_type').value,
+      limit,
+      type,
+      maleLimit,
+      femaleLimit,
       equipment,
       note: document.getElementById('sf_note').value.trim(),
-      isOpen, openAt,
+      isOpen, openAt, closeAt,
     };
+
+    // 防呆：如果是編輯且縮減名額，檢查是否會影響已報名人員
+    if (editingSessionId && limit > 0) {
+      const cntEl = document.getElementById('mgmt-cnt-' + editingSessionId);
+      const currentCount = cntEl ? parseInt(cntEl.textContent) || 0 : 0;
+      const oldLimitEl = mySessionsCache.find(s => s.id === editingSessionId);
+      const oldLimit = oldLimitEl?.limit || 0;
+      if (currentCount > limit && (oldLimit === 0 || limit < oldLimit)) {
+        const willWaitlist = currentCount - limit;
+        const msg = zh
+          ? `目前已有 ${currentCount} 人報名，縮減名額後將有 ${willWaitlist} 人移至候補名單。確定要繼續嗎？`
+          : `There are ${currentCount} signups. Reducing the limit will move ${willWaitlist} person(s) to the waitlist. Continue?`;
+        if (!confirm(msg)) {
+          btn.disabled = false;
+          return;
+        }
+      }
+    }
 
     try {
       if (editingSessionId) {
         await updateDoc(doc(db, 'sessions', editingSessionId), data);
         showSfMsg('✅ 已更新！', 'success');
+        setTimeout(closeSessionSheet, 1000);
       } else {
-        await addDoc(collection(db, 'sessions'), {
-          ...data, createdAt: serverTimestamp(), createdBy: currentUser.uid, creatorName: currentUser.displayName
+        const newRef = await addDoc(collection(db, 'sessions'), {
+          ...data, createdAt: serverTimestamp(), createdBy: currentUser.uid, creatorName: currentUser.displayName,
+          creatorPhoto: currentUser.photoURL || null,
         });
-        showSfMsg('✅ 場次建立成功！', 'success');
+        closeSessionSheet();
+        sfShowSessionCreatedModal(newRef.id);
       }
-      setTimeout(closeSessionSheet, 1000);
     } catch(e) {
       showSfMsg('❌ ' + e.message, 'error');
     } finally {
@@ -877,8 +1034,26 @@
     el.textContent = msg;
     el.className = `text-center text-sm ${type==='success'?'text-green-600':'text-red-500'}`;
     el.classList.remove('hidden');
-    setTimeout(()=>el.classList.add('hidden'), 3000);
+    // Only auto-hide success messages; errors stay until next action
+    if (type === 'success') setTimeout(()=>el.classList.add('hidden'), 3000);
   }
+
+  // ── Session Created Modal ──
+  function sfShowSessionCreatedModal(sessionId) {
+    const base = window.location.origin + window.location.pathname.replace('my-sessions.html', 'index.html');
+    const url = `${base}?session=${sessionId}`;
+    document.getElementById('sf_createdSessionUrl').textContent = url;
+    document.getElementById('sf_copyCreatedUrlBtn').textContent = '📋 複製連結';
+    document.getElementById('sessionCreatedModal').classList.remove('hidden');
+  }
+  window.sfCopyCreatedUrl = () => {
+    const url = document.getElementById('sf_createdSessionUrl').textContent;
+    const btn = document.getElementById('sf_copyCreatedUrlBtn');
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = '✅ 已複製！';
+      setTimeout(() => { btn.textContent = '📋 複製連結'; }, 2000);
+    }).catch(() => { prompt('複製以下連結：', url); });
+  };
 
   // ── Templates ──
   let templatesData = [];
@@ -964,11 +1139,6 @@
   const locInput2 = document.getElementById('sf_location');
   const sugg2 = document.getElementById('mapSuggestions2');
 
-  window.searchLoc2 = () => {
-    const val = locInput2.value.trim();
-    if (val) doMapSearch2(val);
-  };
-
   locInput2.addEventListener('input', () => {
     clearTimeout(mapDebounce2);
     if (locInput2.value.trim().length < 2) { sugg2.classList.add('hidden'); return; }
@@ -996,6 +1166,46 @@
 
   function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+
+  // ── Load Feedback (for super admins) ──
+  async function loadFeedback() {
+    const loadingEl = document.getElementById('feedbackLoadingIndicator');
+    const listEl = document.getElementById('feedbackList');
+    const noFeedbackEl = document.getElementById('noFeedback');
+    if (!listEl) return;
+    loadingEl?.classList.remove('hidden');
+    listEl.innerHTML = '';
+    noFeedbackEl?.classList.add('hidden');
+    try {
+      const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
+      loadingEl?.classList.add('hidden');
+      if (snap.empty) { noFeedbackEl?.classList.remove('hidden'); return; }
+      const urgencyColor = { low: 'text-green-600', medium: 'text-amber-600', high: 'text-red-500' };
+      const typeLabel = { bug: '🐛 Bug', feature: '💡 功能建議', question: '❓ 問題', other: '💬 其他' };
+      listEl.innerHTML = snap.docs.map(d => {
+        const f = d.data();
+        const ts = f.createdAt?.toDate ? f.createdAt.toDate() : new Date();
+        const dateStr = `${ts.getFullYear()}/${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
+        const urgency = f.urgency || 'low';
+        const urgencyLabel = { low: '🟢 低', medium: '🟡 中', high: '🔴 高' }[urgency] || urgency;
+        return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 fade-in">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700">${typeLabel[f.type] || f.type}</span>
+            <span class="text-xs ${urgencyColor[urgency] || ''} font-medium shrink-0">${urgencyLabel}</span>
+          </div>
+          <p class="text-sm text-gray-800 whitespace-pre-wrap mb-2">${escHtml(f.description || '')}</p>
+          <div class="text-xs text-gray-400 space-y-0.5">
+            ${f.email ? `<p>📧 ${escHtml(f.email)}</p>` : ''}
+            ${f.userName ? `<p>👤 ${escHtml(f.userName)}</p>` : ''}
+            <p>🕐 ${dateStr}</p>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      loadingEl?.classList.add('hidden');
+      if (listEl) listEl.innerHTML = `<p class="text-sm text-red-500 text-center py-4">載入失敗：${escHtml(e.message)}</p>`;
+    }
+  }
 
   applyLang();
 </script>

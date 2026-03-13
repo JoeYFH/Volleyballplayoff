@@ -243,10 +243,25 @@
         ? `<span class="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700">${zh?'報名中':'Open'}</span>`
         : `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已截止':'Closed'}</span>`;
 
-    // Tags: late, friend, pair, bringEquip
+    // Registrant label: show name prominently, distinguish self vs proxy
+    const isProxy = !!s.forFriend;
+    let registrantHtml = '';
+    if (isProxy) {
+      registrantHtml = `<div class="flex items-center gap-1.5 mt-1 mb-2">
+        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">👥 ${zh?'代報':'Proxy'}</span>
+        <span class="text-sm font-semibold text-purple-800">${escHtml(s.forFriend)}</span>
+        ${s.name ? `<span class="text-xs text-gray-400">(${zh?'由':'by'} ${escHtml(s.name)})</span>` : ''}
+      </div>`;
+    } else if (s.name) {
+      registrantHtml = `<div class="flex items-center gap-1.5 mt-1 mb-2">
+        <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">🙋 ${zh?'本人':'Self'}</span>
+        <span class="text-sm font-semibold text-gray-800">${escHtml(s.name)}</span>
+      </div>`;
+    }
+
+    // Tags: late, pair, bringEquip (forFriend already shown above)
     const tags = [];
     if (s.isLate) tags.push(`<span class="tag">${zh?'晚到':'Late'}${s.lateTime?' '+s.lateTime:''}</span>`);
-    if (s.forFriend) tags.push(`<span class="tag">${zh?'代':'For'}:${escHtml(s.forFriend)}</span>`);
     if (s.pairWith) tags.push(`<span class="tag">${zh?'搭檔':'Pair'}:${escHtml(s.pairWith)}</span>`);
     if (s.bringEquip && s.bringEquip.length) {
       s.bringEquip.forEach(e => tags.push(`<span class="tag tag-green">🎒 ${escHtml(e)}</span>`));
@@ -266,14 +281,15 @@
     }
 
     return `
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 fade-in">
-        <div class="flex items-start justify-between gap-2 mb-2">
+      <div class="bg-white rounded-2xl shadow-sm border ${isProxy ? 'border-purple-100' : 'border-gray-100'} p-4 fade-in">
+        <div class="flex items-start justify-between gap-2 mb-1">
           <div>
             <p class="font-bold text-gray-800">${escHtml(title)}</p>
             ${sess?.creatorName ? `<p class="text-xs text-gray-400 mt-0.5">👤 ${escHtml(sess.creatorName)}</p>` : ''}
           </div>
           ${statusBadge}
         </div>
+        ${registrantHtml}
         ${tags.length ? `<div class="flex flex-wrap gap-1.5 mb-3">${tags.join('')}</div>` : ''}
         <div class="space-y-1.5 text-sm text-gray-600 mb-4">
           ${date ? `<div class="flex items-center gap-2"><span>📅</span><span>${formatDate(date)}</span></div>` : ''}
