@@ -422,7 +422,10 @@
         <div class="flex items-start justify-between gap-2 mb-1">
           <div>
             <p class="font-bold text-gray-800">${escHtml(title)}</p>
-            ${sess?.creatorName ? `<p class="text-xs text-gray-400 mt-0.5">👤 ${escHtml(sess.creatorName)}</p>` : ''}
+            ${sess?.creatorName ? `<div class="flex items-center gap-1.5 mt-0.5">
+              ${sess.creatorPhoto ? `<img src="${escHtml(sess.creatorPhoto)}" class="w-4 h-4 rounded-full border border-gray-200 shrink-0" alt="" onerror="this.style.display='none'" />` : ''}
+              <p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(sess.creatorName)}</p>
+            </div>` : ''}
           </div>
           ${statusBadge}
         </div>

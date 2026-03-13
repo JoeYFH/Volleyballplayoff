@@ -6,7 +6,16 @@
       ".firebaserc",
       ".git",
       "**/.gitignore",
-      "**/README.md"
+      "**/README.md",
+      "functions/**"
+    ],
+    "rewrites": [
+      { "source": "/share/**", "function": "og" },
+      { "source": "/og-image/**", "function": "ogImage" }
     ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs18"
   }
 }
