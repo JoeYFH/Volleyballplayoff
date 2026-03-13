@@ -249,6 +249,7 @@
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         </div>
       </div>
+      <p id="fMaleLimitErr" class="hidden text-xs text-red-500 -mt-2"></p>
 
       <!-- Equipment addable list -->
       <div>
@@ -320,6 +321,31 @@
         </button>
       </div>
       <p id="createMsg" class="text-center text-sm hidden"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Session Created Success Modal -->
+<div id="sessionCreatedModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40"></div>
+  <div class="absolute inset-0 flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm relative">
+      <div class="text-center mb-4">
+        <div class="text-5xl mb-3">🎉</div>
+        <h3 id="hCreatedTitle" class="text-lg font-bold text-gray-800 mb-1">場次建立成功！</h3>
+        <p id="hCreatedHint" class="text-sm text-gray-500">分享以下連結讓大家報名</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl px-4 py-3 mb-4 overflow-hidden">
+        <p id="createdSessionUrl" class="text-xs text-indigo-600 break-all font-mono"></p>
+      </div>
+      <button id="copyCreatedUrlBtn" onclick="copyCreatedSessionUrl()"
+        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition mb-2">
+        📋 複製連結
+      </button>
+      <button onclick="closeSessionCreatedModal()"
+        class="w-full bg-gray-100 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-200 transition">
+        關閉
+      </button>
     </div>
   </div>
 </div>
@@ -994,6 +1020,12 @@
     document.getElementById(id).addEventListener('input', () => clearFieldError(id, errId));
     document.getElementById(id).addEventListener('change', () => clearFieldError(id, errId));
   });
+  ['fMaleLimit','fFemaleLimit','fLimit'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      const errEl = document.getElementById('fMaleLimitErr');
+      if (errEl) errEl.classList.add('hidden');
+    });
+  });
 
   document.getElementById('submitCreateBtn').addEventListener('click', async () => {
     if (!currentUser) return;
@@ -1007,6 +1039,11 @@
     clearFieldError('fTime', 'fTimeErr');
     clearFieldError('fLocation', 'fLocationErr');
 
+    const type = document.getElementById('fType').value;
+    const limit = parseInt(document.getElementById('fLimit').value) || 0;
+    const maleLimit = type === 'mixed' ? (parseInt(document.getElementById('fMaleLimit').value) || 0) : 0;
+    const femaleLimit = type === 'mixed' ? (parseInt(document.getElementById('fFemaleLimit').value) || 0) : 0;
+
     let firstErrorEl = null;
     if (!date) {
       setFieldError('fDate', 'fDateErr', zh ? '請選擇日期' : 'Please select a date');
@@ -1019,6 +1056,17 @@
     if (!location) {
       setFieldError('fLocation', 'fLocationErr', zh ? '請填寫地點' : 'Please enter a location');
       if (!firstErrorEl) firstErrorEl = document.getElementById('fLocation');
+    }
+    // Mixed limit validation: maleLimit + femaleLimit must equal total limit
+    if (type === 'mixed' && limit > 0 && (maleLimit > 0 || femaleLimit > 0) && maleLimit + femaleLimit !== limit) {
+      const errEl = document.getElementById('fDateErr'); // reuse area or show near limits
+      // Show error near limits area
+      const mlErr = document.getElementById('fMaleLimitErr');
+      if (mlErr) {
+        mlErr.textContent = zh ? `❌ 男生(${maleLimit})+女生(${femaleLimit}) 必須等於人數上限(${limit})` : `❌ Male(${maleLimit})+Female(${femaleLimit}) must equal limit(${limit})`;
+        mlErr.classList.remove('hidden');
+      }
+      if (!firstErrorEl) firstErrorEl = document.getElementById('fMaleLimit');
     }
     if (firstErrorEl) {
       firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1055,14 +1103,14 @@
     }
 
     try {
-      await addDoc(collection(db, 'sessions'), {
+      const newRef = await addDoc(collection(db, 'sessions'), {
         title: document.getElementById('fTitle').value.trim() || `${date} 零打`,
         date, time, location,
         venue: document.getElementById('fVenue').value.trim(),
-        limit: parseInt(document.getElementById('fLimit').value) || 0,
-        type: document.getElementById('fType').value,
-        maleLimit: document.getElementById('fType').value === 'mixed' ? (parseInt(document.getElementById('fMaleLimit').value) || 0) : 0,
-        femaleLimit: document.getElementById('fType').value === 'mixed' ? (parseInt(document.getElementById('fFemaleLimit').value) || 0) : 0,
+        limit,
+        type,
+        maleLimit,
+        femaleLimit,
         equipment,
         note: document.getElementById('fNote').value.trim(),
         isOpen,
@@ -1070,7 +1118,6 @@
         closeAt: (() => {
           const v = document.getElementById('fCloseAt').value;
           if (v) return Timestamp.fromDate(new Date(v));
-          // Default: session start time
           return Timestamp.fromDate(new Date(`${date}T${time}:00`));
         })(),
         createdAt: serverTimestamp(),
@@ -1078,8 +1125,8 @@
         creatorName: currentUser.displayName,
         creatorPhoto: currentUser.photoURL || null,
       });
-      showCreateMsg('✅ ' + (getLang()==='zh'?'場次建立成功！':'Session created!'), 'success');
-      setTimeout(closeCreateSheet, 1200);
+      closeCreateSheet();
+      showSessionCreatedModal(newRef.id);
     } catch(e) {
       showCreateMsg('❌ ' + e.message, 'error');
     } finally {
@@ -1262,13 +1309,30 @@
     const bringChips = document.getElementById('modalBringChips');
     if (equipment.length) {
       bringRow.classList.remove('hidden');
+      // Find which items are already claimed by others
+      const allSignups = signupsCache[sessionId] || [];
+      const claimedByOthers = new Set();
+      allSignups.forEach(s => {
+        // Don't count current user's own signup as "claimed by others"
+        if (currentUser && s.uid === currentUser.uid) return;
+        // Don't count the signup being edited
+        if (editingSignupId && s.id === editingSignupId) return;
+        (s.bringEquip || []).forEach(e => claimedByOthers.add(e));
+      });
       bringChips.innerHTML = equipment.map(e => {
         const active = preselected.includes(e);
         if (active) selectedBringEquip.add(e);
-        const cls = active
-          ? 'bring-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition'
-          : 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
-        return `<button type="button" data-bring="${escHtml(e)}" class="${cls}">${escHtml(e)}</button>`;
+        const claimed = claimedByOthers.has(e);
+        let cls, extra = '';
+        if (claimed) {
+          cls = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60';
+          extra = ` title="${getLang()==='zh' ? '已有人幫忙帶' : 'Already claimed'}"`;
+        } else if (active) {
+          cls = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
+        } else {
+          cls = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
+        }
+        return `<button type="button" data-bring="${escHtml(e)}" ${claimed ? 'disabled' : ''} class="${cls}"${extra}>${escHtml(e)}${claimed ? ' ✓' : ''}</button>`;
       }).join('');
     } else {
       bringRow.classList.add('hidden');
@@ -1278,7 +1342,7 @@
 
   document.getElementById('modalBringEquipRow').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-bring]');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     const val = btn.dataset.bring;
     if (selectedBringEquip.has(val)) {
       selectedBringEquip.delete(val);
@@ -1288,6 +1352,28 @@
       btn.className = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
     }
   });
+
+  // ── Friend name localStorage ──
+  function getRecentFriendNames() {
+    try { return JSON.parse(localStorage.getItem('recentFriendNames') || '[]'); } catch { return []; }
+  }
+  function saveRecentFriendName(name) {
+    if (!name) return;
+    const names = getRecentFriendNames().filter(n => n !== name);
+    names.unshift(name);
+    localStorage.setItem('recentFriendNames', JSON.stringify(names.slice(0, 10)));
+  }
+  function updateFriendNameDatalist() {
+    let dl = document.getElementById('friendNameDatalist');
+    if (!dl) {
+      dl = document.createElement('datalist');
+      dl.id = 'friendNameDatalist';
+      document.body.appendChild(dl);
+      document.getElementById('modalFriendName').setAttribute('list', 'friendNameDatalist');
+    }
+    const names = getRecentFriendNames();
+    dl.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
+  }
 
   window.openSignupModal = (sessionId, limit) => {
     activeSessionId = sessionId;
@@ -1302,6 +1388,8 @@
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
+    // Update friend name datalist
+    updateFriendNameDatalist();
     // 重置性別 / reset gender
     selectedSelfGender = '';
     selectedFriendGender = '';
@@ -1466,6 +1554,8 @@
             signedAt: Timestamp.now(),
           });
         }
+        // Save friend name to localStorage if registering for a friend
+        if (!editingSignupId && forFriendName) saveRecentFriendName(forFriendName);
         showModalMsg(tr('successMsg'), 'success');
       }
       setTimeout(closeSignupModal, 1200);
@@ -1502,6 +1592,28 @@
 
   function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+
+  // ── Session Created Modal ──
+  window.showSessionCreatedModal = (sessionId) => {
+    const base = window.location.origin + window.location.pathname;
+    const url = `${base}?session=${sessionId}`;
+    document.getElementById('createdSessionUrl').textContent = url;
+    document.getElementById('copyCreatedUrlBtn').textContent = '📋 ' + (getLang()==='zh' ? '複製連結' : 'Copy Link');
+    document.getElementById('hCreatedTitle').textContent = getLang()==='zh' ? '場次建立成功！' : 'Session Created!';
+    document.getElementById('hCreatedHint').textContent = getLang()==='zh' ? '分享以下連結讓大家報名' : 'Share this link for sign-ups';
+    document.getElementById('sessionCreatedModal').classList.remove('hidden');
+  };
+  window.closeSessionCreatedModal = () => {
+    document.getElementById('sessionCreatedModal').classList.add('hidden');
+  };
+  window.copyCreatedSessionUrl = () => {
+    const url = document.getElementById('createdSessionUrl').textContent;
+    const btn = document.getElementById('copyCreatedUrlBtn');
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = '✅ ' + (getLang()==='zh' ? '已複製！' : 'Copied!');
+      setTimeout(() => { btn.textContent = '📋 ' + (getLang()==='zh' ? '複製連結' : 'Copy Link'); }, 2000);
+    }).catch(() => { prompt(getLang()==='zh' ? '複製以下連結：' : 'Copy this link:', url); });
+  };
 
   // ── Feedback ──
   window.openFeedbackModal = () => {

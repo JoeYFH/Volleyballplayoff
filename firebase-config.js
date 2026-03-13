@@ -12,6 +12,7 @@ const firebaseConfig = {
 // 這裡的人可以管理所有人的場次
 const ADMIN_EMAILS = [
   "anc8038570@gmail.com",
+  "abc8038570@gmail.com",
   "joehuangyf@gmail.com",
 ];
 
