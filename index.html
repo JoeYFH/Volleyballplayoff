@@ -5,16 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🏐 排球零打報名</title>
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="🏐 排球零打報名" />
-  <meta property="og:description" content="快來報名這週的排球零打！" />
-  <meta property="og:image" content="https://volleyballplayoff.web.app/og-image/default" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:title" content="🏐 排球零打報名系統" />
+  <meta property="og:description" content="快來報名這週的排球零打！查看活動時間、地點與名額。" />
+  <meta property="og:url" content="https://volleyballplayoff.web.app/" />
   <meta property="og:locale" content="zh_TW" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="🏐 排球零打報名" />
-  <meta name="twitter:description" content="快來報名這週的排球零打！" />
-  <meta name="twitter:image" content="https://volleyballplayoff.web.app/og-image/default" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="🏐 排球零打報名系統" />
+  <meta name="twitter:description" content="快來報名這週的排球零打！查看活動時間、地點與名額。" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
@@ -250,7 +247,7 @@
         </div>
       </div>
       <!-- Mixed session gender sub-limits -->
-      <div id="mixedLimitsRow" class="grid grid-cols-2 gap-3">
+      <div id="mixedLimitsRow" class="hidden grid grid-cols-2 gap-3">
         <div>
           <label id="lMaleLimit" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
           <input id="fMaleLimit" type="number" min="0" max="100" value="0"
@@ -755,7 +752,28 @@
         <p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(s.creatorName)}</p>
       </div>` : '';
     const signedBadge = `<span id="signed-badge-${s.id}" class="hidden text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full shrink-0">✅ ${getLang()==='zh'?'已報名':'Signed up'}</span>`;
-    const progressBar = s.limit ? `
+    const hasMixedLimits = s.type === 'mixed' && (s.maleLimit > 0 || s.femaleLimit > 0);
+    const progressBar = s.limit ? (hasMixedLimits ? `
+      <div id="progress-wrap-${s.id}" class="mt-3 space-y-1.5">
+        <div class="flex justify-between text-xs text-gray-400 mb-0.5">
+          <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
+          <span id="prog-text-${s.id}">0 / ${s.limit}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-blue-400 w-6 shrink-0">♂</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div id="prog-bar-male-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-blue-400" style="width:0%"></div>
+          </div>
+          <span id="prog-text-male-${s.id}" class="text-xs text-gray-400 w-10 text-right shrink-0">0/${s.maleLimit||'?'}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-pink-400 w-6 shrink-0">♀</span>
+          <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div id="prog-bar-female-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-pink-400" style="width:0%"></div>
+          </div>
+          <span id="prog-text-female-${s.id}" class="text-xs text-gray-400 w-10 text-right shrink-0">0/${s.femaleLimit||'?'}</span>
+        </div>
+      </div>` : `
       <div id="progress-wrap-${s.id}" class="mt-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
           <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
@@ -764,7 +782,7 @@
         <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden">
           <div id="prog-bar-${s.id}" class="h-2.5 rounded-full transition-all duration-500 bg-indigo-400" style="width:0%"></div>
         </div>
-      </div>` : '';
+      </div>`) : '';
 
     const isOrganizer = currentUser && s.createdBy === currentUser.uid;
     const manageBtn = isOrganizer ? `
@@ -777,7 +795,7 @@
       return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     })() : null;
     const closeAtHtml = closeAt && !isPastClose ? `<div class="text-xs text-gray-400 mt-1">🔒 ${getLang()==='zh'?'報名截止':'Closes'}: ${closeAtFmt}</div>` : '';
-    const shareUrl = `${location.origin}/share/${s.id}`;
+    const shareUrl = `${location.origin}/?session=${s.id}`;
     const signupBtnHtml = effectivelyOpen ? `
       <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
         class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
@@ -853,14 +871,32 @@
     // Update progress bar
     if (limit > 0) {
       const filled = Math.min(items.length, limit);
-      const pct = Math.round((filled / limit) * 100);
-      const barEl = document.getElementById('prog-bar-' + sessionId);
       const textEl = document.getElementById('prog-text-' + sessionId);
-      if (barEl) {
-        barEl.style.width = pct + '%';
-        barEl.className = `h-2.5 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-indigo-400'}`;
-      }
       if (textEl) textEl.textContent = `${filled} / ${limit}`;
+
+      const hasMixedBars = !!(document.getElementById('prog-bar-male-' + sessionId));
+      if (hasMixedBars) {
+        // Gender-split bars
+        const maleCount = items.filter(s => s.gender === 'male').length;
+        const femaleCount = items.filter(s => s.gender === 'female').length;
+        const malePct = maleLimit > 0 ? Math.round(Math.min(maleCount, maleLimit) / maleLimit * 100) : 0;
+        const femalePct = femaleLimit > 0 ? Math.round(Math.min(femaleCount, femaleLimit) / femaleLimit * 100) : 0;
+        const maleBar = document.getElementById('prog-bar-male-' + sessionId);
+        const femaleBar = document.getElementById('prog-bar-female-' + sessionId);
+        const maleText = document.getElementById('prog-text-male-' + sessionId);
+        const femaleText = document.getElementById('prog-text-female-' + sessionId);
+        if (maleBar) { maleBar.style.width = malePct + '%'; maleBar.className = `h-2 rounded-full transition-all duration-500 ${malePct >= 100 ? 'bg-red-400' : 'bg-blue-400'}`; }
+        if (femaleBar) { femaleBar.style.width = femalePct + '%'; femaleBar.className = `h-2 rounded-full transition-all duration-500 ${femalePct >= 100 ? 'bg-red-400' : 'bg-pink-400'}`; }
+        if (maleText) maleText.textContent = `${maleCount}/${maleLimit||'?'}`;
+        if (femaleText) femaleText.textContent = `${femaleCount}/${femaleLimit||'?'}`;
+      } else {
+        const pct = Math.round((filled / limit) * 100);
+        const barEl = document.getElementById('prog-bar-' + sessionId);
+        if (barEl) {
+          barEl.style.width = pct + '%';
+          barEl.className = `h-2.5 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-indigo-400'}`;
+        }
+      }
     }
 
     signupsCache[sessionId] = items;
@@ -972,7 +1008,7 @@
 
   // ── Share Session ──
   window.shareSession = async (sessionId, sessionTitle) => {
-    const shareUrl = `${window.location.origin}/share/${sessionId}`;
+    const shareUrl = `${window.location.origin}/?session=${sessionId}`;
     const zh = getLang() === 'zh';
     if (navigator.share) {
       try {
@@ -1369,7 +1405,8 @@
     document.getElementById('fLocation').value = tmpl.location || '';
     document.getElementById('fVenue').value = tmpl.venue || '';
     document.getElementById('fLimit').value = tmpl.limit || 0;
-    document.getElementById('fType').value = tmpl.type || '';
+    document.getElementById('fType').value = tmpl.type || 'mixed';
+    onTypeChange();
     document.getElementById('fNote').value = tmpl.note || '';
     selectedEquip.clear();
     customEquipItems.length = 0;
@@ -1772,7 +1809,7 @@
 
   // ── Session Created Modal ──
   window.showSessionCreatedModal = (sessionId) => {
-    const url = `${window.location.origin}/share/${sessionId}`;
+    const url = `${window.location.origin}/?session=${sessionId}`;
     document.getElementById('createdSessionUrl').textContent = url;
     document.getElementById('copyCreatedUrlBtn').textContent = '📋 ' + (getLang()==='zh' ? '複製連結' : 'Copy Link');
     document.getElementById('hCreatedTitle').textContent = getLang()==='zh' ? '場次建立成功！' : 'Session Created!';
