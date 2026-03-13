@@ -21,8 +21,13 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 
+<!-- Auth Loading -->
+<div id="authLoading" class="flex items-center justify-center min-h-screen">
+  <div class="text-4xl animate-bounce">🏐</div>
+</div>
+
 <!-- Login Screen -->
-<div id="loginScreen" class="flex items-center justify-center min-h-screen px-4">
+<div id="loginScreen" class="hidden flex items-center justify-center min-h-screen px-4">
   <div class="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-center">
     <div class="flex justify-end mb-2">
       <button id="langBtnLogin" onclick="toggleLang()"
@@ -460,6 +465,7 @@
 
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
+    document.getElementById('authLoading').classList.add('hidden');
     if (user) {
       isAdmin = (ADMIN_EMAILS || []).includes(user.email);
       document.getElementById('loginScreen').classList.add('hidden');
@@ -578,7 +584,7 @@
               <span>🕐 ${s.time || '—'}</span>
             </div>
             <div>📍 <a href="https://maps.google.com/?q=${encodeURIComponent(s.location||'')}" target="_blank" class="text-indigo-500 hover:underline">${escHtml(s.location||'—')}</a></div>
-            ${s.limit ? `<div>👥 ${getLang()==='zh'?'名額':'Limit'} ${s.limit}</div>` : ''}
+            ${s.limit ? `<div>👥 ${getLang()==='zh'?'名額':'Limit'} ${s.limit}${s.type === 'mixed' && (s.maleLimit || s.femaleLimit) ? ` (♂${s.maleLimit||0} ♀${s.femaleLimit||0})` : ''}</div>` : ''}
             ${s.type ? `<div>🏷️ ${TYPE_LABEL[s.type]||s.type}</div>` : ''}
           </div>
           <div class="flex flex-wrap gap-2">
