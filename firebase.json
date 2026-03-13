@@ -10,12 +10,7 @@
       "functions/**"
     ],
     "rewrites": [
-      { "source": "/share/**", "function": "og" },
-      { "source": "/og-image/**", "function": "ogImage" }
+      { "source": "/share/**", "destination": "/share.html" }
     ]
-  },
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs18"
   }
 }
