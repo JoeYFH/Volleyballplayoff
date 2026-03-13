@@ -184,9 +184,10 @@
 
       <!-- Title -->
       <div>
-        <label id="lTitle" class="block text-sm font-medium text-gray-600 mb-1">場次名稱</label>
+        <label id="lTitle" class="block text-sm font-medium text-gray-600 mb-1">場次名稱 <span class="text-red-400">*</span></label>
         <input id="fTitle" type="text" maxlength="30"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="fTitleErr" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
 
       <!-- Date + Time -->
@@ -299,10 +300,17 @@
 
       <!-- Close Time -->
       <div>
-        <label id="lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間（選填，預設為活動開始時間）</label>
-        <input id="fCloseAt" type="datetime-local"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <p id="hCloseAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
+        <label id="lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間</label>
+        <select id="fCloseWhen" onchange="onCloseWhenChange()"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <option value="gamestart" id="oCloseGameStart">直到活動開始</option>
+          <option value="custom" id="oCloseCustom">自訂時間</option>
+        </select>
+        <div id="fCloseAtRow" class="hidden mt-2">
+          <input id="fCloseAt" type="datetime-local"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="hCloseAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
+        </div>
       </div>
 
       <!-- Note -->
@@ -952,12 +960,40 @@
 
   // ── Create Session ──
   window.openCreateSheet = () => {
-    document.getElementById('createSheet').classList.remove('hidden');
-    // Clear close time so auto-fill works fresh
+    // Full reset
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fDate').value = '';
+    document.getElementById('fTime').value = '00:00';
+    document.getElementById('fLocation').value = '';
+    document.getElementById('fVenue').value = '';
+    document.getElementById('fLimit').value = '12';
+    document.getElementById('fMaleLimit').value = '0';
+    document.getElementById('fFemaleLimit').value = '0';
+    document.getElementById('fType').value = 'mixed';
+    document.getElementById('fNote').value = '';
+    document.getElementById('fOpenWhen').value = 'now';
+    document.getElementById('fCloseWhen').value = 'gamestart';
     document.getElementById('fCloseAt').value = '';
+    document.getElementById('fCloseAtRow').classList.add('hidden');
+    onTypeChange();
+    onOpenWhenChange();
+    // Clear errors
+    ['fTitleErr','fDateErr','fTimeErr','fLocationErr','fMaleLimitErr'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.add('hidden'); el.textContent = ''; }
+    });
+    ['fTitle','fDate','fTime','fLocation'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('border-red-400');
+    });
+    document.getElementById('createSheet').classList.remove('hidden');
   };
   window.closeCreateSheet = () => {
     document.getElementById('createSheet').classList.add('hidden');
+  };
+  window.onCloseWhenChange = () => {
+    const val = document.getElementById('fCloseWhen').value;
+    document.getElementById('fCloseAtRow').classList.toggle('hidden', val !== 'custom');
   };
   document.getElementById('equipChips').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-equip]');
@@ -1040,10 +1076,14 @@
     const location = document.getElementById('fLocation').value.trim();
     const zh = getLang() === 'zh';
 
+    const title = document.getElementById('fTitle').value.trim();
     // Clear previous errors
+    clearFieldError('fTitle', 'fTitleErr');
     clearFieldError('fDate', 'fDateErr');
     clearFieldError('fTime', 'fTimeErr');
     clearFieldError('fLocation', 'fLocationErr');
+    const maleLimitErrEl = document.getElementById('fMaleLimitErr');
+    if (maleLimitErrEl) { maleLimitErrEl.classList.add('hidden'); maleLimitErrEl.textContent = ''; }
 
     const type = document.getElementById('fType').value;
     const limit = parseInt(document.getElementById('fLimit').value) || 0;
@@ -1051,6 +1091,10 @@
     const femaleLimit = type === 'mixed' ? (parseInt(document.getElementById('fFemaleLimit').value) || 0) : 0;
 
     let firstErrorEl = null;
+    if (!title) {
+      setFieldError('fTitle', 'fTitleErr', zh ? '請填寫場次名稱' : 'Please enter a session title');
+      if (!firstErrorEl) firstErrorEl = document.getElementById('fTitle');
+    }
     if (!date) {
       setFieldError('fDate', 'fDateErr', zh ? '請選擇日期' : 'Please select a date');
       if (!firstErrorEl) firstErrorEl = document.getElementById('fDate');
@@ -1110,7 +1154,7 @@
 
     try {
       const newRef = await addDoc(collection(db, 'sessions'), {
-        title: document.getElementById('fTitle').value.trim() || `${date} 零打`,
+        title,
         date, time, location,
         venue: document.getElementById('fVenue').value.trim(),
         limit,
@@ -1122,8 +1166,11 @@
         isOpen,
         openAt,
         closeAt: (() => {
-          const v = document.getElementById('fCloseAt').value;
-          if (v) return Timestamp.fromDate(new Date(v));
+          const closeWhen = document.getElementById('fCloseWhen').value;
+          if (closeWhen === 'custom') {
+            const v = document.getElementById('fCloseAt').value;
+            if (v) return Timestamp.fromDate(new Date(v));
+          }
           return Timestamp.fromDate(new Date(`${date}T${time}:00`));
         })(),
         createdAt: serverTimestamp(),
@@ -1178,14 +1225,8 @@
 
   // ── Auto-fill Close Time from Date+Time ──
   function syncCloseAtDefault() {
-    const closeAtEl = document.getElementById('fCloseAt');
-    if (closeAtEl.value) return; // don't override user input
-    const date = document.getElementById('fDate').value;
-    const time = document.getElementById('fTime').value;
-    if (date && time) closeAtEl.value = `${date}T${time}`;
   }
-  document.getElementById('fDate').addEventListener('change', syncCloseAtDefault);
-  document.getElementById('fTime').addEventListener('change', syncCloseAtDefault);
+  document.getElementById('fTitle').addEventListener('input', () => clearFieldError('fTitle', 'fTitleErr'));
 
   // ── Type Change Toggle ──
   window.onTypeChange = () => {
