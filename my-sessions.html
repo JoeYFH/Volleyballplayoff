@@ -556,7 +556,7 @@
   function renderSessionMgmtList(containerId, sessions, canEdit) {
     const container = document.getElementById(containerId);
     container.innerHTML = sessions.map(s => buildMgmtCard(s, canEdit)).join('');
-    sessions.forEach(s => subscribeSignupsMgmt(s.id, s.limit || 0));
+    sessions.forEach(s => subscribeSignupsMgmt(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0));
   }
 
   function buildMgmtCard(s, canEdit) {
@@ -616,7 +616,26 @@
             <p class="text-xs font-semibold text-gray-500">${getLang()==='zh'?'報名名單':'Sign-ups'}</p>
             <span id="mgmt-cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
           </div>
-          ${s.limit ? `<div class="mb-2">
+          ${s.limit ? (s.type === 'mixed' && (s.maleLimit || s.femaleLimit) ? `<div class="mb-2 space-y-1">
+            <div class="flex justify-between text-xs text-gray-400 mb-0.5">
+              <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
+              <span id="mgmt-prog-text-${s.id}">0 / ${s.limit}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-blue-400 w-5 shrink-0">♂</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div id="mgmt-prog-bar-male-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-blue-400" style="width:0%"></div>
+              </div>
+              <span id="mgmt-prog-text-male-${s.id}" class="text-xs text-gray-400 w-10 text-right shrink-0">0/${s.maleLimit||'?'}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-pink-400 w-5 shrink-0">♀</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div id="mgmt-prog-bar-female-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-pink-400" style="width:0%"></div>
+              </div>
+              <span id="mgmt-prog-text-female-${s.id}" class="text-xs text-gray-400 w-10 text-right shrink-0">0/${s.femaleLimit||'?'}</span>
+            </div>
+          </div>` : `<div class="mb-2">
             <div class="flex justify-between text-xs text-gray-400 mb-1">
               <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
               <span id="mgmt-prog-text-${s.id}">0 / ${s.limit}</span>
@@ -624,14 +643,14 @@
             <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
               <div id="mgmt-prog-bar-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-indigo-400" style="width:0%"></div>
             </div>
-          </div>` : ''}
+          </div>`) : ''}
           <div id="mgmt-list-${s.id}" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
           <div id="mgmt-empty-${s.id}" class="text-center py-3 text-gray-400 text-xs">${getLang()==='zh'?'還沒有報名':'No signups yet'}</div>
         </div>
       </div>`;
   }
 
-  function subscribeSignupsMgmt(sessionId, limit) {
+  function subscribeSignupsMgmt(sessionId, limit, maleLimit = 0, femaleLimit = 0) {
     if (signupUnsubs[sessionId]) {
       signupUnsubs[sessionId]();
       delete signupUnsubs[sessionId];
@@ -639,48 +658,104 @@
     const q = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
     signupUnsubs[sessionId] = onSnapshot(q, (snap) => {
       const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i+1 }));
-      renderMgmtSignups(sessionId, items, limit);
+      renderMgmtSignups(sessionId, items, limit, maleLimit, femaleLimit);
     });
   }
 
-  function renderMgmtSignups(sessionId, items, limit) {
+  function renderMgmtSignups(sessionId, items, limit, maleLimit = 0, femaleLimit = 0) {
     const listEl = document.getElementById('mgmt-list-' + sessionId);
     const emptyEl = document.getElementById('mgmt-empty-' + sessionId);
     const cntEl = document.getElementById('mgmt-cnt-' + sessionId);
     if (!listEl) return;
     cntEl && (cntEl.textContent = items.length);
+
+    // Compute gender-based waitlist
+    const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
+    if (hasMixedLimits) {
+      let maleCount = 0, femaleCount = 0;
+      items.forEach(s => {
+        if (s.gender === 'male') { maleCount++; s.genderWait = maleLimit > 0 && maleCount > maleLimit; }
+        else if (s.gender === 'female') { femaleCount++; s.genderWait = femaleLimit > 0 && femaleCount > femaleLimit; }
+        else { s.genderWait = false; }
+      });
+    }
+
     // Update progress bar
     if (limit > 0) {
-      const filled = Math.min(items.length, limit);
-      const pct = Math.round((filled / limit) * 100);
-      const barEl = document.getElementById('mgmt-prog-bar-' + sessionId);
       const textEl = document.getElementById('mgmt-prog-text-' + sessionId);
-      if (barEl) {
-        barEl.style.width = pct + '%';
-        barEl.className = `h-2 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-indigo-400'}`;
-      }
+      const filled = Math.min(items.length, limit);
       if (textEl) textEl.textContent = `${filled} / ${limit}`;
+
+      if (hasMixedLimits) {
+        const maleCount = items.filter(s => s.gender === 'male').length;
+        const femaleCount = items.filter(s => s.gender === 'female').length;
+        const malePct = maleLimit > 0 ? Math.round(Math.min(maleCount, maleLimit) / maleLimit * 100) : 0;
+        const femalePct = femaleLimit > 0 ? Math.round(Math.min(femaleCount, femaleLimit) / femaleLimit * 100) : 0;
+        const maleBar = document.getElementById('mgmt-prog-bar-male-' + sessionId);
+        const femaleBar = document.getElementById('mgmt-prog-bar-female-' + sessionId);
+        const maleText = document.getElementById('mgmt-prog-text-male-' + sessionId);
+        const femaleText = document.getElementById('mgmt-prog-text-female-' + sessionId);
+        if (maleBar) { maleBar.style.width = malePct + '%'; maleBar.className = `h-2 rounded-full transition-all duration-500 ${malePct >= 100 ? 'bg-red-400' : 'bg-blue-400'}`; }
+        if (femaleBar) { femaleBar.style.width = femalePct + '%'; femaleBar.className = `h-2 rounded-full transition-all duration-500 ${femalePct >= 100 ? 'bg-red-400' : 'bg-pink-400'}`; }
+        if (maleText) maleText.textContent = `${maleCount}/${maleLimit||'?'}`;
+        if (femaleText) femaleText.textContent = `${femaleCount}/${femaleLimit||'?'}`;
+      } else {
+        const pct = Math.round((filled / limit) * 100);
+        const barEl = document.getElementById('mgmt-prog-bar-' + sessionId);
+        if (barEl) { barEl.style.width = pct + '%'; barEl.className = `h-2 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-indigo-400'}`; }
+      }
     }
+
     if (!items.length) { listEl.innerHTML = ''; emptyEl?.classList.remove('hidden'); return; }
     emptyEl?.classList.add('hidden');
 
-    listEl.innerHTML = items.map(s => {
-      const isWait = limit > 0 && s.position > limit;
+    const zh = getLang() === 'zh';
+    const renderItem = (s, isWait, posLabel) => {
       const tags = [];
       if (s.isLate) tags.push(s.lateTime ? `晚到${s.lateTime}` : '晚到');
       if (s.forFriend) tags.push(`代:${escHtml(s.forFriend)}`);
       if (s.pairWith) tags.push(`搭:${escHtml(s.pairWith)}`);
-      if (s.bringEquip && s.bringEquip.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(e)}`.substring(0,8)));
+      if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(e)}`.substring(0,8)));
       const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
-      return `
-        <div class="flex items-center gap-2 ${isWait?'opacity-60':''}">
-          <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0">${s.position}</span>
-          ${photo}
-          <span class="flex-1 text-sm text-gray-700 truncate">${escHtml(s.name)}</span>
-          ${tags.map(t2=>`<span class="text-xs text-gray-400">${t2}</span>`).join('')}
-          <button onclick="removeSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition ml-1">✕</button>
-        </div>`;
-    }).join('');
+      const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';
+      return `<div class="flex items-center gap-2 ${isWait?'opacity-50':''} ${genderBorder} pl-1">
+        <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0">${posLabel}</span>
+        ${photo}
+        <span class="flex-1 text-sm text-gray-700 truncate">${escHtml(s.name)}</span>
+        ${tags.map(t2=>`<span class="text-xs text-gray-400">${t2}</span>`).join('')}
+        <button onclick="removeSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition ml-1">✕</button>
+      </div>`;
+    };
+
+    if (hasMixedLimits) {
+      const males = items.filter(s => s.gender === 'male');
+      const females = items.filter(s => s.gender === 'female');
+      const others = items.filter(s => s.gender !== 'male' && s.gender !== 'female');
+      const renderSection = (group, gLimit, label, color) => {
+        if (!group.length) return '';
+        const confirmed = gLimit > 0 ? group.filter(s => !s.genderWait) : group;
+        const waiting = gLimit > 0 ? group.filter(s => s.genderWait) : [];
+        let sec = `<div class="text-xs font-semibold ${color} px-1 mt-2 mb-1">${label}${gLimit > 0 ? ` (${confirmed.length}/${gLimit})` : ` (${group.length})`}</div>`;
+        confirmed.forEach((s, i) => { sec += renderItem(s, false, i+1); });
+        if (waiting.length) {
+          sec += `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
+          waiting.forEach((s, i) => { sec += renderItem(s, true, `候${i+1}`); });
+        }
+        return sec;
+      };
+      listEl.innerHTML =
+        renderSection(males, maleLimit, zh ? '♂ 男生' : '♂ Male', 'text-blue-500') +
+        renderSection(females, femaleLimit, zh ? '♀ 女生' : '♀ Female', 'text-pink-500') +
+        (others.length ? `<div class="text-xs font-semibold text-gray-400 px-1 mt-2 mb-1">${zh?'其他':'Other'}</div>${others.map((s,i) => renderItem(s, limit > 0 && s.position > limit, i+1)).join('')}` : '');
+    } else {
+      let sepAdded = false;
+      listEl.innerHTML = items.map(s => {
+        const isWait = limit > 0 && s.position > limit;
+        let sep = '';
+        if (isWait && !sepAdded) { sepAdded = true; sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`; }
+        return sep + renderItem(s, isWait, s.position);
+      }).join('');
+    }
   }
 
   // ── Share Signup Link ──
