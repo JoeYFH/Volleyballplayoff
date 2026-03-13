@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏐 排球零打報名系統</title>
+
+  <!-- Open Graph / Social Preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="🏐 排球零打報名系統" />
+  <meta property="og:description" content="點擊查看活動詳情並報名參加！" />
+  <meta property="og:image" content="https://volleyballplayoff.web.app/og-default.png" />
+  <meta name="twitter:card" content="summary" />
+
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: system-ui, sans-serif; background: #f8faff; }
+    .loader { text-align: center; color: #6b7280; }
+    .ball { font-size: 3rem; animation: bounce 0.8s infinite alternate; display: block; margin-bottom: 12px; }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+    p { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <span class="ball">🏐</span>
+    <p>正在載入活動...</p>
+  </div>
+  <script>
+    // Extract session ID from path: /share/SESSION_ID
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const sessionId = parts[1]; // parts[0] = 'share', parts[1] = SESSION_ID
+    if (sessionId) {
+      window.location.replace('/?session=' + encodeURIComponent(sessionId));
+    } else {
+      window.location.replace('/');
+    }
+  </script>
+</body>
+</html>
