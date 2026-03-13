@@ -751,11 +751,18 @@
       return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     })() : null;
     const closeAtHtml = closeAt && !isPastClose ? `<div class="text-xs text-gray-400 mt-1">🔒 ${getLang()==='zh'?'報名截止':'Closes'}: ${closeAtFmt}</div>` : '';
+    const shareUrl = `${location.origin}${location.pathname}?session=${s.id}`;
     const signupBtnHtml = effectivelyOpen ? `
       <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
         class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
         🙋 ${getLang() === 'zh' ? '我要報名' : 'Sign Up'}
       </button>` : '';
+    const shareBtnHtml = `
+      <button onclick="shareSession('${s.id}', '${escHtml(s.title || s.date + ' 零打')}')"
+        class="flex items-center justify-center gap-1.5 w-full mt-2 text-xs text-gray-500 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 hover:text-indigo-600 transition">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+        ${getLang() === 'zh' ? '分享活動連結' : 'Share Link'}
+      </button>`;
 
     const countdownHtml = (openAt && openAt > now) ? `<div id="cd-${s.id}" class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-3 text-sm text-amber-700 text-center font-medium"></div>` : '';
 
@@ -784,6 +791,7 @@
         ${closeAtHtml}
         ${signupBtnHtml}
         ${manageBtn}
+        ${shareBtnHtml}
       </div>
       <!-- Signup list embedded -->
       <div class="border-t border-gray-50 px-5 py-3">
@@ -936,10 +944,53 @@
     listEl.innerHTML = html;
   }
 
+  // ── Share Session ──
+  window.shareSession = async (sessionId, sessionTitle) => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+    const zh = getLang() === 'zh';
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '🏐 ' + sessionTitle, url: shareUrl });
+        return;
+      } catch(e) { /* fallback to copy */ }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      // Find share button and show feedback
+      const btn = document.querySelector(`button[onclick*="shareSession('${sessionId}'"]`);
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.textContent = zh ? '✅ 連結已複製！' : '✅ Copied!';
+        btn.classList.add('text-green-600', 'border-green-200');
+        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-green-600','border-green-200'); }, 2000);
+      }
+    } catch(e) {
+      prompt(zh ? '請複製以下連結：' : 'Copy the link below:', shareUrl);
+    }
+  };
+
   // ── Cancel own signup ──
   window.cancelSignup = async (sessionId, signupId) => {
     const msg = getLang()==='zh' ? '確定要取消報名？' : 'Cancel your signup?';
     if (!confirm(msg)) return;
+    // Save cancelled record before deleting
+    if (currentUser) {
+      const sess = sessionsData[sessionId] || {};
+      const signupItems = signupsCache[sessionId] || [];
+      const signupItem = signupItems.find(s => s.id === signupId) || {};
+      await setDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId), {
+        sessionId,
+        sessionTitle: sess.title || '',
+        sessionDate: sess.date || '',
+        sessionTime: sess.time || '',
+        sessionLocation: sess.location || '',
+        sessionVenue: sess.venue || '',
+        name: signupItem.name || currentUser.displayName || '',
+        forFriend: signupItem.forFriend || '',
+        signedAt: signupItem.signedAt || null,
+        cancelledAt: serverTimestamp(),
+      });
+    }
     await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
     if (currentUser) {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupId));
@@ -1712,6 +1763,7 @@
         uid: currentUser?.uid || null,
         userName: currentUser?.displayName || null,
         createdAt: serverTimestamp(),
+        status: 'pending',
       });
       const el = document.getElementById('fbMsg');
       el.textContent = getLang()==='zh' ? '✅ 感謝你的意見！' : '✅ Thanks for your feedback!';

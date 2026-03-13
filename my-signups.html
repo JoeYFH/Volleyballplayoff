@@ -77,13 +77,17 @@
   <!-- Tabs -->
   <div class="px-4 pt-4 pb-0">
     <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
-      <button id="tabSelf" onclick="switchSignupTab('self')"
+      <button id="tabConfirmed" onclick="switchSignupTab('confirmed')"
         class="flex-1 text-sm font-medium py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm">
-        🙋 <span id="hTabSelf">我自己的</span>
+        ✅ <span id="hTabConfirmed">成功報名</span>
       </button>
-      <button id="tabProxy" onclick="switchSignupTab('proxy')"
+      <button id="tabPast" onclick="switchSignupTab('past')"
         class="flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700">
-        👥 <span id="hTabProxy">我幫別人的</span>
+        📅 <span id="hTabPast">過去</span>
+      </button>
+      <button id="tabCancelled" onclick="switchSignupTab('cancelled')"
+        class="flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700">
+        ✕ <span id="hTabCancelled">取消</span>
       </button>
     </div>
   </div>
@@ -124,7 +128,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import {
     getFirestore, doc, collection, query, orderBy,
-    onSnapshot, deleteDoc, getDoc
+    onSnapshot, deleteDoc, getDoc, setDoc, serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
@@ -141,7 +145,8 @@
   }
   let currentUser = null;
   let currentSignups = [];
-  let currentTab = 'self'; // 'self' or 'proxy'
+  let cancelledSignups = [];
+  let currentTab = 'confirmed'; // 'confirmed', 'past', or 'cancelled'
 
   // ── Language ──
   window.toggleLang = () => {
@@ -162,10 +167,11 @@
     document.getElementById('hNoSignups').textContent = zh ? '這裡沒有報名記錄' : 'No sign-ups here';
     document.getElementById('hGoSignup').textContent = zh ? '去報名 →' : 'Browse sessions →';
     document.getElementById('logoutBtn').textContent = zh ? '登出' : 'Logout';
-    document.getElementById('hTabSelf').textContent = zh ? '我自己的' : 'My own';
-    document.getElementById('hTabProxy').textContent = zh ? '我幫別人的' : 'For others';
+    document.getElementById('hTabConfirmed').textContent = zh ? '成功報名' : 'Confirmed';
+    document.getElementById('hTabPast').textContent = zh ? '過去' : 'Past';
+    document.getElementById('hTabCancelled').textContent = zh ? '取消' : 'Cancelled';
     // Re-render if we have data
-    if (currentSignups.length) renderSignups(currentSignups);
+    if (currentSignups.length > 0 || cancelledSignups.length > 0) renderSignups();
   }
 
   // ── Auth ──
@@ -199,9 +205,8 @@
       document.getElementById('loadingSkeletons').classList.add('hidden');
 
       if (snap.empty) {
-        document.getElementById('noSignups').classList.remove('hidden');
-        document.getElementById('signupsList').classList.add('hidden');
         currentSignups = [];
+        renderSignups();
         return;
       }
 
@@ -234,36 +239,62 @@
       }));
 
       currentSignups = enriched;
-      document.getElementById('noSignups').classList.add('hidden');
-      document.getElementById('signupsList').classList.remove('hidden');
-      renderSignups(enriched);
+      renderSignups();
     }, (err) => {
       console.error('loadMySignups error:', err);
       document.getElementById('loadingSkeletons').classList.add('hidden');
       document.getElementById('noSignups').classList.remove('hidden');
     });
+
+    // Also load cancelled signups
+    const qCancelled = query(
+      collection(db, 'users', currentUser.uid, 'cancelledSignups'),
+      orderBy('cancelledAt', 'desc')
+    );
+    onSnapshot(qCancelled, (snap) => {
+      cancelledSignups = snap.docs.map(d => ({ id: d.id, cancelled: true, ...d.data() }));
+      if (currentTab === 'cancelled') renderSignups();
+    });
   }
 
   window.switchSignupTab = (tab) => {
     currentTab = tab;
-    const selfBtn = document.getElementById('tabSelf');
-    const proxyBtn = document.getElementById('tabProxy');
     const active = 'flex-1 text-sm font-medium py-2 rounded-lg transition bg-white shadow-sm';
     const inactive = 'flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700';
-    if (tab === 'self') {
-      selfBtn.className = active + ' text-indigo-600';
-      proxyBtn.className = inactive;
-    } else {
-      proxyBtn.className = active + ' text-purple-600';
-      selfBtn.className = inactive;
-    }
-    renderSignups(currentSignups);
+    document.getElementById('tabConfirmed').className = active + (tab === 'confirmed' ? ' text-indigo-600' : ' text-gray-500 hover:text-gray-700');
+    document.getElementById('tabPast').className = active.replace('bg-white shadow-sm', '') + (tab === 'past' ? ' bg-white shadow-sm text-gray-600' : ' text-gray-500 hover:text-gray-700');
+    document.getElementById('tabCancelled').className = active.replace('bg-white shadow-sm', '') + (tab === 'cancelled' ? ' bg-white shadow-sm text-red-500' : ' text-gray-500 hover:text-gray-700');
+    // Fix active tab style properly
+    ['confirmed','past','cancelled'].forEach(t => {
+      const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (t === tab) {
+        const color = t === 'confirmed' ? 'text-indigo-600' : t === 'past' ? 'text-gray-700' : 'text-red-500';
+        btn.className = `flex-1 text-sm font-medium py-2 rounded-lg transition bg-white shadow-sm ${color}`;
+      } else {
+        btn.className = 'flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700';
+      }
+    });
+    renderSignups();
   };
 
-  function renderSignups(signups) {
-    const filtered = signups.filter(s => currentTab === 'proxy' ? !!s.forFriend : !s.forFriend);
+  function renderSignups() {
+    const today = new Date().toISOString().split('T')[0];
     const list = document.getElementById('signupsList');
     const noSignups = document.getElementById('noSignups');
+    let filtered = [];
+    if (currentTab === 'cancelled') {
+      filtered = cancelledSignups;
+    } else if (currentTab === 'confirmed') {
+      filtered = currentSignups.filter(s => {
+        const date = s.session?.date || s.sessionDate || '';
+        return !date || date >= today;
+      });
+    } else { // past
+      filtered = currentSignups.filter(s => {
+        const date = s.session?.date || s.sessionDate || '';
+        return date && date < today;
+      });
+    }
     if (filtered.length === 0) {
       list.classList.add('hidden');
       noSignups.classList.remove('hidden');
@@ -275,21 +306,28 @@
   }
 
   function buildSignupCard(s) {
+    const isCancelled = !!s.cancelled;
     const sess = s.session;
     const zh = getLang() === 'zh';
-    const title = sess?.title || (sess?.date ? sess.date + (zh ? ' 零打' : ' Pickup') : '—');
-    const date = sess?.date || '';
-    const time = sess?.time || '';
-    const location = sess?.location || '';
-    const venue = sess?.venue || '';
+    const title = sess?.title || s.sessionTitle || (s.sessionDate ? s.sessionDate + (zh ? ' 零打' : ' Pickup') : '—');
+    const date = sess?.date || s.sessionDate || '';
+    const time = sess?.time || s.sessionTime || '';
+    const location = sess?.location || s.sessionLocation || '';
+    const venue = sess?.venue || s.sessionVenue || '';
 
     const isOpen = sess?.isOpen;
     const isPast = date && date < new Date().toISOString().split('T')[0];
-    const statusBadge = isPast
-      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已結束':'Ended'}</span>`
-      : isOpen
-        ? `<span class="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700">${zh?'報名中':'Open'}</span>`
-        : `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已截止':'Closed'}</span>`;
+
+    let statusBadge;
+    if (isCancelled) {
+      statusBadge = `<span class="text-xs px-2.5 py-1 rounded-full bg-red-50 text-red-400">${zh?'已取消':'Cancelled'}</span>`;
+    } else if (isPast) {
+      statusBadge = `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已結束':'Ended'}</span>`;
+    } else if (isOpen) {
+      statusBadge = `<span class="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700">${zh?'報名中':'Open'}</span>`;
+    } else {
+      statusBadge = `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">${zh?'已截止':'Closed'}</span>`;
+    }
 
     // Registrant label: show name prominently, distinguish self vs proxy
     const isProxy = !!s.forFriend;
@@ -329,7 +367,7 @@
     }
 
     return `
-      <div class="bg-white rounded-2xl shadow-sm border ${isProxy ? 'border-purple-100' : 'border-gray-100'} p-4 fade-in">
+      <div class="bg-white rounded-2xl shadow-sm border ${isCancelled ? 'border-red-100 opacity-75' : isProxy ? 'border-purple-100' : 'border-gray-100'} p-4 fade-in">
         <div class="flex items-start justify-between gap-2 mb-1">
           <div>
             <p class="font-bold text-gray-800">${escHtml(title)}</p>
@@ -359,8 +397,12 @@
             Apple ${zh?'日曆':'Calendar'}
           </a>
         </div>
-        <!-- Cancel button (only for upcoming sessions) -->
-        ${!isPast ? `<button onclick="cancelMySignup('${s.sessionId}', '${s.id}')"
+        <!-- Cancel button / status footer -->
+        ${isCancelled ? (() => {
+          const cancelledAt = s.cancelledAt ? (s.cancelledAt.toDate ? s.cancelledAt.toDate() : new Date(s.cancelledAt.seconds * 1000)) : null;
+          const cancelStr = cancelledAt ? (zh ? `${cancelledAt.getMonth()+1}/${cancelledAt.getDate()} 取消` : `Cancelled ${cancelledAt.getMonth()+1}/${cancelledAt.getDate()}`) : (zh ? '已取消' : 'Cancelled');
+          return `<p class="text-center text-xs text-red-300">✕ ${cancelStr}</p>`;
+        })() : !isPast ? `<button onclick="cancelMySignup('${escHtml(s.sessionId)}', '${escHtml(s.id)}', ${JSON.stringify({ title: title, date: date, time: time, location: location, venue: venue, name: s.name || '', forFriend: s.forFriend || '' }).replace(/'/g, '&#39;')})"
           class="w-full text-xs text-red-400 border border-red-100 rounded-xl py-2 hover:bg-red-50 transition">
           ✕ ${zh?'取消報名':'Cancel Sign-up'}
         </button>` : `<p class="text-center text-xs text-gray-300">${zh?'已結束場次':'Past session'}</p>`}
@@ -393,10 +435,23 @@
     return { google, apple };
   }
 
-  window.cancelMySignup = async (sessionId, signupId) => {
+  window.cancelMySignup = async (sessionId, signupId, sessionInfo = {}) => {
     const zh = getLang() === 'zh';
     if (!confirm(zh ? '確定要取消報名？' : 'Cancel your signup?')) return;
     try {
+      // Save to cancelledSignups before deleting
+      await setDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId), {
+        sessionId,
+        sessionTitle: sessionInfo?.title || '',
+        sessionDate: sessionInfo?.date || '',
+        sessionTime: sessionInfo?.time || '',
+        sessionLocation: sessionInfo?.location || '',
+        sessionVenue: sessionInfo?.venue || '',
+        name: sessionInfo?.name || '',
+        forFriend: sessionInfo?.forFriend || '',
+        signedAt: sessionInfo?.signedAt || null,
+        cancelledAt: serverTimestamp(),
+      });
       await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
       // Also clean up mirror if exists
       try { await deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupId)); } catch(e) {}
