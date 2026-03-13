@@ -1401,9 +1401,10 @@
     selectedFriendGender = '';
     resetGenderBtns('self');
     resetGenderBtns('friend');
-    // 混排場次才顯示性別欄 / show gender row for mixed sessions
+    // 混排場次才顯示性別欄，一開始只顯示自己的性別欄
     const isMixedSession = activeSessionData.type === 'mixed';
     document.getElementById('modalGenderRow').classList.toggle('hidden', !isMixedSession);
+    // 朋友性別欄只在混排且有勾選幫朋友時才顯示（初始為隱藏）
     document.getElementById('modalFriendGenderRow').classList.toggle('hidden', !isMixedSession);
     // Populate pair-with dropdown from current signups
     const pairSel = document.getElementById('modalPair');
@@ -1435,6 +1436,18 @@
     document.getElementById('modalFriend').checked = !!signup.forFriend;
     document.getElementById('modalFriendSection').classList.toggle('hidden', !signup.forFriend);
     document.getElementById('modalFriendName').value = signup.forFriend || '';
+    // 混排場次：恢復性別顯示狀態
+    selectedSelfGender = '';
+    selectedFriendGender = '';
+    resetGenderBtns('self');
+    resetGenderBtns('friend');
+    const isMixedEdit = activeSessionData?.type === 'mixed';
+    document.getElementById('modalGenderRow').classList.toggle('hidden', !isMixedEdit || !!signup.forFriend);
+    document.getElementById('modalFriendGenderRow').classList.toggle('hidden', !isMixedEdit);
+    if (isMixedEdit && signup.gender) {
+      if (signup.forFriend) { selectedFriendGender = signup.gender; selectGenderBtn('friend', signup.gender); }
+      else { selectedSelfGender = signup.gender; selectGenderBtn('self', signup.gender); }
+    }
     // Populate pair dropdown
     const pairSel = document.getElementById('modalPair');
     const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
@@ -1457,7 +1470,14 @@
     }
   });
   document.getElementById('modalFriend').addEventListener('change', e => {
-    document.getElementById('modalFriendSection').classList.toggle('hidden', !e.target.checked);
+    const checked = e.target.checked;
+    document.getElementById('modalFriendSection').classList.toggle('hidden', !checked);
+    // 混排場次：勾選幫朋友報名時隱藏自己的性別欄，只顯示朋友性別欄
+    const isMixed = activeSessionData?.type === 'mixed';
+    if (isMixed) {
+      document.getElementById('modalGenderRow').classList.toggle('hidden', checked);
+    }
+    if (!checked) { selectedFriendGender = ''; resetGenderBtns('friend'); }
   });
 
   // ── Gender selection helpers ──
