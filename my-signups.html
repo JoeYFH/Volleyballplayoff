@@ -74,6 +74,20 @@
   </div>
 
 
+  <!-- Tabs -->
+  <div class="px-4 pt-4 pb-0">
+    <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <button id="tabSelf" onclick="switchSignupTab('self')"
+        class="flex-1 text-sm font-medium py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm">
+        🙋 <span id="hTabSelf">我自己的</span>
+      </button>
+      <button id="tabProxy" onclick="switchSignupTab('proxy')"
+        class="flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700">
+        👥 <span id="hTabProxy">我幫別人的</span>
+      </button>
+    </div>
+  </div>
+
   <div class="px-4 pt-4">
     <!-- Skeleton Loading -->
     <div id="loadingSkeletons" class="space-y-4">
@@ -127,6 +141,7 @@
   }
   let currentUser = null;
   let currentSignups = [];
+  let currentTab = 'self'; // 'self' or 'proxy'
 
   // ── Language ──
   window.toggleLang = () => {
@@ -144,9 +159,11 @@
     document.getElementById('hGoogleLogin').textContent = zh ? '使用 Google 帳號登入' : 'Sign in with Google';
     document.getElementById('hBackLinkLogin').textContent = zh ? '← 回到報名頁面' : '← Back to sign-ups';
     document.getElementById('hPageTitle').textContent = zh ? '✅ 我的報名' : '✅ My Sign-ups';
-    document.getElementById('hNoSignups').textContent = zh ? '還沒有報名任何場次' : 'No sign-ups yet';
+    document.getElementById('hNoSignups').textContent = zh ? '這裡沒有報名記錄' : 'No sign-ups here';
     document.getElementById('hGoSignup').textContent = zh ? '去報名 →' : 'Browse sessions →';
     document.getElementById('logoutBtn').textContent = zh ? '登出' : 'Logout';
+    document.getElementById('hTabSelf').textContent = zh ? '我自己的' : 'My own';
+    document.getElementById('hTabProxy').textContent = zh ? '我幫別人的' : 'For others';
     // Re-render if we have data
     if (currentSignups.length) renderSignups(currentSignups);
   }
@@ -227,8 +244,34 @@
     });
   }
 
+  window.switchSignupTab = (tab) => {
+    currentTab = tab;
+    const selfBtn = document.getElementById('tabSelf');
+    const proxyBtn = document.getElementById('tabProxy');
+    const active = 'flex-1 text-sm font-medium py-2 rounded-lg transition bg-white shadow-sm';
+    const inactive = 'flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700';
+    if (tab === 'self') {
+      selfBtn.className = active + ' text-indigo-600';
+      proxyBtn.className = inactive;
+    } else {
+      proxyBtn.className = active + ' text-purple-600';
+      selfBtn.className = inactive;
+    }
+    renderSignups(currentSignups);
+  };
+
   function renderSignups(signups) {
-    document.getElementById('signupsList').innerHTML = signups.map(s => buildSignupCard(s)).join('');
+    const filtered = signups.filter(s => currentTab === 'proxy' ? !!s.forFriend : !s.forFriend);
+    const list = document.getElementById('signupsList');
+    const noSignups = document.getElementById('noSignups');
+    if (filtered.length === 0) {
+      list.classList.add('hidden');
+      noSignups.classList.remove('hidden');
+    } else {
+      list.classList.remove('hidden');
+      noSignups.classList.add('hidden');
+      list.innerHTML = filtered.map(s => buildSignupCard(s)).join('');
+    }
   }
 
   function buildSignupCard(s) {
