@@ -171,20 +171,17 @@
       <!-- Template Dropdown -->
       <div id="sf_templateDropdownRow" class="hidden">
         <label class="block text-sm font-medium text-gray-600 mb-1" id="sf_lTemplatePick">套用範本</label>
-        <div class="flex gap-2">
-          <select id="sf_templateSelect"
-            class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="">— 不套用 —</option>
-          </select>
-          <button type="button" onclick="sfApplySelectedTemplate()"
-            class="px-3 py-2 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition shrink-0" id="sf_applyTemplBtn">套用</button>
-        </div>
+        <select id="sf_templateSelect" onchange="sfApplySelectedTemplate()"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <option value="">— 不套用 —</option>
+        </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱</label>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱 <span class="text-red-400">*</span></label>
         <input id="sf_title" type="text" maxlength="30"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="sf_titleErr" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -762,17 +759,33 @@
     sfSelectedEquip.clear();
     document.getElementById('sheetTitle').textContent = id ? (getLang()==='zh'?'編輯場次':'Edit Session') : (getLang()==='zh'?'建立新場次':'New Session');
     document.getElementById('sfSubmitBtn').textContent = id ? (getLang()==='zh'?'💾 更新場次':'💾 Update') : (getLang()==='zh'?'🚀 建立場次':'🚀 Create');
-    // Reset form
+    // Clear all error messages
+    ['sf_titleErr','sf_dateErr','sf_timeErr','sf_locationErr','sf_mixedLimitErr'].forEach(eid => {
+      const el = document.getElementById(eid);
+      if (el) { el.classList.add('hidden'); el.textContent = ''; }
+    });
+    // Reset border colors
+    ['sf_title','sf_date','sf_time','sf_location'].forEach(eid => {
+      const el = document.getElementById(eid);
+      if (el) el.classList.remove('border-red-400');
+    });
+    // Reset template dropdown
+    const tmplSel = document.getElementById('sf_templateSelect');
+    if (tmplSel) tmplSel.value = '';
+    // Reset form fields
     document.getElementById('sf_title').value = data?.title || '';
     document.getElementById('sf_date').value = data?.date || '';
     document.getElementById('sf_time').value = data?.time || '00:00';
     document.getElementById('sf_location').value = data?.location || '';
     document.getElementById('sf_venue').value = data?.venue || '';
     document.getElementById('sf_limit').value = data?.limit ?? 12;
-    document.getElementById('sf_type').value = data?.type || '';
+    document.getElementById('sf_type').value = data?.type || 'mixed';
+    document.getElementById('sf_maleLimit').value = data?.maleLimit ?? 0;
+    document.getElementById('sf_femaleLimit').value = data?.femaleLimit ?? 0;
     document.getElementById('sf_note').value = data?.note || '';
     document.getElementById('sf_openWhen').value = 'now';
     onSfOpenWhenChange();
+    sfOnTypeChange();
     // Equip chips
     document.querySelectorAll('[data-equip]').forEach(btn => {
       const active = data?.equipment?.includes(btn.dataset.equip);
@@ -797,8 +810,18 @@
       const snap = await getDocs(query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc')));
       const tmpls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const sel = document.getElementById('sf_templateSelect');
-      sel.innerHTML = `<option value="">— ${getLang()==='zh'?'不套用':'No template'} —</option>` +
-        tmpls.map(t2 => `<option value="${t2.id}">${escHtml(t2.name)}</option>`).join('');
+      const zh = getLang() === 'zh';
+      sel.innerHTML = `<option value="">— ${zh?'不套用':'No template'} —</option>` +
+        tmpls.map(t2 => {
+          const parts = [t2.name];
+          if (t2.location) parts.push(t2.location);
+          if (t2.time) parts.push(t2.time);
+          if (t2.type === 'mixed') parts.push(zh?'混排':'Mixed');
+          else if (t2.type === 'male') parts.push(zh?'男生':'Male');
+          else if (t2.type === 'female') parts.push(zh?'女生':'Female');
+          if (t2.limit) parts.push(`${t2.limit}人`);
+          return `<option value="${t2.id}">${escHtml(parts.join(' · '))}</option>`;
+        }).join('');
       document.getElementById('sf_templateDropdownRow').classList.toggle('hidden', !tmpls.length);
       // store for apply
       sel._templatesData = tmpls;
@@ -813,11 +836,17 @@
     const tmpl = tmpls.find(t2 => t2.id === id);
     if (!tmpl) return;
     // Pre-fill form fields
+    if (tmpl.title) document.getElementById('sf_title').value = tmpl.title;
     document.getElementById('sf_time').value = tmpl.time || '00:00';
     document.getElementById('sf_location').value = tmpl.location || '';
     document.getElementById('sf_venue').value = tmpl.venue || '';
     document.getElementById('sf_limit').value = tmpl.limit ?? 12;
-    document.getElementById('sf_type').value = tmpl.type || '';
+    document.getElementById('sf_type').value = tmpl.type || 'mixed';
+    sfOnTypeChange();
+    if (tmpl.type === 'mixed') {
+      document.getElementById('sf_maleLimit').value = tmpl.maleLimit ?? 0;
+      document.getElementById('sf_femaleLimit').value = tmpl.femaleLimit ?? 0;
+    }
     document.getElementById('sf_note').value = tmpl.note || '';
     sfSelectedEquip.clear();
     document.querySelectorAll('[data-equip]').forEach(btn => {
@@ -829,7 +858,6 @@
         btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
       }
     });
-    showSfMsg(getLang()==='zh'?'✅ 已套用範本，請確認並調整日期':'✅ Template applied', 'success');
   };
 
   document.getElementById('sf_equipChips').addEventListener('click', (e) => {
@@ -878,10 +906,13 @@
     el.classList.add('border-gray-200');
     err.classList.add('hidden');
   }
-  ['sf_date','sf_time','sf_location'].forEach(id => {
+  ['sf_title','sf_date','sf_time','sf_location'].forEach(id => {
     const errId = id + 'Err';
-    document.getElementById(id).addEventListener('input', () => sfClearFieldError(id, errId));
-    document.getElementById(id).addEventListener('change', () => sfClearFieldError(id, errId));
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => sfClearFieldError(id, errId));
+      el.addEventListener('change', () => sfClearFieldError(id, errId));
+    }
   });
 
   window.onSfOpenWhenChange = () => {
@@ -903,13 +934,16 @@
     const maleLimit = type === 'mixed' ? (parseInt(document.getElementById('sf_maleLimit').value) || 0) : 0;
     const femaleLimit = type === 'mixed' ? (parseInt(document.getElementById('sf_femaleLimit').value) || 0) : 0;
 
+    const title = document.getElementById('sf_title').value.trim();
     // Inline validation
+    sfClearFieldError('sf_title','sf_titleErr');
     sfClearFieldError('sf_date','sf_dateErr');
     sfClearFieldError('sf_time','sf_timeErr');
     sfClearFieldError('sf_location','sf_locationErr');
     document.getElementById('sf_mixedLimitErr').classList.add('hidden');
 
     let firstErrorEl = null;
+    if (!title) { sfSetFieldError('sf_title','sf_titleErr', zh?'請填寫場次名稱':'Please enter a session title'); firstErrorEl = firstErrorEl || document.getElementById('sf_title'); }
     if (!date) { sfSetFieldError('sf_date','sf_dateErr', zh?'請選擇日期':'Please select a date'); firstErrorEl = firstErrorEl || document.getElementById('sf_date'); }
     if (!time) { sfSetFieldError('sf_time','sf_timeErr', zh?'請選擇時間':'Please select a time'); firstErrorEl = firstErrorEl || document.getElementById('sf_time'); }
     if (!location) { sfSetFieldError('sf_location','sf_locationErr', zh?'請填寫地點':'Please enter a location'); firstErrorEl = firstErrorEl || document.getElementById('sf_location'); }
@@ -955,7 +989,7 @@
       : Timestamp.fromDate(new Date(`${date}T${time}:00`));
 
     const data = {
-      title: document.getElementById('sf_title').value.trim() || `${date} 零打`,
+      title,
       date, time, location,
       venue: document.getElementById('sf_venue').value.trim(),
       limit,
