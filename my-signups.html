@@ -18,8 +18,13 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 
+<!-- Auth Loading -->
+<div id="authLoading" class="flex items-center justify-center min-h-screen">
+  <div class="text-4xl animate-bounce">🏐</div>
+</div>
+
 <!-- Login Screen -->
-<div id="loginScreen" class="flex items-center justify-center min-h-screen px-4">
+<div id="loginScreen" class="hidden flex items-center justify-center min-h-screen px-4">
   <div class="bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-center">
     <div class="flex justify-end mb-2">
       <button id="langBtnLogin" onclick="toggleLang()"
@@ -194,6 +199,7 @@
 
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
+    document.getElementById('authLoading').classList.add('hidden');
     if (user) {
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.remove('hidden');
