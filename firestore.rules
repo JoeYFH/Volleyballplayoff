@@ -8,7 +8,7 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null &&
         (request.auth.uid == resource.data.createdBy ||
-         request.auth.token.email in ['YOUR_ADMIN_EMAIL@gmail.com']);
+         request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
 
       // 報名：所有人可讀，登入者可建立自己的，只能刪除自己的
       match /signups/{signupId} {
@@ -16,7 +16,7 @@ service cloud.firestore {
         allow create: if request.auth != null;
         allow delete: if request.auth != null &&
           (request.auth.uid == resource.data.uid ||
-           request.auth.token.email in ['YOUR_ADMIN_EMAIL@gmail.com']);
+           request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
         allow update: if request.auth != null && request.auth.uid == resource.data.uid;
       }
     }
@@ -41,9 +41,9 @@ service cloud.firestore {
     match /feedback/{feedbackId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['anc8038570@gmail.com', 'abc8038570@gmail.com', 'joehuangyf@gmail.com'];
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
       allow delete: if request.auth != null &&
-        request.auth.token.email in ['anc8038570@gmail.com', 'abc8038570@gmail.com', 'joehuangyf@gmail.com'];
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
   }
 }

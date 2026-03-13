@@ -63,7 +63,10 @@
           <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
           <div>
             <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-            <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+            <div class="flex items-center gap-1.5">
+              <span id="adminBadgeSignups" class="hidden text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Super Admin</span>
+              <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+            </div>
           </div>
         </div>
       </div>
@@ -109,7 +112,7 @@
     getFirestore, doc, collection, query, orderBy,
     onSnapshot, deleteDoc, getDoc
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig } from './firebase-config.js';
+  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
 
   const app = initializeApp(firebaseConfig);
@@ -160,6 +163,8 @@
       const photo = document.getElementById('userPhoto');
       if (user.photoURL) { photo.src = user.photoURL; photo.classList.remove('hidden'); }
       document.getElementById('userName').textContent = user.displayName || user.email;
+      const adminBadge = document.getElementById('adminBadgeSignups');
+      if (adminBadge) adminBadge.classList.toggle('hidden', !(ADMIN_EMAILS || []).includes(user.email));
       loadMySignups();
     } else {
       document.getElementById('loginScreen').classList.remove('hidden');
