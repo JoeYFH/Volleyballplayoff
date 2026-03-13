@@ -406,13 +406,14 @@
 
       <!-- 自己的性別（混排場次用）/ own gender for mixed sessions -->
       <div id="modalGenderRow" class="hidden">
-        <label id="lModalGender" class="block text-sm font-medium text-gray-600 mb-2">性別</label>
+        <label id="lModalGender" class="block text-sm font-medium text-gray-600 mb-2">性別 <span class="text-red-400">*</span></label>
         <div class="flex gap-2">
           <button type="button" id="gSelfMale" data-gender="male"
             class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
           <button type="button" id="gSelfFemale" data-gender="female"
             class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
         </div>
+        <p id="modalGenderError" class="hidden mt-1 text-xs text-red-500">請選擇性別</p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -423,11 +424,14 @@
         <input id="modalFriendName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <!-- 代報名性別（混排才顯示）/ gender for proxy (mixed sessions only) -->
-        <div id="modalFriendGenderRow" class="hidden flex gap-2">
-          <button type="button" id="gFriendMale" data-gender="male"
-            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
-          <button type="button" id="gFriendFemale" data-gender="female"
-            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
+        <div id="modalFriendGenderRow" class="hidden">
+          <div class="flex gap-2">
+            <button type="button" id="gFriendMale" data-gender="male"
+              class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
+            <button type="button" id="gFriendFemale" data-gender="female"
+              class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
+          </div>
+          <p id="modalFriendGenderError" class="hidden mt-1 text-xs text-red-500">請選擇性別</p>
         </div>
       </div>
 
@@ -1507,6 +1511,7 @@
     document.getElementById('modalLateSection').classList.add('hidden');
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
+    document.getElementById('lModalLate').textContent = tr('willBeLate');
     if (currentUser) document.getElementById('modalProfilePreview').classList.remove('hidden');
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
     // Update friend name datalist
@@ -1516,6 +1521,8 @@
     selectedFriendGender = '';
     resetGenderBtns('self');
     resetGenderBtns('friend');
+    document.getElementById('modalGenderError').classList.add('hidden');
+    document.getElementById('modalFriendGenderError').classList.add('hidden');
     // 混排場次才顯示性別欄，一開始只顯示自己的性別欄
     const isMixedSession = activeSessionData.type === 'mixed';
     document.getElementById('modalGenderRow').classList.toggle('hidden', !isMixedSession);
@@ -1590,10 +1597,15 @@
     document.getElementById('modalFriendSection').classList.toggle('hidden', !checked);
     // 勾選幫朋友報名時：隱藏自己的個人資料區塊（互斥）
     document.getElementById('modalProfilePreview').classList.toggle('hidden', checked);
+    // 幫朋友時「我會晚到」改為「晚到」
+    document.getElementById('lModalLate').textContent = checked
+      ? (getLang() === 'zh' ? '晚到' : 'Late arrival')
+      : tr('willBeLate');
     // 混排場次：勾選幫朋友報名時隱藏自己的性別欄，只顯示朋友性別欄
     const isMixed = activeSessionData?.type === 'mixed';
     if (isMixed) {
       document.getElementById('modalGenderRow').classList.toggle('hidden', checked);
+      document.getElementById('modalGenderError').classList.add('hidden');
     }
     if (!checked) { selectedFriendGender = ''; resetGenderBtns('friend'); }
   });
@@ -1620,6 +1632,7 @@
       const g = document.getElementById(id).dataset.gender;
       selectedSelfGender = g;
       selectGenderBtn('self', g);
+      document.getElementById('modalGenderError').classList.add('hidden');
     });
   });
 
@@ -1628,6 +1641,7 @@
       const g = document.getElementById(id).dataset.gender;
       selectedFriendGender = g;
       selectGenderBtn('friend', g);
+      document.getElementById('modalFriendGenderError').classList.add('hidden');
     });
   });
 
@@ -1649,6 +1663,25 @@
     }
     nameInput.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
     document.getElementById('modalNameError').classList.add('hidden');
+
+    // 混排場次：性別為必選 / gender required for mixed sessions
+    const forFriendNameCheck = document.getElementById('modalFriendName').value.trim();
+    if (activeSessionData.type === 'mixed') {
+      const needsSelfGender = !forFriendNameCheck && !selectedSelfGender;
+      const needsFriendGender = !!forFriendNameCheck && !selectedFriendGender;
+      if (needsSelfGender) {
+        document.getElementById('modalGenderError').classList.remove('hidden');
+        document.getElementById('modalGenderRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (needsFriendGender) {
+        document.getElementById('modalFriendGenderError').classList.remove('hidden');
+        document.getElementById('modalFriendGenderRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+    document.getElementById('modalGenderError')?.classList.add('hidden');
+    document.getElementById('modalFriendGenderError')?.classList.add('hidden');
 
     const btn = document.getElementById('modalSubmitBtn');
     btn.disabled = true;
