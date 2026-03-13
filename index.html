@@ -54,7 +54,10 @@
             <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
             <div class="text-right">
               <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-              <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+              <div class="flex items-center justify-end gap-1.5">
+                <span id="adminBadgeMain" class="hidden text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Super Admin</span>
+                <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
+              </div>
             </div>
           </div>
         </div>
@@ -438,7 +441,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig } from './firebase-config.js';
+  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang, t } from './i18n.js';
 
   const app = initializeApp(firebaseConfig);
@@ -584,6 +587,9 @@
       document.getElementById('modalPhoto').src = user.photoURL || '';
       document.getElementById('modalDisplayName').textContent = user.displayName || user.email;
       document.getElementById('modalNameRow').classList.add('hidden');
+      const isAdminUser = (ADMIN_EMAILS || []).includes(user.email);
+      const adminBadgeMain = document.getElementById('adminBadgeMain');
+      if (adminBadgeMain) adminBadgeMain.classList.toggle('hidden', !isAdminUser);
       // Re-subscribe signups to update "signed" badges for logged-in user
       Object.keys(signupUnsubs).forEach(id => { signupUnsubs[id](); delete signupUnsubs[id]; });
       const allSessions = Object.values(sessionsData);

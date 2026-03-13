@@ -41,9 +41,9 @@ service cloud.firestore {
     match /feedback/{feedbackId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['anc8038570@gmail.com', 'joehuangyf@gmail.com'];
+        request.auth.token.email in ['anc8038570@gmail.com', 'abc8038570@gmail.com', 'joehuangyf@gmail.com'];
       allow delete: if request.auth != null &&
-        request.auth.token.email in ['anc8038570@gmail.com', 'joehuangyf@gmail.com'];
+        request.auth.token.email in ['anc8038570@gmail.com', 'abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
   }
 }
