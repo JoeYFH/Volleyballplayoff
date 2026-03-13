@@ -251,7 +251,7 @@
         </div>
       </div>
       <!-- Mixed session gender sub-limits -->
-      <div id="sf_mixedLimitsRow" class="grid grid-cols-2 gap-3">
+      <div id="sf_mixedLimitsRow" class="hidden grid grid-cols-2 gap-3">
         <div>
           <label id="sf_lMaleLimit" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
           <input id="sf_maleLimit" type="number" min="0" max="100" value="0"
@@ -685,7 +685,7 @@
 
   // ── Share Signup Link ──
   window.shareSignupLink = async (id) => {
-    const url = `${window.location.origin}/share/${id}`;
+    const url = `${window.location.origin}/?session=${id}`;
     const zh = getLang() === 'zh';
     if (navigator.share) {
       try {
@@ -1104,7 +1104,7 @@
 
   // ── Session Created Modal ──
   function sfShowSessionCreatedModal(sessionId) {
-    const url = `${window.location.origin}/share/${sessionId}`;
+    const url = `${window.location.origin}/?session=${sessionId}`;
     document.getElementById('sf_createdSessionUrl').textContent = url;
     document.getElementById('sf_copyCreatedUrlBtn').textContent = '📋 複製連結';
     document.getElementById('sessionCreatedModal').classList.remove('hidden');

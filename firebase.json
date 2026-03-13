@@ -8,9 +8,6 @@
       "**/.gitignore",
       "**/README.md",
       "functions/**"
-    ],
-    "rewrites": [
-      { "source": "/share/**", "destination": "/share.html" }
     ]
   }
 }
