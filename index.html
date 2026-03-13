@@ -925,7 +925,10 @@
     }
 
     const isFull = limit > 0 && items.length > limit;
-    const waitItems = isFull ? items.filter(s => s.position > limit) : (maleLimit > 0 || femaleLimit > 0 ? items.filter(s => s.genderWait) : []);
+    const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
+    // When gender sub-limits exist, use genderWait regardless of isFull
+    // (time-based total overflow is secondary to gender quota)
+    const waitItems = hasMixedLimits ? items.filter(s => s.genderWait) : (isFull ? items.filter(s => s.position > limit) : []);
     const ownIsWaitlisted = currentUser && waitItems.some(s => s.uid === currentUser.uid);
 
     let html = '';
