@@ -110,6 +110,8 @@
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已關閉</button>
       <button id="filter-past" onclick="setSessionFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
+      <button id="filter-cancelled" onclick="setSessionFilter('cancelled')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已取消</button>
     </div>
     <!-- Skeleton Loading -->
     <div id="mySessionsLoading" class="space-y-4">
@@ -572,7 +574,7 @@
     currentSessionFilter = filter;
     const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
     const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
-    ['all','open','closed','past'].forEach(f => {
+    ['all','open','closed','past','cancelled'].forEach(f => {
       const btn = document.getElementById('filter-' + f);
       if (btn) btn.className = f === filter ? activeClass : idleClass;
     });
@@ -585,10 +587,12 @@
     const today = new Date().toISOString().split('T')[0];
     const now = Date.now();
     const filtered = mySessionsCache.filter(s => {
+      if (s.cancelled) return currentSessionFilter === 'all' || currentSessionFilter === 'cancelled';
       const isPast = s.date < today;
       const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
       if (currentSessionFilter === 'all') return true;
+      if (currentSessionFilter === 'cancelled') return false;
       if (currentSessionFilter === 'open')   return !isPast && !effectivelyClosed;
       if (currentSessionFilter === 'closed') return !isPast && effectivelyClosed;
       if (currentSessionFilter === 'past')   return isPast;
@@ -617,8 +621,8 @@
   function buildMgmtCard(s, canEdit) {
     const TYPE_LABEL = { '':'不限', mixed:'混排', male:'男生', female:'女生' };
     const isOpen = s.isOpen;
-    const badgeCls = isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
-    const badgeText = isOpen ? (getLang()==='zh'?'報名中':'Open') : (getLang()==='zh'?'已關閉':'Closed');
+    const badgeCls = s.cancelled ? 'bg-red-100 text-red-500' : isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
+    const badgeText = s.cancelled ? (getLang()==='zh'?'已取消':'Cancelled') : isOpen ? (getLang()==='zh'?'報名中':'Open') : (getLang()==='zh'?'已關閉':'Closed');
 
     return `
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden fade-in">
@@ -659,6 +663,10 @@
               class="text-xs px-3 py-1.5 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 transition">
               🔗 ${getLang()==='zh'?'分享報名連結':'Share Link'}
             </button>
+            ${s.cancelled
+              ? `<button onclick="uncancelSession('${s.id}')" class="text-xs px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition">↩ ${getLang()==='zh'?'恢復活動':'Restore'}</button>`
+              : `<button onclick="cancelSession('${s.id}')" class="text-xs px-3 py-1.5 bg-orange-50 text-orange-500 rounded-lg hover:bg-orange-100 transition">✕ ${getLang()==='zh'?'取消活動':'Cancel'}</button>`
+            }
             <button onclick="deleteSession('${s.id}')"
               class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">
               🗑️ ${getLang()==='zh'?'刪除':'Delete'}
@@ -862,6 +870,16 @@
     await deleteDoc(doc(db, 'sessions', id));
   };
 
+  window.cancelSession = async (id) => {
+    const zh = getLang() === 'zh';
+    if (!confirm(zh ? '確定要取消此活動嗎？取消後活動將移至「已取消」分頁。' : 'Cancel this session? It will be moved to the Cancelled tab.')) return;
+    await updateDoc(doc(db, 'sessions', id), { cancelled: true, isOpen: false });
+  };
+
+  window.uncancelSession = async (id) => {
+    await updateDoc(doc(db, 'sessions', id), { cancelled: false });
+  };
+
   window.removeSignup = async (sessionId, signupId) => {
     if (!confirm(getLang()==='zh'?'確定移除此報名？':'Remove this signup?')) return;
     await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
@@ -965,8 +983,6 @@
       }
     }
 
-    msg += `\n${'─'.repeat(18)}\n`;
-    msg += `共報名 ${items.length} 人`;
     if (s?.note) msg += `\n📝 ${s.note}`;
 
     document.getElementById('exportText').value = msg;
