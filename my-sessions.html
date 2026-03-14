@@ -771,7 +771,7 @@
       const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';
       // 強制加入按鈕（候補時才顯示）/ force-add button (only for waitlisted)
-      const forceAddBtn = isWait ? `<button onclick="forceAddSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-green-500 transition ml-0.5" title="${zh?'強制加入正取（無視限制）':'Force add (bypass limits)'}">⬆️</button>` : '';
+      const forceAddBtn = isWait ? `<button onclick="forceAddSignup('${sessionId}','${s.id}')" class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-600 hover:bg-green-100 transition ml-1 shrink-0">${zh?'加入正取':'Confirm'}</button>` : '';
       return `<div class="flex items-center gap-2 ${isWait?'opacity-50':''} ${genderBorder} pl-1">
         <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0">${posLabel}</span>
         ${photo}
@@ -880,28 +880,37 @@
 
   window.exportSession = async (id) => {
     const snap = await getDocs(query(collection(db, 'sessions', id, 'signups'), orderBy('signedAt', 'asc')));
-    const items = snap.docs.map((d, i) => ({ ...d.data(), position: i+1 }));
+    const items = snap.docs.map((d, i) => ({ ...d.data(), id: d.id, position: i+1 }));
     const sessSnap = await getDoc(doc(db, 'sessions', id));
     const s = sessSnap.data();
     const limit = s?.limit || 0;
+    const maleLimit = s?.maleLimit || 0;
+    const femaleLimit = s?.femaleLimit || 0;
 
-    const confirmed = limit > 0 ? items.slice(0, limit) : items;
-    const waitlist = limit > 0 ? items.slice(limit) : [];
+    // Compute isWait the same way as renderMgmtSignups
+    if (maleLimit > 0 || femaleLimit > 0) {
+      let mc = 0, fc = 0;
+      items.forEach(item => {
+        if (item.gender === 'male') { mc++; item.genderWait = !item.forceConfirmed && maleLimit > 0 && mc > maleLimit; }
+        else if (item.gender === 'female') { fc++; item.genderWait = !item.forceConfirmed && femaleLimit > 0 && fc > femaleLimit; }
+        else { item.genderWait = false; }
+      });
+    }
+    const isWaitFn = item =>
+      item.genderWait ||
+      (!item.forceConfirmed && limit > 0 && item.position > limit);
 
-    const lines = confirmed.map(item => {
-      let line = `${item.position}. ${item.name}`;
+    const confirmed = items.filter(item => !isWaitFn(item));
+    const waitlist  = items.filter(item =>  isWaitFn(item));
+
+    const fmtItem = (item, i, isWait) => {
+      const prefix = isWait ? `候${i+1}.` : `${i+1}.`;
+      let line = `${prefix} ${item.name}`;
       if (item.isLate) line += item.lateTime ? `（晚到${item.lateTime}）` : '（晚到）';
       if (item.forFriend) line += `（代報：${item.forFriend}）`;
       if (item.pairWith) line += `（搭檔：${item.pairWith}）`;
       return line;
-    });
-
-    const waitLines = waitlist.map(item => {
-      let line = `候${item.position - limit}. ${item.name}`;
-      if (item.isLate) line += item.lateTime ? `（晚到${item.lateTime}）` : '（晚到）';
-      if (item.forFriend) line += `（代報：${item.forFriend}）`;
-      return line;
-    });
+    };
 
     const TYPE_LABEL = { '':'不限', mixed:'混排', male:'男生', female:'女生' };
     const typeStr = s?.type ? `｜${TYPE_LABEL[s.type]||s.type}` : '';
@@ -913,11 +922,43 @@
     if (s?.venue) msg += `\n🏟️ ${s.venue}`;
     if (typeStr || limitStr) msg += `\n🏷️${typeStr}${limitStr}`;
     msg += `\n${'─'.repeat(18)}\n`;
-    msg += `✅ 正取名單（${confirmed.length}人）\n`;
-    msg += lines.join('\n');
-    if (waitLines.length) {
-      msg += `\n\n⏳ 候補名單\n${waitLines.join('\n')}`;
+
+    if (s?.type === 'mixed') {
+      // Split confirmed by gender
+      const maleConf   = confirmed.filter(x => x.gender === 'male');
+      const femaleConf = confirmed.filter(x => x.gender === 'female');
+      const otherConf  = confirmed.filter(x => x.gender !== 'male' && x.gender !== 'female');
+      const maleWait   = waitlist.filter(x => x.gender === 'male');
+      const femaleWait = waitlist.filter(x => x.gender === 'female');
+      const otherWait  = waitlist.filter(x => x.gender !== 'male' && x.gender !== 'female');
+
+      msg += `✅ 正取名單（${confirmed.length}人）\n`;
+      if (maleConf.length) {
+        msg += `♂ 男生${maleLimit ? `（${maleConf.length}/${maleLimit}）` : `（${maleConf.length}）`}\n`;
+        msg += maleConf.map((item, i) => fmtItem(item, i, false)).join('\n') + '\n';
+      }
+      if (femaleConf.length) {
+        msg += `♀ 女生${femaleLimit ? `（${femaleConf.length}/${femaleLimit}）` : `（${femaleConf.length}）`}\n`;
+        msg += femaleConf.map((item, i) => fmtItem(item, i, false)).join('\n') + '\n';
+      }
+      if (otherConf.length) {
+        msg += `其他（${otherConf.length}）\n`;
+        msg += otherConf.map((item, i) => fmtItem(item, i, false)).join('\n') + '\n';
+      }
+      if (maleWait.length || femaleWait.length || otherWait.length) {
+        msg += `\n⏳ 候補名單\n`;
+        if (maleWait.length)   msg += `♂ 男生\n` + maleWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
+        if (femaleWait.length) msg += `♀ 女生\n` + femaleWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
+        if (otherWait.length)  msg += `其他\n` + otherWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
+      }
+    } else {
+      msg += `✅ 正取名單（${confirmed.length}人）\n`;
+      msg += confirmed.map((item, i) => fmtItem(item, i, false)).join('\n');
+      if (waitlist.length) {
+        msg += `\n\n⏳ 候補名單\n` + waitlist.map((item, i) => fmtItem(item, i, true)).join('\n');
+      }
     }
+
     msg += `\n${'─'.repeat(18)}\n`;
     msg += `共報名 ${items.length} 人`;
     if (s?.note) msg += `\n📝 ${s.note}`;
