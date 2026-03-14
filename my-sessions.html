@@ -224,7 +224,7 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱 <span class="text-red-400">*</span></label>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱 <span class="text-red-400" id="sl0req">*</span></label>
         <input id="sf_title" type="text" maxlength="30"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="sf_titleErr" class="hidden text-xs text-red-500 mt-1"></p>
@@ -256,7 +256,7 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl4">場地詳細（選填）</label>
+        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl4">活動詳細說明（選填）</label>
         <input id="sf_venue" type="text" maxlength="50"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       </div>
@@ -297,10 +297,14 @@
           <button type="button" data-equip="標竿" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏁 標竿</button>
           <button type="button" data-equip="音響" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🔊 音響</button>
           <button type="button" data-equip="球" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
-          <button type="button" data-equip="其他" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">📦 其他</button>
         </div>
-        <input id="sf_equipCustom" type="text" placeholder="其他用具（逗號分隔）"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <div id="sf_customTagsList" class="flex flex-wrap gap-1.5 mb-2 hidden"></div>
+        <div class="flex gap-2">
+          <input id="sf_equipCustom" type="text" placeholder="新增用具"
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <button type="button" id="sfAddEquipBtn" onclick="sfAddCustomEquip()"
+            class="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 active:scale-95 transition">+</button>
+        </div>
       </div>
 
       <!-- Open Time -->
@@ -321,7 +325,7 @@
         <div id="sf_atRow" class="hidden">
           <input id="sf_openAt" type="datetime-local"
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
+          <p id="sf_openAtHint" class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
         </div>
       </div>
 
@@ -358,7 +362,7 @@
           class="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition disabled:opacity-50">
           🚀 儲存場次
         </button>
-        <button onclick="saveAsTemplate()"
+        <button id="sfSaveTemplateBtn" onclick="saveAsTemplate()"
           class="px-4 bg-gray-100 text-gray-600 rounded-xl py-3 font-medium text-sm hover:bg-gray-200 transition">
           💾 存為範本
         </button>
@@ -400,7 +404,7 @@
     <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm relative">
       <div class="text-center mb-4">
         <div class="text-4xl mb-2">🔗</div>
-        <h3 class="text-lg font-bold text-gray-800 mb-1">分享報名連結</h3>
+        <h3 id="sfShareModalTitle" class="text-lg font-bold text-gray-800 mb-1">分享報名連結</h3>
         <p id="sfShareModalHint" class="text-sm text-gray-500">複製以下連結讓大家報名</p>
       </div>
       <div class="bg-gray-50 rounded-xl px-4 py-3 mb-4 overflow-x-auto">
@@ -412,11 +416,11 @@
       </button>
       <button id="sfNativeShareBtn" onclick="sfNativeShareUrl()"
         class="hidden w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-200 active:scale-95 transition mb-2">
-        ↗ 開啟系統分享
+        ↗ <span id="sfNativeShareBtnText">開啟系統分享</span>
       </button>
       <button onclick="closeShareModal()"
         class="w-full bg-gray-100 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-200 transition">
-        關閉
+        <span id="sfShareModalClose">關閉</span>
       </button>
     </div>
   </div>
@@ -520,6 +524,7 @@
   let isAdmin = false;
   let editingSessionId = null;
   let sfSelectedEquip = new Set();
+  let sfCustomEquip = [];
   let mapDebounce2 = null;
   let signupUnsubs = {};
   let exportSignups = [];
@@ -597,14 +602,39 @@
     document.getElementById('sfCloseHours').textContent = zh ? '開賽前 N 小時' : 'N hours before game';
     document.getElementById('sfCloseDays').textContent = zh ? '開賽前 N 天' : 'N days before game';
     document.getElementById('sfCloseCustom').textContent = zh ? '指定時間' : 'Custom time';
+    // Session form labels
+    document.getElementById('sl0').innerHTML = `${zh?'場次名稱':'Session Name'} <span class="text-red-400">*</span>`;
+    document.getElementById('sl1').innerHTML = `${zh?'日期':'Date'} <span class="text-red-400">*</span>`;
+    document.getElementById('sl2').innerHTML = `${zh?'時間':'Time'} <span class="text-red-400">*</span>`;
+    document.getElementById('sl3').innerHTML = `${zh?'地點':'Location'} <span class="text-red-400">*</span>`;
+    document.getElementById('sl4').textContent = zh?'活動詳細說明（選填）':'Activity Details (optional)';
+    document.getElementById('sl5').textContent = zh?'人數上限（0=不限）':'Player Limit (0=unlimited)';
+    document.getElementById('sl6').textContent = zh?'性別分類':'Category';
+    const sfTypeEl = document.getElementById('sf_type');
+    if (sfTypeEl) { sfTypeEl.options[0].text = zh?'混排':'Mixed'; sfTypeEl.options[1].text = zh?'男生':'Male'; sfTypeEl.options[2].text = zh?'女生':'Female'; }
+    const sfLMale = document.getElementById('sf_lMaleLimit'); if (sfLMale) sfLMale.textContent = zh?'男生名額（0=不限）':'Male slots (0=unlimited)';
+    const sfLFemale = document.getElementById('sf_lFemaleLimit'); if (sfLFemale) sfLFemale.textContent = zh?'女生名額（0=不限）':'Female slots (0=unlimited)';
+    const sfLClose = document.getElementById('sf_lCloseAt'); if (sfLClose) sfLClose.textContent = zh?'結束報名時間':'Signup Close Time';
+    const sfCloseHint = document.getElementById('sf_closeAtHint'); if (sfCloseHint) sfCloseHint.textContent = zh?'到時自動關閉報名':'Signup will close automatically';
+    const sfOpenHint = document.getElementById('sf_openAtHint'); if (sfOpenHint) sfOpenHint.textContent = zh?'設定後報名頁面會顯示倒數計時':'Countdown shown on signup page';
     document.getElementById('sl7').textContent = zh ? '需要攜帶的用具' : 'Required Equipment';
     document.getElementById('sl8').textContent = zh ? '開放報名時間' : 'Signup Open Time';
+    document.getElementById('sl9').textContent = zh?'備註（選填）':'Notes (optional)';
+    const sfLTemplate = document.getElementById('sf_lTemplatePick'); if (sfLTemplate) sfLTemplate.textContent = zh?'套用範本':'Apply Template';
+    const sfSaveTemplateBtn = document.getElementById('sfSaveTemplateBtn'); if (sfSaveTemplateBtn) sfSaveTemplateBtn.textContent = zh?'💾 存為範本':'💾 Save Template';
+    // Placeholders
+    const sfTitleEl = document.getElementById('sf_title'); if (sfTitleEl) sfTitleEl.placeholder = zh?'例：第15週零打':'e.g. Week 15 Pickup';
+    const sfLocEl = document.getElementById('sf_location'); if (sfLocEl) sfLocEl.placeholder = zh?'輸入或搜尋地點':'Enter or search location';
+    const sfVenueEl = document.getElementById('sf_venue'); if (sfVenueEl) sfVenueEl.placeholder = zh?'例：B1 室內球場4號場':'e.g. Court B1, Indoor Hall';
+    const sfNoteEl = document.getElementById('sf_note'); if (sfNoteEl) sfNoteEl.placeholder = zh?'其他說明...':'Other info...';
+    document.getElementById('sf_equipCustom').placeholder = zh?'新增用具':'Add item';
     // Equipment chip labels
-    const sfChipLabels = { '標竿': zh?'🏁 標竿':'🏁 Pole', '音響': zh?'🔊 音響':'🔊 Speaker', '球': zh?'🏐 球':'🏐 Ball', '其他': zh?'📦 其他':'📦 Other' };
+    const sfChipLabels = { '標竿': zh?'🏁 標竿':'🏁 Pole', '音響': zh?'🔊 音響':'🔊 Speaker', '球': zh?'🏐 球':'🏐 Ball' };
     document.querySelectorAll('#sf_equipChips [data-equip]').forEach(btn => {
       if (sfChipLabels[btn.dataset.equip]) btn.textContent = sfChipLabels[btn.dataset.equip];
     });
-    document.getElementById('sf_equipCustom').placeholder = zh ? '其他用具（逗號分隔）' : 'Other items (comma separated)';
+    // Update unit labels for open/close time
+    onSfOpenWhenChange(); onSfCloseWhenChange();
     // tabFeedback
     const fbTab = document.getElementById('tabFeedback');
     if (fbTab) fbTab.textContent = zh ? '💬 意見回饋' : '💬 Feedback';
@@ -1051,6 +1081,9 @@
       copyBtn.innerHTML = `📋 ${zh ? '再次複製' : 'Copy Again'}`;
       if (hintEl) hintEl.textContent = zh ? '複製以下連結讓大家報名' : 'Copy the link below to share';
     }, 3000);
+    document.getElementById('sfShareModalTitle').textContent = zh ? '分享報名連結' : 'Share Link';
+    document.getElementById('sfNativeShareBtnText').textContent = zh ? '開啟系統分享' : 'Share via app';
+    document.getElementById('sfShareModalClose').textContent = zh ? '關閉' : 'Close';
     document.getElementById('sfNativeShareBtn').classList.toggle('hidden', !navigator.share);
     document.getElementById('shareModal').classList.remove('hidden');
   };
@@ -1227,6 +1260,7 @@
   function openSessionSheet(id = null, data = null) {
     editingSessionId = id;
     sfSelectedEquip.clear();
+    sfCustomEquip = [];
     document.getElementById('sheetTitle').textContent = id ? (getLang()==='zh'?'編輯場次':'Edit Session') : (getLang()==='zh'?'建立新場次':'New Session');
     document.getElementById('sfSubmitBtn').textContent = id ? (getLang()==='zh'?'💾 更新場次':'💾 Update') : (getLang()==='zh'?'🚀 建立場次':'🚀 Create');
     // Clear all error messages
@@ -1275,6 +1309,7 @@
     onSfCloseWhenChange();
     sfOnTypeChange();
     // Equip chips
+    const presetEquipKeys = ['標竿', '音響', '球'];
     document.querySelectorAll('[data-equip]').forEach(btn => {
       const active = data?.equipment?.includes(btn.dataset.equip);
       if (active) {
@@ -1284,6 +1319,9 @@
         btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
       }
     });
+    sfCustomEquip = (data?.equipment || []).filter(e => !presetEquipKeys.includes(e));
+    document.getElementById('sf_equipCustom').value = '';
+    renderSfCustomTags();
     document.getElementById('sessionSheet').classList.remove('hidden');
   }
 
@@ -1337,6 +1375,7 @@
     }
     document.getElementById('sf_note').value = tmpl.note || '';
     sfSelectedEquip.clear();
+    const tmplPresetKeys = ['標竿', '音響', '球'];
     document.querySelectorAll('[data-equip]').forEach(btn => {
       const active = tmpl.equipment?.includes(btn.dataset.equip);
       if (active) {
@@ -1346,6 +1385,9 @@
         btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
       }
     });
+    sfCustomEquip = (tmpl.equipment || []).filter(e => !tmplPresetKeys.includes(e));
+    document.getElementById('sf_equipCustom').value = '';
+    renderSfCustomTags();
   };
 
   document.getElementById('sf_equipChips').addEventListener('click', (e) => {
@@ -1360,6 +1402,38 @@
       btn.className = 'sf-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition';
     }
   });
+
+  document.getElementById('sf_equipCustom').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sfAddCustomEquip(); }
+  });
+
+  window.sfAddCustomEquip = () => {
+    const input = document.getElementById('sf_equipCustom');
+    const val = input.value.trim();
+    if (!val) return;
+    if (!sfCustomEquip.includes(val)) {
+      sfCustomEquip.push(val);
+      renderSfCustomTags();
+    }
+    input.value = '';
+  };
+
+  function renderSfCustomTags() {
+    const list = document.getElementById('sf_customTagsList');
+    if (!sfCustomEquip.length) { list.classList.add('hidden'); return; }
+    list.classList.remove('hidden');
+    list.innerHTML = sfCustomEquip.map((item, i) =>
+      `<span class="flex items-center gap-1 text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full">
+        ${escHtml(item)}
+        <button type="button" onclick="sfRemoveCustomEquip(${i})" class="ml-0.5 text-indigo-400 hover:text-indigo-700 font-bold leading-none">×</button>
+      </span>`
+    ).join('');
+  }
+
+  window.sfRemoveCustomEquip = (i) => {
+    sfCustomEquip.splice(i, 1);
+    renderSfCustomTags();
+  };
 
   window.sfOnTypeChange = () => {
     const type = document.getElementById('sf_type').value;
@@ -1451,8 +1525,7 @@
     btn.disabled = true;
     document.getElementById('sfMsg').classList.add('hidden');
 
-    const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
-    const equipment = [...sfSelectedEquip, ...customEquip];
+    const equipment = [...sfSelectedEquip, ...sfCustomEquip];
     const openWhen = document.getElementById('sf_openWhen').value;
     let openAt = null, isOpen = false;
 
@@ -1546,7 +1619,6 @@
       showSfMsg(getLang()==='zh' ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
       return;
     }
-    const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
       name,
       time: document.getElementById('sf_time').value,
@@ -1554,7 +1626,7 @@
       venue: document.getElementById('sf_venue').value.trim(),
       limit: parseInt(document.getElementById('sf_limit').value) || 0,
       type: document.getElementById('sf_type').value,
-      equipment: [...sfSelectedEquip, ...customEquip],
+      equipment: [...sfSelectedEquip, ...sfCustomEquip],
       note: document.getElementById('sf_note').value.trim(),
       createdAt: Timestamp.now(),
     });
@@ -1645,7 +1717,6 @@
     document.getElementById('sfSubmitBtn').textContent = getLang()==='zh' ? '💾 更新範本' : '💾 Update Template';
     document.getElementById('sfSubmitBtn').onclick = async () => {
       const name = document.getElementById('sf_title').value.trim() || tmpl.name;
-      const customEquip = document.getElementById('sf_equipCustom').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
       await setDoc(doc(db, 'users', currentUser.uid, 'templates', id), {
         name,
         time: document.getElementById('sf_time').value,
@@ -1653,7 +1724,7 @@
         venue: document.getElementById('sf_venue').value.trim(),
         limit: parseInt(document.getElementById('sf_limit').value) || 0,
         type: document.getElementById('sf_type').value,
-        equipment: [...sfSelectedEquip, ...customEquip],
+        equipment: [...sfSelectedEquip, ...sfCustomEquip],
         note: document.getElementById('sf_note').value.trim(),
         createdAt: tmpl.createdAt,
       });
