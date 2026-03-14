@@ -421,45 +421,48 @@
   const isInAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|Line\/|NAVER|MicroMessenger|WebView|(iPhone|iPod|iPad)(?!.*Safari)/i.test(ua)
     || (!!window.navigator.standalone === false && /Android/.test(ua) && !/Chrome\//.test(ua));
   if (isInAppBrowser) {
-    const iabZh = /^zh/i.test(navigator.language || '');
-    document.addEventListener('DOMContentLoaded', () => {
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:system-ui,sans-serif;';
-      overlay.innerHTML = `
+    let iabZh = /^zh/i.test(navigator.language || '');
+    function renderIabOverlay() {
+      const zh = iabZh;
+      const el = document.getElementById('inAppBrowserOverlay');
+      if (!el) return;
+      el.innerHTML = `
+        <button onclick="window._iabToggleLang()" style="position:absolute;top:16px;right:16px;background:#f3f4f6;border:none;border-radius:10px;padding:6px 14px;font-size:0.85rem;font-weight:600;color:#6366f1;cursor:pointer;">
+          ${zh ? 'EN' : '中'}
+        </button>
         <div style="font-size:3rem;margin-bottom:16px;">🏐</div>
-        <h2 style="font-size:1.2rem;font-weight:700;color:#1e1b4b;margin:0 0 6px;">
-          ${iabZh ? '請用瀏覽器開啟' : 'Open in Browser'}
+        <h2 style="font-size:1.2rem;font-weight:700;color:#1e1b4b;margin:0 0 12px;">
+          ${zh ? '請用瀏覽器開啟' : 'Open in Browser'}
         </h2>
-        <p style="font-size:0.8rem;font-weight:500;color:#6366f1;margin:0 0 14px;">
-          ${iabZh ? '' : '請用瀏覽器開啟 · '}${iabZh ? 'Open in Browser' : ''}
+        <p style="font-size:0.9rem;color:#6b7280;margin:0 0 8px;line-height:1.6;">
+          ${zh
+            ? 'Google 登入不支援在 Messenger / LINE 等 App 內建瀏覽器中使用。'
+            : 'Google sign-in is not supported in in-app browsers (Messenger, LINE, etc.).'}
         </p>
-        <p style="font-size:0.9rem;color:#6b7280;margin:0 0 6px;line-height:1.6;">
-          ${iabZh ? 'Google 登入不支援在 Messenger / LINE 等 App 內建瀏覽器中使用。' : 'Google sign-in is not supported in in-app browsers (Messenger, LINE, etc.).'}
-        </p>
-        <p style="font-size:0.85rem;color:#9ca3af;margin:0 0 20px;line-height:1.6;">
-          ${iabZh ? 'Google sign-in is not supported in in-app browsers.' : 'Google 登入不支援在 App 內建瀏覽器使用。'}
-        </p>
-        <p style="font-size:0.9rem;color:#374151;margin:0 0 20px;line-height:1.6;">
-          ${iabZh
+        <p style="font-size:0.9rem;color:#374151;margin:0 0 24px;line-height:1.6;">
+          ${zh
             ? '請複製連結後用 <strong>Safari</strong> 或 <strong>Chrome</strong> 開啟。'
             : 'Please copy the link and open it in <strong>Safari</strong> or <strong>Chrome</strong>.'}
-          <br><span style="font-size:0.8rem;color:#9ca3af;">${iabZh
-            ? '(Copy the link and open in Safari or Chrome)'
-            : '（複製連結後在 Safari 或 Chrome 中開啟）'}</span>
         </p>
-        <button onclick="
+        <button id="iabCopyBtn" onclick="
           navigator.clipboard.writeText(location.href).then(()=>{
-            this.innerHTML='✅ ' + (${iabZh} ? '已複製！ / Copied!' : 'Copied! / 已複製！');
+            this.textContent = ${zh} ? '✅ 已複製！' : '✅ Copied!';
           }).catch(()=>{ prompt('', location.href); });
         " style="background:#6366f1;color:#fff;border:none;border-radius:14px;padding:14px 32px;font-size:1rem;font-weight:700;cursor:pointer;width:100%;max-width:320px;margin-bottom:10px;">
-          📋 ${iabZh ? '複製網址 / Copy URL' : 'Copy URL / 複製網址'}
+          📋 ${zh ? '複製網址' : 'Copy URL'}
         </button>
         <p style="font-size:0.75rem;color:#9ca3af;">
-          ${iabZh ? '複製後請到瀏覽器貼上並開啟' : 'Paste the URL in your browser to open'}
-          <br><span style="font-size:0.7rem;">${iabZh ? '(Paste in browser to open)' : '（複製後貼到瀏覽器開啟）'}</span>
+          ${zh ? '複製後請到瀏覽器貼上並開啟' : 'Paste the URL in your browser to open'}
         </p>
       `;
+    }
+    window._iabToggleLang = () => { iabZh = !iabZh; renderIabOverlay(); };
+    document.addEventListener('DOMContentLoaded', () => {
+      const overlay = document.createElement('div');
+      overlay.id = 'inAppBrowserOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:system-ui,sans-serif;';
       document.body.appendChild(overlay);
+      renderIabOverlay();
     });
   }
   getRedirectResult(auth).catch(() => {});
