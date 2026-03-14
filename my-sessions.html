@@ -1076,13 +1076,19 @@
       }).join('');
     }
 
-    // Update unclaimed equipment notice
+    // Update unclaimed equipment notice (only confirmed signups count as "claimed")
     const sessionData = [...mySessionsCache, ...allSessionsCache].find(s => s.id === sessionId) || {};
     const equipList = sessionData.equipment || [];
     const equipEl = document.getElementById('mgmt-equip-' + sessionId);
     if (equipEl && equipList.length) {
       const claimed = new Set();
-      items.forEach(item => (item.bringEquip || []).forEach(e => claimed.add(e)));
+      const _hasMixed = maleLimit > 0 || femaleLimit > 0;
+      items.forEach(item => {
+        const _isWait = _hasMixed
+          ? !!item.genderWait
+          : !item.forceConfirmed && (item.forceWaitlisted || (limit > 0 && item.position > limit));
+        if (!_isWait) (item.bringEquip || []).forEach(e => claimed.add(e));
+      });
       const unclaimed = equipList.filter(e => !claimed.has(e));
       if (unclaimed.length) {
         const zh2 = getLang() === 'zh';
@@ -1262,9 +1268,10 @@
     }
 
     if (s?.equipment?.length) {
-      // Build map of who brings what
+      // Build map of who brings what (only confirmed signups count)
       const bringersMap = {};
       items.forEach(item => {
+        if (isWaitFn(item)) return;
         (item.bringEquip || []).forEach(e => {
           if (!bringersMap[e]) bringersMap[e] = [];
           bringersMap[e].push(item.name);
@@ -1653,6 +1660,22 @@
 
     try {
       if (editingSessionId) {
+        // Check if any equipment was removed; if so, clean up signups' bringEquip
+        const oldSession = [...mySessionsCache, ...allSessionsCache].find(s => s.id === editingSessionId);
+        const oldEquip = oldSession?.equipment || [];
+        const removedEquip = oldEquip.filter(e => !equipment.includes(e));
+        if (removedEquip.length) {
+          const signupsSnap = await getDocs(collection(db, 'sessions', editingSessionId, 'signups'));
+          const cleanupOps = [];
+          signupsSnap.docs.forEach(d => {
+            const bringEquip = d.data().bringEquip || [];
+            const newBringEquip = bringEquip.filter(e => !removedEquip.includes(e));
+            if (newBringEquip.length !== bringEquip.length) {
+              cleanupOps.push(updateDoc(d.ref, { bringEquip: newBringEquip }));
+            }
+          });
+          if (cleanupOps.length) await Promise.all(cleanupOps);
+        }
         await updateDoc(doc(db, 'sessions', editingSessionId), data);
         showSfMsg('✅ 已更新！', 'success');
         setTimeout(closeSessionSheet, 1000);
@@ -2045,7 +2068,14 @@
       if (caBringLabel) caBringLabel.textContent = zh ? '🎒 我可以幫忙帶' : '🎒 I can bring';
       const allSignups = signupItemsCache[sessionId] || [];
       const claimedByOthers = new Set();
-      allSignups.forEach(s => (s.bringEquip || []).forEach(e => claimedByOthers.add(e)));
+      const _sessLimit = session.limit || 0;
+      const _hasMixed = (session.maleLimit || 0) > 0 || (session.femaleLimit || 0) > 0;
+      allSignups.forEach(s => {
+        const _isWait = _hasMixed
+          ? !!s.genderWait
+          : !s.forceConfirmed && (s.forceWaitlisted || (_sessLimit > 0 && s.position > _sessLimit));
+        if (!_isWait) (s.bringEquip || []).forEach(e => claimedByOthers.add(e));
+      });
       caBringChips.innerHTML = equipment.map(e => {
         const claimed = claimedByOthers.has(e);
         const cls = claimed

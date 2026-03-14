@@ -1212,13 +1212,20 @@
         : (zh ? '🙋 我要報名' : '🙋 Sign Up');
     }
 
-    // Update unclaimed equip notice
+    // Update unclaimed equip notice (only confirmed signups count as "claimed")
     const session = sessionsData[sessionId] || {};
     const equipList = session.equipment || [];
     const unclaimedEl = document.getElementById('equip-unclaimed-' + sessionId);
     if (unclaimedEl && equipList.length) {
       const claimed = new Set();
-      items.forEach(item => (item.bringEquip || []).forEach(e => claimed.add(e)));
+      const _sessLimit = session.limit || 0;
+      const _hasMixed = (session.maleLimit || 0) > 0 || (session.femaleLimit || 0) > 0;
+      items.forEach(item => {
+        const _isWait = _hasMixed
+          ? !!item.genderWait
+          : !item.forceConfirmed && (item.forceWaitlisted || (_sessLimit > 0 && item.position > _sessLimit));
+        if (!_isWait) (item.bringEquip || []).forEach(e => claimed.add(e));
+      });
       const unclaimed = equipList.filter(e => !claimed.has(e));
       const zh2 = getLang() === 'zh';
       if (unclaimed.length) {
@@ -1741,14 +1748,23 @@
     const bringChips = document.getElementById('modalBringChips');
     if (equipment.length) {
       bringRow.classList.remove('hidden');
-      // Find which items are already claimed by others
+      // Find which items are already claimed by confirmed (non-waitlisted) signups
       const allSignups = signupsCache[sessionId] || [];
+      const sessLimit = session.limit || 0;
+      const sessMaleLimit = session.maleLimit || 0;
+      const sessFemaleLimit = session.femaleLimit || 0;
+      const hasMixedLimits = sessMaleLimit > 0 || sessFemaleLimit > 0;
       const claimedByOthers = new Set();
       allSignups.forEach(s => {
         // Don't count current user's own signup as "claimed by others"
         if (currentUser && s.uid === currentUser.uid) return;
         // Don't count the signup being edited
         if (editingSignupId && s.id === editingSignupId) return;
+        // Only count confirmed (non-waitlisted) signups
+        const isWait = hasMixedLimits
+          ? !!s.genderWait
+          : !s.forceConfirmed && (s.forceWaitlisted || (sessLimit > 0 && s.position > sessLimit));
+        if (isWait) return;
         (s.bringEquip || []).forEach(e => claimedByOthers.add(e));
       });
       bringChips.innerHTML = equipment.map(e => {
