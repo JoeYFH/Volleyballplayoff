@@ -721,8 +721,10 @@
       ? { '':'不限', mixed:'混排', male:'男生', female:'女生' }
       : { '':'Any',  mixed:'Mixed', male:'Male', female:'Female' };
     const isOpen = s.isOpen;
-    const badgeCls = isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
-    const badgeText = isOpen ? (getLang()==='zh'?'報名中':'Open') : (getLang()==='zh'?'已關閉':'Closed');
+    const today = new Date().toISOString().split('T')[0];
+    const isPast = (s.date || '') < today;
+    const badgeCls = isPast ? 'bg-gray-100 text-gray-400' : isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
+    const badgeText = isPast ? (zh?'已結束':'Past') : isOpen ? (zh?'報名中':'Open') : (zh?'已關閉':'Closed');
     const fmtTs = ms => { const d = new Date(ms); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
     const fmtCreatedAt = ts => { if (!ts) return ''; const ms = ts.toMillis ? ts.toMillis() : +ts; const d = new Date(ms); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
     const createdAtHtml = s.createdAt ? `<div class="text-xs text-gray-400 mt-0.5">🕐 ${zh?'建立':'Created'}: ${fmtCreatedAt(s.createdAt)}</div>` : '';
