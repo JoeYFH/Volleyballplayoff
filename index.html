@@ -93,6 +93,11 @@
         class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">♀ 女生</button>
       <button id="sg-mixed" onclick="setGenderFilter('mixed')"
         class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">⚥ 混排</button>
+      <select id="sort-select" onchange="setSort(this.value)"
+        class="ml-auto text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300 shrink-0">
+        <option value="date_asc">📅 日期遠近</option>
+        <option value="closeAt_asc">⏰ 截止遠近</option>
+      </select>
     </div>
   </div>
 
@@ -592,6 +597,7 @@
   let allSessionsCache = []; // all loaded sessions for filtering
   let currentFilter = 'open';
   let currentGenderFilter = 'all';
+  let currentSort = 'date_asc';
   let creatorPhotoCache = {}; // uid -> photoURL cache for organizer photos
 
   const TYPE_LABEL = () => ({ '': tr('noType'), mixed: tr('mixed'), male: tr('male'), female: tr('female') });
@@ -798,6 +804,11 @@
     applyFilter();
   };
 
+  window.setSort = (sort) => {
+    currentSort = sort;
+    applyFilter();
+  };
+
   function applyFilter() {
     const today = new Date().toISOString().split('T')[0];
     const now = Date.now();
@@ -815,6 +826,16 @@
       if (currentGenderFilter === 'all') return true;
       return s.type === currentGenderFilter;
     });
+    // Sort
+    if (currentSort === 'closeAt_asc') {
+      filtered.sort((a, b) => {
+        const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
+        const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
+        return aMs - bMs;
+      });
+    } else {
+      filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    }
     const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
     if (!filtered.length) {
       document.getElementById('noSessionsMsg').classList.toggle('hidden', isLoading);
