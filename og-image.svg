@@ -1,17 +1,227 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#312e81"/>
-      <stop offset="100%" style="stop-color:#1e1b4b"/>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0c1a3a"/>
+      <stop offset="100%" style="stop-color:#1a3560"/>
     </linearGradient>
+    <radialGradient id="ballShine" cx="35%" cy="28%" r="55%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.45"/>
+      <stop offset="70%" style="stop-color:#ffffff;stop-opacity:0.08"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="ballBottomShadow" cx="50%" cy="90%" r="50%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:0.35"/>
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0"/>
+    </radialGradient>
+    <clipPath id="ballClip">
+      <circle cx="330" cy="280" r="205"/>
+    </clipPath>
+    <filter id="lightGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="ballGlowFilter" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <circle cx="1100" cy="100" r="200" fill="white" fill-opacity="0.03"/>
-  <circle cx="50" cy="550" r="150" fill="white" fill-opacity="0.03"/>
-  <rect x="80" y="80" width="1040" height="470" rx="24" fill="white" fill-opacity="0.05" stroke="white" stroke-opacity="0.1" stroke-width="1"/>
-  <rect x="80" y="80" width="200" height="8" rx="4" fill="#818cf8"/>
-  <text x="600" y="260" font-size="100" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji,sans-serif">🏐</text>
-  <text x="600" y="340" font-size="52" font-weight="700" fill="white" text-anchor="middle" font-family="Noto Sans TC,PingFang TC,Microsoft JhengHei,sans-serif">排球零打報名系統</text>
-  <text x="600" y="405" font-size="36" font-weight="600" fill="rgba(255,255,255,0.85)" text-anchor="middle" font-family="sans-serif">Volleyball Pickup Sign-up</text>
-  <text x="600" y="510" font-size="24" fill="rgba(255,255,255,0.3)" text-anchor="middle" font-family="sans-serif">volleyballplayoff.web.app</text>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+  <circle cx="1160" cy="50" r="280" fill="white" fill-opacity="0.018"/>
+  <circle cx="60" cy="570" r="200" fill="white" fill-opacity="0.018"/>
+
+  <!-- ===== STADIUM SECTION (bottom) ===== -->
+  <rect x="0" y="533" width="1200" height="97" fill="#06101f" fill-opacity="0.88"/>
+  <rect x="0" y="533" width="1200" height="5" fill="#2a4070"/>
+  <line x1="0" y1="551" x2="1200" y2="551" stroke="#1a2f5a" stroke-width="2"/>
+  <line x1="0" y1="573" x2="1200" y2="573" stroke="#121e38" stroke-width="1.5"/>
+
+  <!-- Diagonal X-brace truss -->
+  <line x1="55"   y1="533" x2="155"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="155"  y1="533" x2="55"   y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="155"  y1="533" x2="255"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="255"  y1="533" x2="155"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="255"  y1="533" x2="355"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="355"  y1="533" x2="255"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="355"  y1="533" x2="455"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="455"  y1="533" x2="355"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="455"  y1="533" x2="555"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="555"  y1="533" x2="455"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="555"  y1="533" x2="655"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="655"  y1="533" x2="555"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="655"  y1="533" x2="755"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="755"  y1="533" x2="655"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="755"  y1="533" x2="855"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="855"  y1="533" x2="755"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="855"  y1="533" x2="955"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="955"  y1="533" x2="855"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="955"  y1="533" x2="1055" y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="1055" y1="533" x2="955"  y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="1055" y1="533" x2="1155" y2="573" stroke="#182848" stroke-width="1.5"/>
+  <line x1="1155" y1="533" x2="1055" y2="573" stroke="#182848" stroke-width="1.5"/>
+
+  <!-- Vertical support posts -->
+  <line x1="55"   y1="533" x2="55"   y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="155"  y1="533" x2="155"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="255"  y1="533" x2="255"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="355"  y1="533" x2="355"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="455"  y1="533" x2="455"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="555"  y1="533" x2="555"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="655"  y1="533" x2="655"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="755"  y1="533" x2="755"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="855"  y1="533" x2="855"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="955"  y1="533" x2="955"  y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="1055" y1="533" x2="1055" y2="630" stroke="#1e3565" stroke-width="4"/>
+  <line x1="1155" y1="533" x2="1155" y2="630" stroke="#1e3565" stroke-width="4"/>
+
+  <!-- Light warm glow halos -->
+  <circle cx="55"   cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="155"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="255"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="355"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="455"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="555"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="655"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="755"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="855"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="955"  cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="1055" cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+  <circle cx="1155" cy="531" r="32" fill="#ffd060" fill-opacity="0.14"/>
+
+  <!-- Light fixture housing -->
+  <rect x="43"   y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="143"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="243"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="343"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="443"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="543"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="643"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="743"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="843"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="943"  y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="1043" y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+  <rect x="1143" y="524" width="24" height="12" rx="4" fill="#1a2d55"/>
+
+  <!-- Glowing light bulbs -->
+  <circle cx="55"   cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="155"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="255"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="355"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="455"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="555"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="655"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="755"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="855"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="955"  cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="1055" cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+  <circle cx="1155" cy="531" r="11" fill="#ffe566" filter="url(#lightGlow)"/>
+
+  <!-- Light bulb bright white centers -->
+  <circle cx="55"   cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="155"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="255"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="355"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="455"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="555"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="655"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="755"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="855"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="955"  cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="1055" cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+  <circle cx="1155" cy="529" r="5" fill="#ffffff" fill-opacity="0.88"/>
+
+  <!-- ===== VOLLEYBALL ===== -->
+  <!-- Drop shadow ellipse -->
+  <ellipse cx="335" cy="510" rx="155" ry="20" fill="black" fill-opacity="0.18"/>
+
+  <!-- Yellow base circle with soft glow -->
+  <circle cx="330" cy="280" r="205" fill="#f5c71a" filter="url(#ballGlowFilter)"/>
+
+  <!-- Left blue Mikasa panel -->
+  <path d="M 330,75
+           C 285,100 210,160 195,220
+           C 185,265 195,305 215,340
+           C 235,375 280,435 330,485
+           A 205,205 0 0 0 330,75 Z"
+        fill="#1535a0" clip-path="url(#ballClip)"/>
+
+  <!-- Right blue Mikasa panel -->
+  <path d="M 330,75
+           C 375,100 450,160 465,220
+           C 475,265 465,305 445,340
+           C 425,375 380,435 330,485
+           A 205,205 0 0 1 330,75 Z"
+        fill="#1535a0" clip-path="url(#ballClip)"/>
+
+  <!-- Seam lines -->
+  <path d="M 330,75
+           C 285,100 210,160 195,220
+           C 185,265 195,305 215,340
+           C 235,375 280,435 330,485"
+        fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="2.5"
+        clip-path="url(#ballClip)"/>
+  <path d="M 330,75
+           C 375,100 450,160 465,220
+           C 475,265 465,305 445,340
+           C 425,375 380,435 330,485"
+        fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="2.5"
+        clip-path="url(#ballClip)"/>
+  <!-- Horizontal equator seam -->
+  <path d="M 125,280 C 190,255 270,292 330,280 C 390,268 470,305 535,280"
+        fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="2"
+        clip-path="url(#ballClip)"/>
+
+  <!-- Shine overlay -->
+  <circle cx="330" cy="280" r="205" fill="url(#ballShine)"/>
+  <!-- Bottom shadow overlay -->
+  <circle cx="330" cy="280" r="205" fill="url(#ballBottomShadow)"/>
+  <!-- Ball border ring -->
+  <circle cx="330" cy="280" r="205" fill="none" stroke="#e6b000" stroke-width="3" stroke-opacity="0.5"/>
+
+  <!-- Subtle separator -->
+  <line x1="615" y1="80" x2="615" y2="520" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+  <!-- ===== TEXT AREA (right, centered at x=890) ===== -->
+  <!-- Top yellow accent bar -->
+  <rect x="655" y="110" width="470" height="4" rx="2" fill="#f5c71a" fill-opacity="0.85"/>
+
+  <!-- Chinese title -->
+  <text x="890" y="170"
+        font-size="27" font-weight="700"
+        fill="rgba(255,255,255,0.70)"
+        text-anchor="middle"
+        font-family="Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif"
+        letter-spacing="5">排球零打報名系統</text>
+
+  <!-- Main VOLLEYBALL title -->
+  <text x="890" y="288"
+        font-size="80" font-weight="900"
+        fill="#ffffff"
+        text-anchor="middle"
+        font-family="Arial Black, Impact, Arial, sans-serif">VOLLEYBALL</text>
+
+  <!-- PICKUP SIGN-UP subtitle -->
+  <text x="890" y="355"
+        font-size="31" font-weight="700"
+        fill="#f5c71a"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        letter-spacing="7">PICKUP SIGN-UP</text>
+
+  <!-- Bottom yellow accent bar -->
+  <rect x="655" y="378" width="470" height="4" rx="2" fill="#f5c71a" fill-opacity="0.55"/>
+
+  <!-- Domain text -->
+  <text x="890" y="468"
+        font-size="20"
+        fill="rgba(255,255,255,0.27)"
+        text-anchor="middle"
+        font-family="monospace, sans-serif">volleyballplayoff.web.app</text>
 </svg>
