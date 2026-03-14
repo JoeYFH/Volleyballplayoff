@@ -81,10 +81,18 @@
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="sf-open" onclick="setFilter('open')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">報名中</button>
-      <button id="sf-mixed" onclick="setFilter('mixed')"
-        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">混排</button>
       <button id="sf-past" onclick="setFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
+    </div>
+    <div class="flex gap-1.5 mt-2 overflow-x-auto pb-0.5">
+      <button id="sg-all" onclick="setGenderFilter('all')"
+        class="text-xs px-3 py-1 rounded-lg bg-gray-200 text-gray-700 font-medium transition shrink-0">全部</button>
+      <button id="sg-male" onclick="setGenderFilter('male')"
+        class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">♂ 男生</button>
+      <button id="sg-female" onclick="setGenderFilter('female')"
+        class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">♀ 女生</button>
+      <button id="sg-mixed" onclick="setGenderFilter('mixed')"
+        class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">⚥ 混排</button>
     </div>
   </div>
 
@@ -583,6 +591,7 @@
   let editingSignupId = null; // if set, edit mode in signup modal
   let allSessionsCache = []; // all loaded sessions for filtering
   let currentFilter = 'open';
+  let currentGenderFilter = 'all';
   let creatorPhotoCache = {}; // uid -> photoURL cache for organizer photos
 
   const TYPE_LABEL = () => ({ '': tr('noType'), mixed: tr('mixed'), male: tr('male'), female: tr('female') });
@@ -768,9 +777,23 @@
     currentFilter = filter;
     const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
     const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
-    ['all','open','mixed','past'].forEach(f => {
+    ['all','open','past'].forEach(f => {
       const btn = document.getElementById('sf-' + f);
       if (btn) btn.className = f === filter ? activeClass : idleClass;
+    });
+    applyFilter();
+  };
+
+  window.setGenderFilter = (gender) => {
+    currentGenderFilter = gender;
+    const activeClass = 'text-xs px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-semibold transition shrink-0';
+    const idleClass = 'text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0';
+    const allClass = 'text-xs px-3 py-1 rounded-lg bg-gray-200 text-gray-700 font-medium transition shrink-0';
+    ['all','male','female','mixed'].forEach(g => {
+      const btn = document.getElementById('sg-' + g);
+      if (!btn) return;
+      if (g === gender) btn.className = g === 'all' ? allClass.replace('bg-gray-200','bg-indigo-100').replace('text-gray-700','text-indigo-700 font-semibold') : activeClass;
+      else btn.className = g === 'all' ? allClass : idleClass;
     });
     applyFilter();
   };
@@ -783,11 +806,14 @@
       const isPast = (s.date || '') < today;
       const closeAtMs = s.closeAt ? s.closeAt.toMillis() : null;
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
-      if (currentFilter === 'all') return true;
-      if (currentFilter === 'past')   return isPast;
-      if (currentFilter === 'open')   return !isPast && !effectivelyClosed;
-      if (currentFilter === 'mixed')  return !isPast && s.type === 'mixed';
-      return true;
+      let passMain = false;
+      if (currentFilter === 'all')  passMain = true;
+      else if (currentFilter === 'past') passMain = isPast;
+      else if (currentFilter === 'open') passMain = !isPast && !effectivelyClosed;
+      else passMain = true;
+      if (!passMain) return false;
+      if (currentGenderFilter === 'all') return true;
+      return s.type === currentGenderFilter;
     });
     const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
     if (!filtered.length) {
@@ -799,8 +825,10 @@
     }
     // Update filter button labels on lang change
     const zh = getLang() === 'zh';
-    const labels = { all: zh?'所有':'All', open: zh?'報名中':'Open', mixed: zh?'混排':'Mixed', closed: zh?'已截止':'Closed', past: zh?'過去':'Past' };
+    const labels = { all: zh?'所有':'All', open: zh?'報名中':'Open', closed: zh?'已截止':'Closed', past: zh?'過去':'Past' };
     Object.entries(labels).forEach(([k, v]) => { const b = document.getElementById('sf-' + k); if (b) b.textContent = v; });
+    const gLabels = { all: zh?'全部':'All', male: zh?'♂ 男生':'♂ Male', female: zh?'♀ 女生':'♀ Female', mixed: zh?'⚥ 混排':'⚥ Mixed' };
+    Object.entries(gLabels).forEach(([k, v]) => { const b = document.getElementById('sg-' + k); if (b) b.textContent = v; });
   }
 
   function renderSessions(sessions) {
