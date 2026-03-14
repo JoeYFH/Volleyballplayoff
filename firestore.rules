@@ -10,14 +10,18 @@ service cloud.firestore {
         (request.auth.uid == resource.data.createdBy ||
          request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
 
-      // 報名：所有人可讀，登入者可建立自己的，只能刪除自己的
+      // 報名：所有人可讀，登入者可建立自己的，本人/場主/管理員可修改或刪除
       match /signups/{signupId} {
         allow read: if true;
         allow create: if request.auth != null;
         allow delete: if request.auth != null &&
           (request.auth.uid == resource.data.uid ||
+           request.auth.uid == get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdBy ||
            request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
-        allow update: if request.auth != null && request.auth.uid == resource.data.uid;
+        allow update: if request.auth != null &&
+          (request.auth.uid == resource.data.uid ||
+           request.auth.uid == get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdBy ||
+           request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
       }
     }
 
@@ -28,6 +32,11 @@ service cloud.firestore {
 
     // 我的報名記錄：只有本人可以讀寫
     match /users/{userId}/mySignups/{signupId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 取消的報名記錄：只有本人可以讀寫
+    match /users/{userId}/cancelledSignups/{signupId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
