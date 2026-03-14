@@ -1784,7 +1784,12 @@
     document.getElementById('lModalLate').textContent = tr('willBeLate');
     selectedBringEquip.clear();
     if (currentUser) document.getElementById('modalProfilePreview').classList.remove('hidden');
-    document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
+    const signupCount = (signupsCache[sessionId] || []).filter(s => !s.genderWait && (!limit || s.position <= limit)).length;
+    const sessionIsFull = limit > 0 && signupCount >= limit;
+    const zh = getLang() === 'zh';
+    document.getElementById('hConfirmBtn').textContent = sessionIsFull
+      ? (zh ? '⏳ 加入候補名單' : '⏳ Join Waitlist')
+      : tr('confirmBtn');
     // Update friend name datalist
     updateFriendNameDatalist();
     // 重置性別 / reset gender
