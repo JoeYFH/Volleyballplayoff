@@ -104,6 +104,8 @@
     <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
       <button id="filter-all" onclick="setSessionFilter('all')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
+      <button id="filter-upcoming" onclick="setSessionFilter('upcoming')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">尚未開始</button>
       <button id="filter-open" onclick="setSessionFilter('open')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">報名中</button>
       <button id="filter-closed" onclick="setSessionFilter('closed')"
@@ -310,10 +312,24 @@
 
       <!-- Close Time -->
       <div>
-        <label id="sf_lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間（選填，預設為活動開始時間）</label>
-        <input id="sf_closeAt" type="datetime-local"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <p id="sf_closeAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
+        <label id="sf_lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間</label>
+        <select id="sf_closeWhen" onchange="onSfCloseWhenChange()"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
+          <option value="game_start" id="sfCloseGameStart">活動開始時間（預設）</option>
+          <option value="hours" id="sfCloseHours">開賽前 N 小時</option>
+          <option value="days" id="sfCloseDays">開賽前 N 天</option>
+          <option value="custom" id="sfCloseCustom">指定時間</option>
+        </select>
+        <div id="sf_closeOffsetRow" class="hidden flex items-center gap-2">
+          <input id="sf_closeOffset" type="number" min="1" max="999" value="1"
+            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <span id="sf_closeOffsetUnit" class="text-sm text-gray-500">小時前</span>
+        </div>
+        <div id="sf_closeAtRow" class="hidden">
+          <input id="sf_closeAt" type="datetime-local"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <p id="sf_closeAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
+        </div>
       </div>
 
       <div>
@@ -528,6 +544,7 @@
     // Update filter button labels
     const filterLabels = {
       all: zh ? '所有' : 'All',
+      upcoming: zh ? '尚未開始' : 'Upcoming',
       open: zh ? '報名中' : 'Open',
       closed: zh ? '已關閉' : 'Closed',
       past: zh ? '過去' : 'Past'
@@ -536,11 +553,23 @@
       const btn = document.getElementById('filter-' + k);
       if (btn) btn.textContent = v;
     });
+    // Sort select options
+    const mySortSel = document.getElementById('my-sort-select');
+    if (mySortSel) {
+      mySortSel.options[0].text = zh ? '🕐 建立時間' : '🕐 Created';
+      mySortSel.options[1].text = zh ? '📅 活動日期' : '📅 By Date';
+      mySortSel.options[2].text = zh ? '⏰ 截止時間' : '⏰ By Close';
+      mySortSel.options[3].text = zh ? '👥 報名人數' : '👥 Signups';
+    }
     // Open time options
     document.getElementById('sfOpenNow').textContent = zh ? '立即開放' : 'Open immediately';
     document.getElementById('sfOpenHours').textContent = zh ? '開賽前 N 小時' : 'N hours before game';
     document.getElementById('sfOpenDays').textContent = zh ? '開賽前 N 天' : 'N days before game';
     document.getElementById('sfOpenCustom').textContent = zh ? '指定時間' : 'Custom time';
+    document.getElementById('sfCloseGameStart').textContent = zh ? '活動開始時間（預設）' : 'Game start time (default)';
+    document.getElementById('sfCloseHours').textContent = zh ? '開賽前 N 小時' : 'N hours before game';
+    document.getElementById('sfCloseDays').textContent = zh ? '開賽前 N 天' : 'N days before game';
+    document.getElementById('sfCloseCustom').textContent = zh ? '指定時間' : 'Custom time';
     document.getElementById('sl7').textContent = zh ? '需要攜帶的用具' : 'Required Equipment';
     document.getElementById('sl8').textContent = zh ? '開放報名時間' : 'Signup Open Time';
     // Equipment chip labels
@@ -617,7 +646,7 @@
     currentSessionFilter = filter;
     const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
     const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
-    ['all','open','closed','past'].forEach(f => {
+    ['all','upcoming','open','closed','past'].forEach(f => {
       const btn = document.getElementById('filter-' + f);
       if (btn) btn.className = f === filter ? activeClass : idleClass;
     });
@@ -636,12 +665,15 @@
     const now = Date.now();
     const filtered = mySessionsCache.filter(s => {
       const isPast = s.date < today;
+      const openAtMs = s.openAt ? (s.openAt.toMillis ? s.openAt.toMillis() : +s.openAt) : null;
       const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
+      const notStarted = !!(openAtMs && openAtMs > now);
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
-      if (currentSessionFilter === 'all') return true;
-      if (currentSessionFilter === 'past')   return isPast;
-      if (currentSessionFilter === 'open')   return !isPast && !effectivelyClosed;
-      if (currentSessionFilter === 'closed') return !isPast && effectivelyClosed;
+      if (currentSessionFilter === 'all')      return true;
+      if (currentSessionFilter === 'past')     return isPast;
+      if (currentSessionFilter === 'upcoming') return !isPast && notStarted;
+      if (currentSessionFilter === 'open')     return !isPast && !notStarted && !effectivelyClosed;
+      if (currentSessionFilter === 'closed')   return !isPast && !notStarted && effectivelyClosed;
       return true;
     });
     // Sort
@@ -1111,6 +1143,24 @@
     document.getElementById('sf_note').value = data?.note || '';
     document.getElementById('sf_openWhen').value = 'now';
     onSfOpenWhenChange();
+    // closeWhen: check if stored closeAt matches game start time
+    const closeWhenEl = document.getElementById('sf_closeWhen');
+    if (data?.closeAt) {
+      const closeMs = data.closeAt.toMillis ? data.closeAt.toMillis() : +data.closeAt;
+      const gameStr = data.date && data.time ? `${data.date}T${data.time}:00` : null;
+      const gameMs = gameStr ? new Date(gameStr).getTime() : null;
+      if (gameMs && Math.abs(closeMs - gameMs) < 60000) {
+        closeWhenEl.value = 'game_start';
+      } else {
+        closeWhenEl.value = 'custom';
+        const d = new Date(closeMs);
+        const pad = n => String(n).padStart(2,'0');
+        document.getElementById('sf_closeAt').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+    } else {
+      closeWhenEl.value = 'game_start';
+    }
+    onSfCloseWhenChange();
     sfOnTypeChange();
     // Equip chips
     document.querySelectorAll('[data-equip]').forEach(btn => {
@@ -1206,16 +1256,7 @@
   };
   sfOnTypeChange(); // initialize
 
-  // Auto-fill close time from date+time
-  function sfSyncCloseAt() {
-    const el = document.getElementById('sf_closeAt');
-    if (el.value) return;
-    const d = document.getElementById('sf_date').value;
-    const t = document.getElementById('sf_time').value;
-    if (d && t) el.value = `${d}T${t}`;
-  }
-  document.getElementById('sf_date').addEventListener('change', sfSyncCloseAt);
-  document.getElementById('sf_time').addEventListener('change', sfSyncCloseAt);
+  // closeAt is now handled by sf_closeWhen selector (game_start = use date+time, custom = datetime-local)
 
   // Inline validation helpers
   function sfSetFieldError(inputId, errId, msg) {
@@ -1247,6 +1288,14 @@
     document.getElementById('sf_atRow').classList.toggle('hidden', val !== 'custom');
     const unitEl = document.getElementById('sf_offsetUnit');
     unitEl.textContent = getLang() === 'zh' ? (val === 'days' ? '天前' : '小時前') : (val === 'days' ? 'days before' : 'hours before');
+  };
+
+  window.onSfCloseWhenChange = () => {
+    const val = document.getElementById('sf_closeWhen').value;
+    document.getElementById('sf_closeOffsetRow').classList.toggle('hidden', val !== 'hours' && val !== 'days');
+    document.getElementById('sf_closeAtRow').classList.toggle('hidden', val !== 'custom');
+    const unitEl = document.getElementById('sf_closeOffsetUnit');
+    if (unitEl) unitEl.textContent = getLang() === 'zh' ? (val === 'days' ? '天前' : '小時前') : (val === 'days' ? 'days before' : 'hours before');
   };
 
   window.submitSession = async () => {
@@ -1309,10 +1358,19 @@
       isOpen = openDate <= new Date();
     }
 
-    const closeAtEl = document.getElementById('sf_closeAt');
-    const closeAtDate = closeAtEl.value
-      ? new Date(closeAtEl.value)
-      : new Date(`${date}T${time}:00`);
+    const closeWhen = document.getElementById('sf_closeWhen').value;
+    let closeAtDate;
+    if (closeWhen === 'custom') {
+      const v = document.getElementById('sf_closeAt').value;
+      closeAtDate = v ? new Date(v) : new Date(`${date}T${time}:00`);
+    } else if (closeWhen === 'hours' || closeWhen === 'days') {
+      const n = parseInt(document.getElementById('sf_closeOffset').value) || 1;
+      const gameDate = new Date(`${date}T${time}:00`);
+      const ms = closeWhen === 'hours' ? n*3600000 : n*86400000;
+      closeAtDate = new Date(gameDate.getTime() - ms);
+    } else {
+      closeAtDate = new Date(`${date}T${time}:00`);
+    }
     const closeAt = Timestamp.fromDate(closeAtDate);
     // 如果結束報名時間已過，直接關閉報名
     if (closeAtDate < new Date()) isOpen = false;
