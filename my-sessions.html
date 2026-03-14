@@ -583,11 +583,15 @@
     document.getElementById('mySessionsLoading').classList.add('hidden');
     document.getElementById('mySessionsList').classList.remove('hidden');
     const today = new Date().toISOString().split('T')[0];
+    const now = Date.now();
     const filtered = mySessionsCache.filter(s => {
+      const isPast = s.date < today;
+      const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
+      const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
       if (currentSessionFilter === 'all') return true;
-      if (currentSessionFilter === 'open') return s.isOpen && s.date >= today;
-      if (currentSessionFilter === 'closed') return !s.isOpen && s.date >= today;
-      if (currentSessionFilter === 'past') return s.date < today;
+      if (currentSessionFilter === 'open')   return !isPast && !effectivelyClosed;
+      if (currentSessionFilter === 'closed') return !isPast && effectivelyClosed;
+      if (currentSessionFilter === 'past')   return isPast;
       return true;
     });
     document.getElementById('noMySessions').classList.toggle('hidden', filtered.length > 0);
@@ -888,7 +892,8 @@
     const femaleLimit = s?.femaleLimit || 0;
 
     // Compute isWait the same way as renderMgmtSignups
-    if (maleLimit > 0 || femaleLimit > 0) {
+    const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
+    if (hasMixedLimits) {
       let mc = 0, fc = 0;
       items.forEach(item => {
         if (item.gender === 'male') { mc++; item.genderWait = !item.forceConfirmed && maleLimit > 0 && mc > maleLimit; }
@@ -896,9 +901,10 @@
         else { item.genderWait = false; }
       });
     }
-    const isWaitFn = item =>
-      item.genderWait ||
-      (!item.forceConfirmed && limit > 0 && item.position > limit);
+    // Match renderMgmtSignups: when gender limits exist, only use genderWait (not overall position)
+    const isWaitFn = hasMixedLimits
+      ? item => !!item.genderWait
+      : item => !item.forceConfirmed && limit > 0 && item.position > limit;
 
     const confirmed = items.filter(item => !isWaitFn(item));
     const waitlist  = items.filter(item =>  isWaitFn(item));
@@ -923,8 +929,8 @@
     if (typeStr || limitStr) msg += `\n🏷️${typeStr}${limitStr}`;
     msg += `\n${'─'.repeat(18)}\n`;
 
-    if (s?.type === 'mixed') {
-      // Split confirmed by gender
+    if (hasMixedLimits) {
+      // Split confirmed by gender (only when gender limits are set, matching live list)
       const maleConf   = confirmed.filter(x => x.gender === 'male');
       const femaleConf = confirmed.filter(x => x.gender === 'female');
       const otherConf  = confirmed.filter(x => x.gender !== 'male' && x.gender !== 'female');
