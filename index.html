@@ -1136,7 +1136,7 @@
         <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-4 border-l-blue-400' : s.gender === 'female' ? 'border-l-4 border-l-pink-400' : '';
       return `<div class="flex items-start gap-2 ${isWait?'opacity-60':''} ${isOwn?'bg-indigo-50 border border-indigo-100':'bg-gray-50'} ${genderBorder} rounded-xl px-3 py-2">
-          <span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
+          <span class="min-w-7 h-7 px-1 flex items-center justify-center rounded-full text-xs font-bold ${posColor} shrink-0 mt-0.5">${posLabel}</span>
           ${photoEl}
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-800 truncate">${escHtml(s.name)}${isOwn?` <span class="text-xs text-indigo-400">(${getLang()==='zh'?'我':'me'})</span>`:''}</p>
