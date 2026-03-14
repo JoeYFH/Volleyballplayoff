@@ -101,7 +101,7 @@
       + <span id="hCreateNew">建立新場次</span>
     </button>
     <!-- Session Filters -->
-    <div class="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+    <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
       <button id="filter-all" onclick="setSessionFilter('all')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="filter-open" onclick="setSessionFilter('open')"
@@ -110,6 +110,15 @@
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已關閉</button>
       <button id="filter-past" onclick="setSessionFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
+    </div>
+    <div class="flex justify-end mb-3">
+      <select id="my-sort-select" onchange="setMySessionsSort(this.value)"
+        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+        <option value="createdAt_desc">🕐 建立時間</option>
+        <option value="date_asc">📅 活動日期</option>
+        <option value="closeAt_asc">⏰ 截止時間</option>
+        <option value="signup_desc">👥 報名人數</option>
+      </select>
     </div>
     <!-- Skeleton Loading -->
     <div id="mySessionsLoading" class="space-y-4">
@@ -486,6 +495,8 @@
   let mySessionsCache = [];
   let allSessionsCache = [];
   let currentSessionFilter = 'open';
+  let mySessionsSort = 'createdAt_desc';
+  const signupCountCache = {};
 
   // ── Language ──
   window.toggleLang = () => {
@@ -613,6 +624,11 @@
     applySessionFilter();
   };
 
+  window.setMySessionsSort = (sort) => {
+    mySessionsSort = sort;
+    applySessionFilter();
+  };
+
   function applySessionFilter() {
     document.getElementById('mySessionsLoading').classList.add('hidden');
     document.getElementById('mySessionsList').classList.remove('hidden');
@@ -628,6 +644,25 @@
       if (currentSessionFilter === 'closed') return !isPast && effectivelyClosed;
       return true;
     });
+    // Sort
+    if (mySessionsSort === 'date_asc') {
+      filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    } else if (mySessionsSort === 'closeAt_asc') {
+      filtered.sort((a, b) => {
+        const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
+        const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
+        return aMs - bMs;
+      });
+    } else if (mySessionsSort === 'signup_desc') {
+      filtered.sort((a, b) => (signupCountCache[b.id] || 0) - (signupCountCache[a.id] || 0));
+    } else {
+      // createdAt_desc (default)
+      filtered.sort((a, b) => {
+        const aTs = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : +a.createdAt) : 0;
+        const bTs = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : +b.createdAt) : 0;
+        return bTs - aTs;
+      });
+    }
     document.getElementById('noMySessions').classList.toggle('hidden', filtered.length > 0);
     renderSessionMgmtList('mySessionsList', filtered, true);
   }
@@ -657,6 +692,8 @@
     const badgeCls = isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
     const badgeText = isOpen ? (getLang()==='zh'?'報名中':'Open') : (getLang()==='zh'?'已關閉':'Closed');
     const fmtTs = ms => { const d = new Date(ms); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+    const fmtCreatedAt = ts => { if (!ts) return ''; const ms = ts.toMillis ? ts.toMillis() : +ts; const d = new Date(ms); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+    const createdAtHtml = s.createdAt ? `<div class="text-xs text-gray-400 mt-0.5">🕐 ${zh?'建立':'Created'}: ${fmtCreatedAt(s.createdAt)}</div>` : '';
     const openAtMs = s.openAt ? (s.openAt.toMillis ? s.openAt.toMillis() : +s.openAt) : null;
     const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
     const signupTimeHtml = (() => {
@@ -689,6 +726,7 @@
             ${s.limit ? `<div>👥 ${getLang()==='zh'?'名額':'Limit'} ${s.limit}${s.type === 'mixed' && (s.maleLimit || s.femaleLimit) ? ` (♂${s.maleLimit||0} ♀${s.femaleLimit||0})` : ''}</div>` : ''}
             ${s.type ? `<div>🏷️ ${TYPE_LABEL[s.type]||s.type}</div>` : ''}
             ${signupTimeHtml}
+            ${createdAtHtml}
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="toggleOpen('${s.id}', ${isOpen})"
@@ -766,6 +804,7 @@
   }
 
   function renderMgmtSignups(sessionId, items, limit, maleLimit = 0, femaleLimit = 0, type = '') {
+    signupCountCache[sessionId] = items.length;
     const listEl = document.getElementById('mgmt-list-' + sessionId);
     const emptyEl = document.getElementById('mgmt-empty-' + sessionId);
     const cntEl = document.getElementById('mgmt-cnt-' + sessionId);
