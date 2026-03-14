@@ -362,9 +362,19 @@
           class="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition disabled:opacity-50">
           🚀 儲存場次
         </button>
-        <button id="sfSaveTemplateBtn" onclick="saveAsTemplate()"
+        <button id="sfSaveTemplateBtn" onclick="saveAsTemplate('new')"
           class="px-4 bg-gray-100 text-gray-600 rounded-xl py-3 font-medium text-sm hover:bg-gray-200 transition">
           💾 存為範本
+        </button>
+      </div>
+      <div id="sfTemplateUpdateRow" class="hidden grid grid-cols-2 gap-2">
+        <button onclick="saveAsTemplate('update')" id="sfUpdateTemplateBtn"
+          class="bg-blue-50 text-blue-600 rounded-xl py-2.5 font-medium text-sm hover:bg-blue-100 transition text-center">
+          🔄 更新範本
+        </button>
+        <button onclick="saveAsTemplate('new')" id="sfSaveNewTemplateBtn"
+          class="bg-gray-50 text-gray-600 rounded-xl py-2.5 font-medium text-sm hover:bg-gray-100 transition text-center border border-gray-200">
+          💾 另存新範本
         </button>
       </div>
       <p id="sfMsg" class="text-center text-sm hidden"></p>
@@ -623,6 +633,8 @@
     document.getElementById('sl9').textContent = zh?'備註（選填）':'Notes (optional)';
     const sfLTemplate = document.getElementById('sf_lTemplatePick'); if (sfLTemplate) sfLTemplate.textContent = zh?'套用範本':'Apply Template';
     const sfSaveTemplateBtn = document.getElementById('sfSaveTemplateBtn'); if (sfSaveTemplateBtn) sfSaveTemplateBtn.textContent = zh?'💾 存為範本':'💾 Save Template';
+    const sfUpdateTemplateBtn = document.getElementById('sfUpdateTemplateBtn'); if (sfUpdateTemplateBtn) sfUpdateTemplateBtn.textContent = zh?'🔄 更新範本':'🔄 Update Template';
+    const sfSaveNewTemplateBtn = document.getElementById('sfSaveNewTemplateBtn'); if (sfSaveNewTemplateBtn) sfSaveNewTemplateBtn.textContent = zh?'💾 另存新範本':'💾 Save as New';
     // Placeholders
     const sfTitleEl = document.getElementById('sf_title'); if (sfTitleEl) sfTitleEl.placeholder = zh?'例：第15週零打':'e.g. Week 15 Pickup';
     const sfLocEl = document.getElementById('sf_location'); if (sfLocEl) sfLocEl.placeholder = zh?'輸入或搜尋地點':'Enter or search location';
@@ -844,8 +856,8 @@
     const isPast = (s.date || '') < today;
     const badgeCls = isPast ? 'bg-gray-100 text-gray-400' : isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
     const badgeText = isPast ? (zh?'已結束':'Past') : isOpen ? (zh?'報名中':'Open') : (zh?'已關閉':'Closed');
-    const fmtTs = ms => { const d = new Date(ms); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
-    const fmtCreatedAt = ts => { if (!ts) return ''; const ms = ts.toMillis ? ts.toMillis() : +ts; const d = new Date(ms); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+    const fmtTs = ms => { const d = new Date(ms); const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; if (getLang()==='en') return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + hhmm; return `${d.getMonth()+1}/${d.getDate()} ${hhmm}`; };
+    const fmtCreatedAt = ts => { if (!ts) return ''; const ms = ts.toMillis ? ts.toMillis() : +ts; const d = new Date(ms); const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; if (getLang()==='en') return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' + hhmm; return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${hhmm}`; };
     const createdAtHtml = s.createdAt ? `<div class="text-xs text-gray-400 mt-0.5">🕐 ${zh?'建立':'Created'}: ${fmtCreatedAt(s.createdAt)}</div>` : '';
     const openAtMs = s.openAt ? (s.openAt.toMillis ? s.openAt.toMillis() : +s.openAt) : null;
     const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
@@ -873,7 +885,7 @@
           </div>
           <div class="text-sm text-gray-600 space-y-1 mb-3">
             <div class="flex gap-4">
-              <span>📅 ${s.date}</span>
+              <span>📅 ${formatDate(s.date)}</span>
               <span>🕐 ${s.time || '—'}</span>
             </div>
             <div>📍 <a href="https://maps.google.com/?q=${encodeURIComponent(s.location||'')}" target="_blank" class="text-indigo-500 hover:underline">${escHtml(s.location||'—')}</a></div>
@@ -904,6 +916,8 @@
             </button>
           </div>
         </div>
+        <!-- Unclaimed equip notice -->
+        <div id="mgmt-equip-${s.id}" class="hidden px-4 py-2 text-xs text-amber-700 bg-amber-50 border-t border-amber-100"></div>
         <!-- Signups -->
         <div class="border-t border-gray-50 px-4 py-3">
           <div class="flex items-center justify-between mb-2">
@@ -1060,6 +1074,23 @@
         if (isWait && !sepAdded) { sepAdded = true; sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`; }
         return sep + renderItem(s, isWait, s.position);
       }).join('');
+    }
+
+    // Update unclaimed equipment notice
+    const sessionData = [...mySessionsCache, ...allSessionsCache].find(s => s.id === sessionId) || {};
+    const equipList = sessionData.equipment || [];
+    const equipEl = document.getElementById('mgmt-equip-' + sessionId);
+    if (equipEl && equipList.length) {
+      const claimed = new Set();
+      items.forEach(item => (item.bringEquip || []).forEach(e => claimed.add(e)));
+      const unclaimed = equipList.filter(e => !claimed.has(e));
+      if (unclaimed.length) {
+        const zh2 = getLang() === 'zh';
+        equipEl.textContent = `⚠️ ${zh2 ? '還沒有人帶：' : 'Unclaimed: '}${unclaimed.map(e => trEquip(e)).join(zh2 ? '、' : ', ')}`;
+        equipEl.classList.remove('hidden');
+      } else {
+        equipEl.classList.add('hidden');
+      }
     }
   }
 
@@ -1231,14 +1262,23 @@
     }
 
     if (s?.equipment?.length) {
-      const equipNames = s.equipment.map(e => {
-        if (zh) return e;
-        const map = { '標竿': 'Pole', '音響': 'Speaker', '球': 'Ball' };
-        return map[e] || e;
+      // Build map of who brings what
+      const bringersMap = {};
+      items.forEach(item => {
+        (item.bringEquip || []).forEach(e => {
+          if (!bringersMap[e]) bringersMap[e] = [];
+          bringersMap[e].push(item.name);
+        });
       });
-      msg += `\n🎒 ${zh ? '需自備：' : 'Bring: '}${equipNames.join(zh ? '、' : ', ')}`;
+      const equipLines = s.equipment.map(e => {
+        const name = trEquip(e);
+        const bringers = bringersMap[e] || [];
+        return bringers.length
+          ? `${name}: ${bringers.join(', ')}`
+          : `${name}: ${zh ? '（還沒有人帶）' : '(no one yet)'}`;
+      });
+      msg += `\n🎒 ${zh ? '需自備：' : 'Equipment:'}\n` + equipLines.map(l => `  • ${l}`).join('\n');
     }
-    if (s?.note) msg += `\n📝 ${s.note}`;
 
     document.getElementById('exportText').value = msg;
     document.getElementById('exportModal').classList.remove('hidden');
@@ -1285,6 +1325,8 @@
     // Reset template dropdown
     const tmplSel = document.getElementById('sf_templateSelect');
     if (tmplSel) tmplSel.value = '';
+    document.getElementById('sfTemplateUpdateRow')?.classList.add('hidden');
+    document.getElementById('sfSaveTemplateBtn')?.classList.remove('hidden');
     // Reset form fields
     document.getElementById('sf_title').value = data?.title || '';
     document.getElementById('sf_date').value = data?.date || '';
@@ -1366,7 +1408,13 @@
   window.sfApplySelectedTemplate = () => {
     const sel = document.getElementById('sf_templateSelect');
     const id = sel.value;
-    if (!id) return;
+    const updateRow = document.getElementById('sfTemplateUpdateRow');
+    const saveBtn = document.getElementById('sfSaveTemplateBtn');
+    if (!id) {
+      updateRow?.classList.add('hidden');
+      saveBtn?.classList.remove('hidden');
+      return;
+    }
     const tmpls = sel._templatesData || [];
     const tmpl = tmpls.find(t2 => t2.id === id);
     if (!tmpl) return;
@@ -1397,6 +1445,9 @@
     sfCustomEquip = (tmpl.equipment || []).filter(e => !tmplPresetKeys.includes(e));
     document.getElementById('sf_equipCustom').value = '';
     renderSfCustomTags();
+    // Show update row buttons
+    document.getElementById('sfTemplateUpdateRow')?.classList.remove('hidden');
+    document.getElementById('sfSaveTemplateBtn')?.classList.add('hidden');
   };
 
   document.getElementById('sf_equipChips').addEventListener('click', (e) => {
@@ -1620,7 +1671,7 @@
     }
   };
 
-  window.saveAsTemplate = async () => {
+  window.saveAsTemplate = async (mode) => {
     if (!currentUser) return;
     const zh = getLang() === 'zh';
     const tmplData = {
@@ -1632,17 +1683,13 @@
       equipment: [...sfSelectedEquip, ...sfCustomEquip],
       note: document.getElementById('sf_note').value.trim(),
     };
-    // If a template is currently selected, offer update vs new
-    const sel = document.getElementById('sf_templateSelect');
-    const selectedId = sel?.value;
-    if (selectedId) {
-      const tmpls = sel._templatesData || [];
-      const tmpl = tmpls.find(t => t.id === selectedId);
-      if (tmpl) {
-        const doUpdate = confirm(zh
-          ? `要更新範本「${tmpl.name}」嗎？\n\n確定 → 更新現有範本\n取消 → 另存為新範本`
-          : `Update template "${tmpl.name}"?\n\nOK → Update existing\nCancel → Save as new`);
-        if (doUpdate) {
+    if (mode === 'update') {
+      const sel = document.getElementById('sf_templateSelect');
+      const selectedId = sel?.value;
+      if (selectedId) {
+        const tmpls = sel._templatesData || [];
+        const tmpl = tmpls.find(t => t.id === selectedId);
+        if (tmpl) {
           await setDoc(doc(db, 'users', currentUser.uid, 'templates', selectedId), {
             ...tmplData, name: tmpl.name, createdAt: tmpl.createdAt,
           });
@@ -1650,9 +1697,9 @@
           loadTemplates();
           return;
         }
-        // Cancel → fall through to create new
       }
     }
+    // Save as new
     const name = prompt(zh?'範本名稱：':'Template name:', document.getElementById('sf_title').value || '');
     if (!name) return;
     if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
@@ -1802,6 +1849,15 @@
 
   function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+  function formatDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d + 'T00:00:00');
+    if (getLang() === 'en') return dt.toLocaleDateString('en-US', { month:'short', day:'numeric', weekday:'short', year:'numeric' });
+    const days = ['日','一','二','三','四','五','六'];
+    return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
+  }
+  const _equipMap = { '標竿': 'Pole', '音響': 'Speaker', '球': 'Ball' };
+  function trEquip(e) { return getLang() === 'zh' ? e : (_equipMap[e] || e); }
 
   // ── Load Feedback (for super admins) ──
   let feedbackDocs = [];
@@ -1935,6 +1991,7 @@
   let creatorAddSessionId = null;
   let creatorAddMode = 'self';
   let creatorAddGender = '';
+  let creatorAddBringEquip = new Set();
 
   window.openCreatorAddModal = (sessionId) => {
     creatorAddSessionId = sessionId;
@@ -1978,6 +2035,42 @@
     const signups = signupItemsCache[sessionId] || [];
     pairSel.innerHTML = `<option value="">${noPreference}</option>` +
       signups.map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
+    // Bring equip chips
+    creatorAddBringEquip.clear();
+    const caBringRow = document.getElementById('caBringRow');
+    const caBringChips = document.getElementById('caBringChips');
+    const caBringLabel = document.getElementById('caBringLabel');
+    const equipment = session.equipment || [];
+    if (equipment.length && caBringRow && caBringChips) {
+      if (caBringLabel) caBringLabel.textContent = zh ? '🎒 我可以幫忙帶' : '🎒 I can bring';
+      const allSignups = signupItemsCache[sessionId] || [];
+      const claimedByOthers = new Set();
+      allSignups.forEach(s => (s.bringEquip || []).forEach(e => claimedByOthers.add(e)));
+      caBringChips.innerHTML = equipment.map(e => {
+        const claimed = claimedByOthers.has(e);
+        const cls = claimed
+          ? 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+          : 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition cursor-pointer';
+        const extra = claimed ? ` title="${zh ? '已有人幫忙帶' : 'Already claimed'}"` : '';
+        return `<button type="button" data-bring="${escHtml(e)}" ${claimed ? 'disabled' : ''} class="${cls}"${extra}>${escHtml(trEquip(e))}${claimed ? ' ✓' : ''}</button>`;
+      }).join('');
+      caBringRow.classList.remove('hidden');
+      // Chip click handler
+      caBringChips.onclick = (ev) => {
+        const btn = ev.target.closest('[data-bring]');
+        if (!btn || btn.disabled) return;
+        const val = btn.dataset.bring;
+        if (creatorAddBringEquip.has(val)) {
+          creatorAddBringEquip.delete(val);
+          btn.className = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition cursor-pointer';
+        } else {
+          creatorAddBringEquip.add(val);
+          btn.className = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition cursor-pointer';
+        }
+      };
+    } else if (caBringRow) {
+      caBringRow.classList.add('hidden');
+    }
     caSetMode('self');
     document.getElementById('creatorAddModal').classList.remove('hidden');
   };
@@ -2052,6 +2145,7 @@
         pairWith: document.getElementById('caPair').value.trim(),
         gender: signupGender,
         addedByOrganizer: true,
+        bringEquip: [...creatorAddBringEquip],
       });
       const msgEl = document.getElementById('caMsg');
       msgEl.textContent = zh ? '✅ 已新增！' : '✅ Added!';
@@ -2127,6 +2221,11 @@
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
           <option value="">— 不指定 —</option>
         </select>
+      </div>
+      <!-- Bring equip -->
+      <div id="caBringRow" class="hidden">
+        <label id="caBringLabel" class="block text-sm text-gray-600 mb-2">🎒 我可以幫忙帶</label>
+        <div id="caBringChips" class="flex flex-wrap gap-2"></div>
       </div>
       <button id="caSubmitBtn" onclick="submitCreatorAdd()"
         class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">

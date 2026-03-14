@@ -332,9 +332,16 @@
         <label id="lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間</label>
         <select id="fCloseWhen" onchange="onCloseWhenChange()"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-          <option value="gamestart" id="oCloseGameStart">直到活動開始</option>
+          <option value="game_start" id="oCloseGameStart">直到活動開始</option>
+          <option value="hours" id="oCloseHours">開賽前 N 小時</option>
+          <option value="days" id="oCloseDays">開賽前 N 天</option>
           <option value="custom" id="oCloseCustom">自訂時間</option>
         </select>
+        <div id="fCloseOffsetRow" class="hidden mt-2 flex items-center gap-2">
+          <input id="fCloseOffset" type="number" min="1" value="1"
+            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <span id="fCloseOffsetUnit" class="text-sm text-gray-500">小時前</span>
+        </div>
         <div id="fCloseAtRow" class="hidden mt-2">
           <input id="fCloseAt" type="datetime-local"
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
@@ -657,6 +664,11 @@
       ? '結束報名時間（選填，預設為活動開始時間）'
       : 'Signup Close Time (optional, defaults to session start time)';
     document.getElementById('hCloseAtHint').textContent = getLang()==='zh' ? '到時自動關閉報名' : 'Signup will close automatically';
+    document.getElementById('oCloseGameStart').textContent = getLang()==='zh' ? '直到活動開始' : 'Until game starts';
+    document.getElementById('oCloseHours').textContent = getLang()==='zh' ? '開賽前 N 小時' : 'N hours before game';
+    document.getElementById('oCloseDays').textContent = getLang()==='zh' ? '開賽前 N 天' : 'N days before game';
+    document.getElementById('oCloseCustom').textContent = getLang()==='zh' ? '自訂時間' : 'Custom time';
+    onCloseWhenChange();
     document.getElementById('lNote').textContent = tr('fNote');
     document.getElementById('lNoteHint').textContent = getLang()==='zh'
       ? '⚠️ 此備註只有開場者能看到，不會顯示在公開報名頁面上'
@@ -917,7 +929,7 @@
       badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-500">${tr('closed')}</span>`;
     }
 
-    const equipHtml = s.equipment?.length ? `<div class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🎒</span><span>${tr('needsBring')}${s.equipment.join('、')}</span></div>` : '';
+    const equipHtml = s.equipment?.length ? `<div class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🎒</span><span>${tr('needsBring')}${s.equipment.map(e => escHtml(trEquip(e))).join(getLang()==='zh'?'、':', ')}</span></div><div id="equip-unclaimed-${s.id}" class="hidden text-xs text-amber-600 col-span-2"></div>` : '';
     const noteHtml = s.note ? `<div class="flex items-center gap-1 text-xs text-gray-400 col-span-2"><span>📝</span><span>${escHtml(s.note)}</span></div>` : '';
     const venueHtml = s.venue ? `<div class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🏟️</span><span>${escHtml(s.venue)}</span></div>` : '';
     const typeHtml = s.type ? `<div class="flex items-center gap-1"><span>🏷️</span><span>${typeLabel}</span></div>` : '';
@@ -1199,6 +1211,23 @@
         ? (zh ? '⏳ 我要排候補' : '⏳ Join Waitlist')
         : (zh ? '🙋 我要報名' : '🙋 Sign Up');
     }
+
+    // Update unclaimed equip notice
+    const session = sessionsData[sessionId] || {};
+    const equipList = session.equipment || [];
+    const unclaimedEl = document.getElementById('equip-unclaimed-' + sessionId);
+    if (unclaimedEl && equipList.length) {
+      const claimed = new Set();
+      items.forEach(item => (item.bringEquip || []).forEach(e => claimed.add(e)));
+      const unclaimed = equipList.filter(e => !claimed.has(e));
+      const zh2 = getLang() === 'zh';
+      if (unclaimed.length) {
+        unclaimedEl.textContent = `⚠️ ${zh2 ? '還沒有人帶：' : 'Unclaimed: '}${unclaimed.map(e => trEquip(e)).join(zh2 ? '、' : ', ')}`;
+        unclaimedEl.classList.remove('hidden');
+      } else {
+        unclaimedEl.classList.add('hidden');
+      }
+    }
   }
 
   // ── Share Modal ──
@@ -1318,7 +1347,9 @@
     document.getElementById('fType').value = 'mixed';
     document.getElementById('fNote').value = '';
     document.getElementById('fOpenWhen').value = 'now';
-    document.getElementById('fCloseWhen').value = 'gamestart';
+    document.getElementById('fCloseWhen').value = 'game_start';
+    document.getElementById('fCloseOffset').value = '1';
+    document.getElementById('fCloseOffsetRow').classList.add('hidden');
     document.getElementById('fCloseAt').value = '';
     document.getElementById('fCloseAtRow').classList.add('hidden');
     onTypeChange();
@@ -1339,7 +1370,10 @@
   };
   window.onCloseWhenChange = () => {
     const val = document.getElementById('fCloseWhen').value;
+    document.getElementById('fCloseOffsetRow').classList.toggle('hidden', val !== 'hours' && val !== 'days');
     document.getElementById('fCloseAtRow').classList.toggle('hidden', val !== 'custom');
+    const unitEl = document.getElementById('fCloseOffsetUnit');
+    if (unitEl) unitEl.textContent = getLang() === 'zh' ? (val === 'days' ? '天前' : '小時前') : (val === 'days' ? 'days before' : 'hours before');
   };
   document.getElementById('equipChips').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-equip]');
@@ -1514,6 +1548,12 @@
           if (closeWhen === 'custom') {
             const v = document.getElementById('fCloseAt').value;
             if (v) return Timestamp.fromDate(new Date(v));
+          }
+          if (closeWhen === 'hours' || closeWhen === 'days') {
+            const offset = parseInt(document.getElementById('fCloseOffset').value) || 1;
+            const gameMs = new Date(`${date}T${time}:00`).getTime();
+            const ms = closeWhen === 'hours' ? offset * 3600000 : offset * 86400000;
+            return Timestamp.fromDate(new Date(gameMs - ms));
           }
           return Timestamp.fromDate(new Date(`${date}T${time}:00`));
         })(),
