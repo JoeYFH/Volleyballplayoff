@@ -159,6 +159,16 @@
 
   <!-- Admin Tab -->
   <div id="contentAdmin" class="hidden">
+    <div class="flex justify-end mb-3">
+      <select id="admin-sort-select" onchange="setAllSessionsSort(this.value)"
+        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+        <option value="date_desc" id="adminSortDateDesc">📅 活動日期：新→舊</option>
+        <option value="date_asc" id="adminSortDateAsc">📅 活動日期：舊→新</option>
+        <option value="closeAt_asc" id="adminSortCloseAt">⏰ 截止時間</option>
+        <option value="createdAt_desc" id="adminSortCreated">🕐 建立時間</option>
+        <option value="signup_desc" id="adminSortSignup">👥 報名人數</option>
+      </select>
+    </div>
     <div id="allSessionsList" class="space-y-4"></div>
   </div>
 
@@ -173,10 +183,10 @@
         <button onclick="setFeedbackFilter('resolved')" id="fbf_resolved" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700">🟢 已解決</button>
       </div>
       <select id="fbSort" onchange="renderFeedbackList()" class="ml-auto text-xs border border-gray-200 rounded-xl px-3 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-        <option value="time_desc">時間：新→舊</option>
-        <option value="time_asc">時間：舊→新</option>
-        <option value="urgency_desc">優先等級：高→低</option>
-        <option value="status">狀態：未處理優先</option>
+        <option value="time_desc" id="fbSortTimeDesc">時間：新→舊</option>
+        <option value="time_asc" id="fbSortTimeAsc">時間：舊→新</option>
+        <option value="urgency_desc" id="fbSortUrgency">優先等級：高→低</option>
+        <option value="status" id="fbSortStatus">狀態：未處理優先</option>
       </select>
     </div>
     <div id="feedbackLoadingIndicator" class="text-center py-6 text-gray-400 text-sm">載入中...</div>
@@ -512,6 +522,7 @@
   let allSessionsCache = [];
   let currentSessionFilter = 'open';
   let mySessionsSort = 'createdAt_desc';
+  let allSessionsSort = 'date_desc';
   const signupCountCache = {};
 
   // ── Language ──
@@ -553,6 +564,15 @@
       const btn = document.getElementById('filter-' + k);
       if (btn) btn.textContent = v;
     });
+    // Admin sort options
+    const adminSortMap = {
+      adminSortDateDesc: zh?'📅 活動日期：新→舊':'📅 Date: New→Old',
+      adminSortDateAsc:  zh?'📅 活動日期：舊→新':'📅 Date: Old→New',
+      adminSortCloseAt:  zh?'⏰ 截止時間':'⏰ By Close',
+      adminSortCreated:  zh?'🕐 建立時間':'🕐 Created',
+      adminSortSignup:   zh?'👥 報名人數':'👥 Signups',
+    };
+    Object.entries(adminSortMap).forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.textContent = v; });
     // Sort select options
     const mySortSel = document.getElementById('my-sort-select');
     if (mySortSel) {
@@ -578,9 +598,15 @@
       if (sfChipLabels[btn.dataset.equip]) btn.textContent = sfChipLabels[btn.dataset.equip];
     });
     document.getElementById('sf_equipCustom').placeholder = zh ? '其他用具（逗號分隔）' : 'Other items (comma separated)';
+    // Feedback filter + sort labels
+    const fbFilters = { all: zh?'全部':'All', pending: zh?'🔴 尚未處理':'🔴 Pending', processing: zh?'🟡 處理中':'🟡 In Progress', resolved: zh?'🟢 已解決':'🟢 Resolved' };
+    Object.entries(fbFilters).forEach(([k, v]) => { const b = document.getElementById('fbf_' + k); if (b) b.textContent = v; });
+    const fbSortMap = { fbSortTimeDesc: zh?'時間：新→舊':'Time: New→Old', fbSortTimeAsc: zh?'時間：舊→新':'Time: Old→New', fbSortUrgency: zh?'優先等級：高→低':'Priority: High→Low', fbSortStatus: zh?'狀態：未處理優先':'Status: Pending first' };
+    Object.entries(fbSortMap).forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.textContent = v; });
     // Re-render cards to pick up new language
     if (mySessionsCache.length) applySessionFilter();
     if (allSessionsCache.length) renderSessionMgmtList('allSessionsList', allSessionsCache, true);
+    if (feedbackDocs.length) renderFeedbackList();
     renderTemplates();
   }
 
@@ -658,6 +684,29 @@
     applySessionFilter();
   };
 
+  window.setAllSessionsSort = (sort) => {
+    allSessionsSort = sort;
+    renderSessionMgmtList('allSessionsList', sortSessions(allSessionsCache, sort), true);
+  };
+
+  function sortSessions(sessions, sort) {
+    const arr = [...sessions];
+    if (sort === 'date_asc')       arr.sort((a, b) => (a.date||'').localeCompare(b.date||''));
+    else if (sort === 'date_desc') arr.sort((a, b) => (b.date||'').localeCompare(a.date||''));
+    else if (sort === 'closeAt_asc') arr.sort((a, b) => {
+      const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
+      const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
+      return aMs - bMs;
+    });
+    else if (sort === 'createdAt_desc') arr.sort((a, b) => {
+      const aTs = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : +a.createdAt) : 0;
+      const bTs = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : +b.createdAt) : 0;
+      return bTs - aTs;
+    });
+    else if (sort === 'signup_desc') arr.sort((a, b) => (signupCountCache[b.id]||0) - (signupCountCache[a.id]||0));
+    return arr;
+  }
+
   function applySessionFilter() {
     document.getElementById('mySessionsLoading').classList.add('hidden');
     document.getElementById('mySessionsList').classList.remove('hidden');
@@ -702,9 +751,8 @@
   function loadAllSessions() {
     const q = query(collection(db, 'sessions'));
     onSnapshot(q, (snap) => {
-      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      allSessionsCache = sessions;
+      allSessionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const sessions = sortSessions(allSessionsCache, allSessionsSort);
       renderSessionMgmtList('allSessionsList', sessions, true);
     });
   }
@@ -744,10 +792,11 @@
           <div class="flex items-start justify-between gap-2 mb-2">
             <div>
               <p class="font-bold text-gray-800">${escHtml(s.title || s.date + ' 零打')}</p>
-              ${s.creatorName ? `<div class="flex items-center gap-1.5 mt-0.5">
+              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 ${s.creatorPhoto ? `<img src="${escHtml(s.creatorPhoto)}" class="w-4 h-4 rounded-full border border-gray-200 shrink-0" alt="" onerror="this.style.display='none'" />` : ''}
-                <p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(s.creatorName)}</p>
-              </div>` : ''}
+                ${s.creatorName ? `<p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(s.creatorName)}</p>` : ''}
+                ${s.createdAt ? `<p class="text-xs text-gray-300">·</p><p class="text-xs text-gray-400">🕐 ${fmtCreatedAt(s.createdAt)}</p>` : ''}
+              </div>
             </div>
             <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${badgeCls} shrink-0">${badgeText}</span>
           </div>
@@ -760,7 +809,6 @@
             ${s.limit ? `<div>👥 ${getLang()==='zh'?'名額':'Limit'} ${s.limit}${s.type === 'mixed' && (s.maleLimit || s.femaleLimit) ? ` (♂${s.maleLimit||0} ♀${s.femaleLimit||0})` : ''}</div>` : ''}
             ${s.type ? `<div>🏷️ ${TYPE_LABEL[s.type]||s.type}</div>` : ''}
             ${signupTimeHtml}
-            ${createdAtHtml}
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="toggleOpen('${s.id}', ${isOpen})"
@@ -1633,14 +1681,17 @@
     }
     noFeedbackEl?.classList.add('hidden');
 
-    const typeLabel = { bug: '🐛 Bug', feature: '💡 功能建議', question: '❓ 問題', other: '💬 其他' };
-    const urgencyLabel = { low: '🟢 低', medium: '🟡 中', high: '🔴 高' };
+    const fzh = getLang() === 'zh';
+    const typeLabel = fzh
+      ? { bug: '🐛 Bug', feature: '💡 功能建議', question: '❓ 問題', other: '💬 其他' }
+      : { bug: '🐛 Bug', feature: '💡 Feature', question: '❓ Question', other: '💬 Other' };
+    const urgencyLabel = fzh
+      ? { low: '🟢 低', medium: '🟡 中', high: '🔴 高' }
+      : { low: '🟢 Low', medium: '🟡 Medium', high: '🔴 High' };
     const urgencyColor = { low: 'text-green-600', medium: 'text-amber-600', high: 'text-red-500' };
-    const statusCfg = {
-      pending:    { label: '🔴 尚未處理', cls: 'bg-red-50 text-red-600' },
-      processing: { label: '🟡 處理中',   cls: 'bg-amber-50 text-amber-600' },
-      resolved:   { label: '🟢 已解決',   cls: 'bg-green-50 text-green-700' },
-    };
+    const statusCfg = fzh
+      ? { pending: { label: '🔴 尚未處理', cls: 'bg-red-50 text-red-600' }, processing: { label: '🟡 處理中', cls: 'bg-amber-50 text-amber-600' }, resolved: { label: '🟢 已解決', cls: 'bg-green-50 text-green-700' } }
+      : { pending: { label: '🔴 Pending',  cls: 'bg-red-50 text-red-600' }, processing: { label: '🟡 In Progress', cls: 'bg-amber-50 text-amber-600' }, resolved: { label: '🟢 Resolved', cls: 'bg-green-50 text-green-700' } };
 
     listEl.innerHTML = items.map(d => {
       const f = d.data();
@@ -1665,10 +1716,10 @@
         </div>
         <!-- Status actions -->
         <div class="flex gap-2 flex-wrap">
-          <button onclick="setFbStatus('${d.id}','pending')" class="text-xs px-2.5 py-1 rounded-lg border ${status==='pending'?'border-red-400 bg-red-50 text-red-600 font-semibold':'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500'} transition">🔴 尚未處理</button>
-          <button onclick="setFbStatus('${d.id}','processing')" class="text-xs px-2.5 py-1 rounded-lg border ${status==='processing'?'border-amber-400 bg-amber-50 text-amber-600 font-semibold':'border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-500'} transition">🟡 處理中</button>
-          <button onclick="setFbStatus('${d.id}','resolved')" class="text-xs px-2.5 py-1 rounded-lg border ${status==='resolved'?'border-green-400 bg-green-50 text-green-700 font-semibold':'border-gray-200 text-gray-400 hover:border-green-300 hover:text-green-600'} transition">🟢 已解決</button>
-          <button onclick="deleteFeedback('${d.id}')" class="ml-auto text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 transition">🗑 刪除</button>
+          <button onclick="setFbStatus('${d.id}','pending')" class="text-xs px-2.5 py-1 rounded-lg border ${status==='pending'?'border-red-400 bg-red-50 text-red-600 font-semibold':'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500'} transition">🔴 ${fzh?'尚未處理':'Pending'}</button>
+          <button onclick="setFbStatus('${d.id}','processing')" class="text-xs px-2.5 py-1 rounded-lg border ${status==='processing'?'border-amber-400 bg-amber-50 text-amber-600 font-semibold':'border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-500'} transition">🟡 ${fzh?'處理中':'In Progress'}</button>
+          <button onclick="setFbStatus('${d.id}','resolved')" class="text-xs px-2.5 py-1 rounded-lg border ${status==='resolved'?'border-green-400 bg-green-50 text-green-700 font-semibold':'border-gray-200 text-gray-400 hover:border-green-300 hover:text-green-600'} transition">🟢 ${fzh?'已解決':'Resolved'}</button>
+          <button onclick="deleteFeedback('${d.id}')" class="ml-auto text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 transition">🗑 ${fzh?'刪除':'Delete'}</button>
         </div>
       </div>`;
     }).join('');
