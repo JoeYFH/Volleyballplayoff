@@ -23,7 +23,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout main
           git pull origin main
-          git merge --ff-only origin/${{ github.ref_name }} || git merge origin/${{ github.ref_name }} --no-edit
+          git merge --ff-only origin/${{ github.ref_name }} || git merge -X theirs origin/${{ github.ref_name }} --no-edit
           git push origin main
 
       - name: Setup Node.js
