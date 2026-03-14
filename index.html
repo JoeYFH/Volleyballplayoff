@@ -1801,6 +1801,18 @@
   });
 
   document.getElementById('modalSubmitBtn').addEventListener('click', async () => {
+    // Duplicate signup check (only for new signups, not edits)
+    if (!editingSignupId && currentUser) {
+      const existing = (signupsCache[activeSessionId] || []).find(
+        s => s.uid === currentUser.uid
+      );
+      if (existing) {
+        const zh = getLang() === 'zh';
+        showModalMsg(zh ? '⚠️ 您已經報名過這個活動了！' : '⚠️ You have already signed up for this session!', 'error');
+        return;
+      }
+    }
+
     const nameInput = document.getElementById('modalName');
     const name = currentUser ? currentUser.displayName : nameInput.value.trim();
     if (!name) {
