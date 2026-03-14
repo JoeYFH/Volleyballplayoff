@@ -367,6 +367,35 @@
   </div>
 </div>
 
+<!-- Share Modal -->
+<div id="shareModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeShareModal()"></div>
+  <div class="absolute inset-0 flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm relative">
+      <div class="text-center mb-4">
+        <div class="text-4xl mb-2">🔗</div>
+        <h3 id="hShareModalTitle" class="text-lg font-bold text-gray-800 mb-1">分享活動連結</h3>
+        <p id="hShareModalHint" class="text-sm text-gray-500">複製以下連結讓大家報名</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl px-4 py-3 mb-4 overflow-x-auto cursor-text" onclick="document.getElementById('shareModalUrl').select?.()">
+        <p id="shareModalUrl" class="text-xs text-indigo-600 break-all font-mono select-all"></p>
+      </div>
+      <button id="copyShareUrlBtn" onclick="copyShareUrl()"
+        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition mb-2">
+        📋 <span id="hCopyShareBtn">複製連結</span>
+      </button>
+      <button id="nativeShareBtn" onclick="nativeShareUrl()"
+        class="hidden w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-200 active:scale-95 transition mb-2">
+        ↗ <span id="hNativeShareBtn">分享</span>
+      </button>
+      <button onclick="closeShareModal()"
+        class="w-full bg-gray-100 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-200 transition">
+        <span id="hShareModalClose">關閉</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Signup Modal -->
 <div id="signupModal" class="fixed inset-0 z-40 hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeSignupModal()"></div>
@@ -1021,29 +1050,49 @@
     listEl.innerHTML = html;
   }
 
-  // ── Share Session ──
-  window.shareSession = async (sessionId, sessionTitle) => {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+  // ── Share Modal ──
+  let _shareUrl = '', _shareTitle = '';
+
+  window.shareSession = (sessionId, sessionTitle) => {
+    const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+    const url = `${base}share.html?id=${sessionId}`;
+    openShareModal(url, sessionTitle);
+  };
+
+  window.openShareModal = (url, title) => {
+    _shareUrl = url;
+    _shareTitle = title || '';
     const zh = getLang() === 'zh';
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: '🏐 ' + sessionTitle, url: shareUrl });
-        return;
-      } catch(e) { /* fallback to copy */ }
-    }
+    document.getElementById('shareModalUrl').textContent = url;
+    document.getElementById('hShareModalTitle').textContent = zh ? '分享活動連結' : 'Share Link';
+    document.getElementById('hShareModalHint').textContent = zh ? '複製以下連結讓大家報名' : 'Copy the link below to share';
+    document.getElementById('hCopyShareBtn').textContent = zh ? '複製連結' : 'Copy Link';
+    document.getElementById('hNativeShareBtn').textContent = zh ? '開啟系統分享' : 'Share via app';
+    document.getElementById('hShareModalClose').textContent = zh ? '關閉' : 'Close';
+    document.getElementById('nativeShareBtn').classList.toggle('hidden', !navigator.share);
+    document.getElementById('shareModal').classList.remove('hidden');
+  };
+
+  window.closeShareModal = () => {
+    document.getElementById('shareModal').classList.add('hidden');
+  };
+
+  window.copyShareUrl = () => {
+    const zh = getLang() === 'zh';
+    const btn = document.getElementById('copyShareUrlBtn');
+    navigator.clipboard.writeText(_shareUrl).then(() => {
+      btn.innerHTML = `✅ <span id="hCopyShareBtn">${zh ? '已複製！' : 'Copied!'}</span>`;
+      setTimeout(() => {
+        btn.innerHTML = `📋 <span id="hCopyShareBtn">${zh ? '複製連結' : 'Copy Link'}</span>`;
+      }, 2000);
+    }).catch(() => { prompt(zh ? '請複製以下連結：' : 'Copy the link:', _shareUrl); });
+  };
+
+  window.nativeShareUrl = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      // Find share button and show feedback
-      const btn = document.querySelector(`button[onclick*="shareSession('${sessionId}'"]`);
-      if (btn) {
-        const orig = btn.innerHTML;
-        btn.textContent = zh ? '✅ 連結已複製！' : '✅ Copied!';
-        btn.classList.add('text-green-600', 'border-green-200');
-        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-green-600','border-green-200'); }, 2000);
-      }
-    } catch(e) {
-      prompt(zh ? '請複製以下連結：' : 'Copy the link below:', shareUrl);
-    }
+      await navigator.share({ title: '🏐 ' + _shareTitle, url: _shareUrl });
+      closeShareModal();
+    } catch(e) { /* user cancelled */ }
   };
 
   // ── Cancel own signup ──
