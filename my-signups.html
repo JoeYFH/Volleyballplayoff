@@ -87,11 +87,15 @@
       </button>
     </div>
 
-    <!-- Level 2: 成功報名 / 過去 / 取消 -->
+    <!-- Level 2: 候補 / 成功報名 / 過去 / 取消 -->
     <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <button id="subTabWaitlist" onclick="switchSubTab('waitlist')"
+        class="flex-1 text-xs font-medium py-1.5 rounded-lg transition text-gray-500 hover:text-gray-700">
+        <span id="hSubTabWaitlist">⏳ 候補</span>
+      </button>
       <button id="subTabConfirmed" onclick="switchSubTab('confirmed')"
         class="flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-white text-indigo-600 shadow-sm">
-        <span id="hSubTabConfirmed">✅ 成功報名</span>
+        <span id="hSubTabConfirmed">✅ 確認</span>
       </button>
       <button id="subTabPast" onclick="switchSubTab('past')"
         class="flex-1 text-xs font-medium py-1.5 rounded-lg transition text-gray-500 hover:text-gray-700">
@@ -140,7 +144,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import {
     getFirestore, doc, collection, query, orderBy,
-    onSnapshot, deleteDoc, getDoc, setDoc, serverTimestamp
+    onSnapshot, deleteDoc, getDoc, getDocs, setDoc, serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
@@ -187,7 +191,8 @@
     document.getElementById('logoutBtn').textContent = zh ? '登出' : 'Logout';
     document.getElementById('hTabSelf').textContent = zh ? '我自己的' : 'My own';
     document.getElementById('hTabProxy').textContent = zh ? '我幫別人的' : 'For others';
-    document.getElementById('hSubTabConfirmed').textContent = zh ? '✅ 成功報名' : '✅ Confirmed';
+    document.getElementById('hSubTabWaitlist').textContent = zh ? '⏳ 候補' : '⏳ Waitlist';
+    document.getElementById('hSubTabConfirmed').textContent = zh ? '✅ 確認' : '✅ Confirmed';
     document.getElementById('hSubTabPast').textContent = zh ? '📅 過去' : '📅 Past';
     document.getElementById('hSubTabCancelled').textContent = zh ? '✕ 取消' : '✕ Cancelled';
     renderSignups();
@@ -234,15 +239,26 @@
             m.signupId ? getDoc(doc(db, 'sessions', m.sessionId, 'signups', m.signupId)) : null,
           ]);
           const signupData = signupSnap?.exists() ? signupSnap.data() : {};
+          const sess = sessionSnap.exists() ? sessionSnap.data() : null;
+          // Determine waitlist status
+          let isWaitlisted = signupData.forceWaitlisted || false;
+          if (!isWaitlisted && !signupData.forceConfirmed && sess?.limit > 0 && m.signupId) {
+            try {
+              const allSnap = await getDocs(query(collection(db, 'sessions', m.sessionId, 'signups'), orderBy('signedAt', 'asc')));
+              const pos = allSnap.docs.findIndex(d => d.id === m.signupId) + 1;
+              if (pos > 0 && pos > sess.limit) isWaitlisted = true;
+            } catch(e) {}
+          }
           return {
             id: m.signupId || m.mirrorId,
             sessionId: m.sessionId,
             signedAt: m.signedAt,
             ...signupData,
-            session: sessionSnap.exists() ? sessionSnap.data() : null,
+            session: sess,
+            isWaitlisted,
           };
         } catch(e) {
-          return { id: m.signupId || m.mirrorId, sessionId: m.sessionId, signedAt: m.signedAt, session: null };
+          return { id: m.signupId || m.mirrorId, sessionId: m.sessionId, signedAt: m.signedAt, session: null, isWaitlisted: false };
         }
       }));
       currentSignups = enriched;
@@ -280,10 +296,10 @@
   function updateSubTabStyles() {
     const activeS = 'flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-white shadow-sm';
     const inactiveS = 'flex-1 text-xs font-medium py-1.5 rounded-lg transition text-gray-500 hover:text-gray-700';
-    const colors = { confirmed: 'text-indigo-600', past: 'text-gray-700', cancelled: 'text-red-500' };
-    ['confirmed', 'past', 'cancelled'].forEach(t => {
+    const colors = { waitlist: 'text-orange-500', confirmed: 'text-indigo-600', past: 'text-gray-700', cancelled: 'text-red-500' };
+    ['waitlist', 'confirmed', 'past', 'cancelled'].forEach(t => {
       const btn = document.getElementById('subTab' + t.charAt(0).toUpperCase() + t.slice(1));
-      btn.className = t === subTab ? activeS + ' ' + colors[t] : inactiveS;
+      if (btn) btn.className = t === subTab ? activeS + ' ' + colors[t] : inactiveS;
     });
   }
 
@@ -295,20 +311,17 @@
 
     let items = [];
     if (subTab === 'cancelled') {
-      // Filter cancelled by mainTab (proxy vs self)
       items = cancelledSignups.filter(s =>
         mainTab === 'proxy' ? !!(s.forFriend) : !(s.forFriend)
       );
     } else {
-      // Filter active by mainTab
       const byPerson = currentSignups.filter(s =>
         mainTab === 'proxy' ? !!(s.forFriend) : !(s.forFriend)
       );
-      if (subTab === 'confirmed') {
-        items = byPerson.filter(s => {
-          const d = s.session?.date || '';
-          return !d || d >= today;
-        });
+      if (subTab === 'waitlist') {
+        items = byPerson.filter(s => s.isWaitlisted && (s.session?.date || '') >= today);
+      } else if (subTab === 'confirmed') {
+        items = byPerson.filter(s => !s.isWaitlisted && (s.session?.date || '') >= today);
       } else { // past
         items = byPerson.filter(s => {
           const d = s.session?.date || '';
@@ -399,6 +412,20 @@
       } catch(e) {}
     }
 
+    // Waitlist badge
+    const waitlistBadge = s.isWaitlisted
+      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-500 font-medium">⏳ ${zh?'候補中':'Waitlisted'}</span>`
+      : '';
+
+    // Share signup link button (only when session is open and not past)
+    const shareBtn = (!isCancelled && !isPast && isOpen)
+      ? `<button onclick="shareSignupLink('${escHtml(s.sessionId)}')"
+          class="flex items-center justify-center gap-1.5 w-full text-xs text-gray-500 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 hover:text-indigo-600 transition mb-2">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+          ${zh?'分享報名連結':'Share Signup Link'}
+        </button>`
+      : '';
+
     // Footer: cancelled notice / cancel button / past notice
     let footer = '';
     if (isCancelled) {
@@ -433,7 +460,7 @@
               <p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(sess.creatorName)}</p>
             </div>` : ''}
           </div>
-          ${statusBadge}
+          <div class="flex flex-col items-end gap-1">${statusBadge}${waitlistBadge}</div>
         </div>
         ${registrantHtml}
         ${tags.length ? `<div class="flex flex-wrap gap-1.5 mb-3">${tags.join('')}</div>` : ''}
@@ -456,9 +483,23 @@
             Apple ${zh?'日曆':'Calendar'}
           </a>
         </div>
+        ${shareBtn}
         ${footer}
       </div>`;
   }
+
+  // ── Share ──
+  window.shareSignupLink = (sessionId) => {
+    const url = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}index.html?session=${sessionId}`;
+    if (navigator.share) {
+      navigator.share({ url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        const zh = getLang() === 'zh';
+        alert(zh ? '✅ 連結已複製！' : '✅ Link copied!');
+      });
+    }
+  };
 
   // ── Cancel ──
   window.cancelMySignup = async (sessionId, signupId) => {
