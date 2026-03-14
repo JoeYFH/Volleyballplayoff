@@ -421,10 +421,10 @@
 <div id="exportModal" class="fixed inset-0 bg-black/40 flex items-end justify-center z-50 hidden">
   <div class="bg-white rounded-t-2xl w-full max-w-md p-5 pb-8">
     <div class="flex justify-between items-center mb-3">
-      <h3 class="font-semibold text-gray-700">💬 提醒訊息</h3>
+      <h3 id="exportModalTitle" class="font-semibold text-gray-700">💬 提醒訊息</h3>
       <button onclick="document.getElementById('exportModal').classList.add('hidden')" class="text-gray-400 text-xl">✕</button>
     </div>
-    <p class="text-xs text-gray-400 mb-3">可直接複製貼到群組通知大家</p>
+    <p id="exportModalHint" class="text-xs text-gray-400 mb-3">可直接複製貼到群組通知大家</p>
     <textarea id="exportText" rows="12"
       class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 resize-none font-mono" readonly></textarea>
     <button id="copyExportBtn" onclick="copyExport()"
@@ -599,6 +599,16 @@
       if (sfChipLabels[btn.dataset.equip]) btn.textContent = sfChipLabels[btn.dataset.equip];
     });
     document.getElementById('sf_equipCustom').placeholder = zh ? '其他用具（逗號分隔）' : 'Other items (comma separated)';
+    // tabFeedback
+    const fbTab = document.getElementById('tabFeedback');
+    if (fbTab) fbTab.textContent = zh ? '💬 意見回饋' : '💬 Feedback';
+    // Export (Reminder) modal
+    const exportTitle = document.getElementById('exportModalTitle');
+    if (exportTitle) exportTitle.textContent = zh ? '💬 提醒訊息' : '💬 Reminder';
+    const exportHint = document.getElementById('exportModalHint');
+    if (exportHint) exportHint.textContent = zh ? '可直接複製貼到群組通知大家' : 'Copy and paste to notify your group';
+    const copyBtn = document.getElementById('copyExportBtn');
+    if (copyBtn) copyBtn.textContent = zh ? '📋 複製到剪貼簿' : '📋 Copy to Clipboard';
     // Feedback filter + sort labels
     const fbFilters = { all: zh?'全部':'All', pending: zh?'🔴 尚未處理':'🔴 Pending', processing: zh?'🟡 處理中':'🟡 In Progress', resolved: zh?'🟢 已解決':'🟢 Resolved' };
     Object.entries(fbFilters).forEach(([k, v]) => { const b = document.getElementById('fbf_' + k); if (b) b.textContent = v; });
@@ -1167,8 +1177,9 @@
     navigator.clipboard.writeText(document.getElementById('exportText').value)
       .then(() => {
         const btn = document.getElementById('copyExportBtn');
-        btn.textContent = '✅ 已複製！';
-        setTimeout(() => btn.textContent = '📋 複製到剪貼簿', 2000);
+        const zh2 = getLang() === 'zh';
+        btn.textContent = zh2 ? '✅ 已複製！' : '✅ Copied!';
+        setTimeout(() => { btn.textContent = zh2 ? '📋 複製到剪貼簿' : '📋 Copy to Clipboard'; }, 2000);
       });
   };
 
