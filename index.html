@@ -807,7 +807,7 @@
       return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     })() : null;
     const closeAtHtml = closeAt && !isPastClose ? `<div class="text-xs text-gray-400 mt-1">🔒 ${getLang()==='zh'?'報名截止':'Closes'}: ${closeAtFmt}</div>` : '';
-    const shareUrl = `${location.origin}/share/${s.id}`;
+    const shareUrl = `${location.origin}${location.pathname}?session=${s.id}`;
     const signupBtnHtml = effectivelyOpen ? `
       <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
         class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
@@ -1023,7 +1023,7 @@
 
   // ── Share Session ──
   window.shareSession = async (sessionId, sessionTitle) => {
-    const shareUrl = `${window.location.origin}/share/${sessionId}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
     const zh = getLang() === 'zh';
     if (navigator.share) {
       try {
@@ -1827,7 +1827,7 @@
 
   // ── Session Created Modal ──
   window.showSessionCreatedModal = (sessionId) => {
-    const url = `${window.location.origin}/share/${sessionId}`;
+    const url = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
     document.getElementById('createdSessionUrl').textContent = url;
     document.getElementById('copyCreatedUrlBtn').textContent = '📋 ' + (getLang()==='zh' ? '複製連結' : 'Copy Link');
     document.getElementById('hCreatedTitle').textContent = getLang()==='zh' ? '場次建立成功！' : 'Session Created!';
