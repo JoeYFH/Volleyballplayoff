@@ -361,7 +361,7 @@
       <div class="text-center mb-4">
         <div class="text-4xl mb-2">🔗</div>
         <h3 class="text-lg font-bold text-gray-800 mb-1">分享報名連結</h3>
-        <p class="text-sm text-gray-500">複製以下連結讓大家報名</p>
+        <p id="sfShareModalHint" class="text-sm text-gray-500">複製以下連結讓大家報名</p>
       </div>
       <div class="bg-gray-50 rounded-xl px-4 py-3 mb-4 overflow-x-auto">
         <p id="sfShareModalUrl" class="text-xs text-indigo-600 break-all font-mono select-all"></p>
@@ -795,9 +795,21 @@
   let _sfShareUrl = '';
   window.shareSignupLink = (id) => {
     const base = window.location.origin + window.location.pathname.replace('my-sessions.html', '');
-    const url = `${base}share.html?id=${id}`;
+    const url = `${base}?session=${id}`;
     _sfShareUrl = url;
+    const zh = getLang() === 'zh';
+    // Auto-copy to clipboard immediately
+    navigator.clipboard.writeText(url).catch(() => {});
+    // Open modal showing copied state
     document.getElementById('sfShareModalUrl').textContent = url;
+    const hintEl = document.getElementById('sfShareModalHint');
+    if (hintEl) hintEl.textContent = zh ? '✅ 連結已複製到剪貼簿！' : '✅ Link copied to clipboard!';
+    const copyBtn = document.getElementById('sfCopyShareBtn');
+    copyBtn.innerHTML = `✅ ${zh ? '已複製！' : 'Copied!'}`;
+    setTimeout(() => {
+      copyBtn.innerHTML = `📋 ${zh ? '再次複製' : 'Copy Again'}`;
+      if (hintEl) hintEl.textContent = zh ? '複製以下連結讓大家報名' : 'Copy the link below to share';
+    }, 3000);
     document.getElementById('sfNativeShareBtn').classList.toggle('hidden', !navigator.share);
     document.getElementById('shareModal').classList.remove('hidden');
   };
@@ -1234,7 +1246,7 @@
   // ── Session Created Modal ──
   function sfShowSessionCreatedModal(sessionId) {
     const base = window.location.origin + window.location.pathname.replace('my-sessions.html', '');
-    const url = `${base}share.html?id=${sessionId}`;
+    const url = `${base}?session=${sessionId}`;
     document.getElementById('sf_createdSessionUrl').textContent = url;
     document.getElementById('sf_copyCreatedUrlBtn').textContent = '📋 複製連結';
     document.getElementById('sessionCreatedModal').classList.remove('hidden');

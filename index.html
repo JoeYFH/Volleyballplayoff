@@ -1055,8 +1055,26 @@
 
   window.shareSession = (sessionId, sessionTitle) => {
     const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-    const url = `${base}share.html?id=${sessionId}`;
-    openShareModal(url, sessionTitle);
+    const url = `${base}?session=${sessionId}`;
+    _shareUrl = url;
+    _shareTitle = sessionTitle || '';
+    const zh = getLang() === 'zh';
+    // Auto-copy to clipboard immediately
+    navigator.clipboard.writeText(url).catch(() => {});
+    // Open modal showing copied state
+    document.getElementById('shareModalUrl').textContent = url;
+    document.getElementById('hShareModalTitle').textContent = zh ? '分享活動連結' : 'Share Link';
+    document.getElementById('hShareModalHint').textContent = zh ? '✅ 連結已複製到剪貼簿！' : '✅ Link copied to clipboard!';
+    const copyBtn = document.getElementById('copyShareUrlBtn');
+    copyBtn.innerHTML = `✅ <span id="hCopyShareBtn">${zh ? '已複製！' : 'Copied!'}</span>`;
+    setTimeout(() => {
+      copyBtn.innerHTML = `📋 <span id="hCopyShareBtn">${zh ? '再次複製' : 'Copy Again'}</span>`;
+      document.getElementById('hShareModalHint').textContent = zh ? '複製以下連結讓大家報名' : 'Copy the link below to share';
+    }, 3000);
+    document.getElementById('hNativeShareBtn').textContent = zh ? '開啟系統分享' : 'Share via app';
+    document.getElementById('hShareModalClose').textContent = zh ? '關閉' : 'Close';
+    document.getElementById('nativeShareBtn').classList.toggle('hidden', !navigator.share);
+    document.getElementById('shareModal').classList.remove('hidden');
   };
 
   window.openShareModal = (url, title) => {
