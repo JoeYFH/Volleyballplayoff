@@ -437,8 +437,11 @@
     const l = getLang();
     const zh = l === 'zh';
     document.documentElement.lang = zh ? 'zh-TW' : 'en';
-    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = zh ? 'zh-TW' : 'en-GB'; });
-    document.querySelectorAll('input[type="time"]').forEach(el => { el.lang = zh ? 'zh-TW' : 'en-GB'; });
+    const _il = zh ? 'zh-TW' : 'en-GB';
+    document.querySelectorAll('input[type="date"], input[type="datetime-local"], input[type="time"]').forEach(el => {
+      const v = el.value, t = el.type;
+      el.lang = _il; el.type = 'text'; el.type = t; el.value = v;
+    });
     document.getElementById('langBtn2').textContent = zh ? 'EN' : '中';
     const loginBtn = document.getElementById('langBtnLogin');
     if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';
