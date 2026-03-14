@@ -75,8 +75,6 @@
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="sf-open" onclick="setFilter('open')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">報名中</button>
-      <button id="sf-closed" onclick="setFilter('closed')"
-        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已截止</button>
       <button id="sf-past" onclick="setFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
     </div>
@@ -714,8 +712,6 @@
           const isPastClose2 = closeAt2 && closeAt2 < now2;
           if ((target.date || '') < today) {
             setFilter('past');
-          } else if (!target.isOpen || isPastClose2) {
-            setFilter('closed');
           } else {
             setFilter('open');
           }
@@ -738,7 +734,7 @@
     currentFilter = filter;
     const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
     const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
-    ['all','open','closed','past'].forEach(f => {
+    ['all','open','past'].forEach(f => {
       const btn = document.getElementById('sf-' + f);
       if (btn) btn.className = f === filter ? activeClass : idleClass;
     });
@@ -749,14 +745,13 @@
     const today = new Date().toISOString().split('T')[0];
     const now = Date.now();
     const filtered = allSessionsCache.filter(s => {
+      if (s.cancelled) return false;
       const isPast = (s.date || '') < today;
       const closeAtMs = s.closeAt ? s.closeAt.toMillis() : null;
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
-      if (s.cancelled) return false; // hide cancelled sessions from public page
       if (currentFilter === 'all') return true;
-      if (currentFilter === 'open')   return !isPast && !effectivelyClosed;
-      if (currentFilter === 'closed') return !isPast && effectivelyClosed;
       if (currentFilter === 'past')   return isPast;
+      if (currentFilter === 'open')   return !isPast && !effectivelyClosed;
       return true;
     });
     const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
