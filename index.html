@@ -395,7 +395,8 @@
   import { sessionFormHTML, FORM_IDS_INDEX, FORM_FNS_INDEX } from './session-form.js';
 
   // Inject shared form fields before any DOM setup
-  document.getElementById('formFieldsContainer').innerHTML = sessionFormHTML(FORM_IDS_INDEX, FORM_FNS_INDEX);
+  const _formInputLang = (localStorage.getItem('lang') || 'zh') === 'zh' ? 'zh-TW' : 'en-GB';
+  document.getElementById('formFieldsContainer').innerHTML = sessionFormHTML(FORM_IDS_INDEX, FORM_FNS_INDEX, _formInputLang);
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);

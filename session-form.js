@@ -13,11 +13,15 @@
 
 /**
  * Build form-fields HTML.
- * @param {Object} ids  - map of logical name → actual element id
- * @param {Object} fns  - map of event name → JS expression string (called inline)
+ * @param {Object} ids       - map of logical name → actual element id
+ * @param {Object} fns       - map of event name → JS expression string (called inline)
+ * @param {string} inputLang - lang attribute for date/time inputs (e.g. 'en-GB' or 'zh-TW')
+ *                             Setting this at HTML-build time ensures Chrome uses the right locale.
  */
-export function sessionFormHTML(ids, fns) {
+export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
   const I = ids; // shorthand
+  const dl = inputLang; // date lang
+  const tl = inputLang; // time lang
   const F = fns;
   return `
     <!-- Title -->
@@ -32,13 +36,13 @@ export function sessionFormHTML(ids, fns) {
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label id="${I.lDate}" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
-        <input id="${I.date}" type="date"
+        <input id="${I.date}" type="date" lang="${dl}"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.dateErr}" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
       <div>
         <label id="${I.lTime}" class="block text-sm font-medium text-gray-600 mb-1">時間 <span class="text-red-400">*</span></label>
-        <input id="${I.time}" type="time" value="00:00"
+        <input id="${I.time}" type="time" value="00:00" lang="${tl}"
           class="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.timeErr}" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
@@ -128,7 +132,7 @@ export function sessionFormHTML(ids, fns) {
         <span id="${I.openOffsetUnit}" class="text-sm text-gray-500">小時前</span>
       </div>
       <div id="${I.openAtRow}" class="hidden">
-        <input id="${I.openAt}" type="datetime-local"
+        <input id="${I.openAt}" type="datetime-local" lang="${dl}"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.openAtHint}" class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
       </div>
@@ -150,7 +154,7 @@ export function sessionFormHTML(ids, fns) {
         <span id="${I.closeOffsetUnit}" class="text-sm text-gray-500">小時前</span>
       </div>
       <div id="${I.closeAtRow}" class="hidden mt-2">
-        <input id="${I.closeAt}" type="datetime-local"
+        <input id="${I.closeAt}" type="datetime-local" lang="${dl}"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.closeAtHint}" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
       </div>
