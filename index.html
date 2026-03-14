@@ -859,11 +859,14 @@
         class="block w-full mt-2 text-center bg-amber-50 text-amber-700 border border-amber-200 rounded-xl py-2 font-semibold text-xs hover:bg-amber-100 transition">
         ⚙️ ${getLang() === 'zh' ? '管理場次' : 'Manage Session'}
       </a>` : '';
-    const closeAtFmt = closeAt ? (() => {
-      const d = new Date(closeAt);
-      return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    })() : null;
-    const closeAtHtml = closeAt && !isPastClose ? `<div class="text-xs text-gray-400 mt-1">🔒 ${getLang()==='zh'?'報名截止':'Closes'}: ${closeAtFmt}</div>` : '';
+    const fmtTs = ms => { const d = new Date(ms); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+    const signupTimeHtml = (() => {
+      const zh = getLang() === 'zh';
+      if (openAt && closeAt) return `<div class="text-xs text-gray-400 mt-1">📋 ${zh?'報名時間':'Signup'}: ${fmtTs(openAt)} ~ ${fmtTs(closeAt)}</div>`;
+      if (closeAt)           return `<div class="text-xs text-gray-400 mt-1">📋 ${zh?'報名截止':'Closes'}: ${fmtTs(closeAt)}</div>`;
+      if (openAt)            return `<div class="text-xs text-gray-400 mt-1">📋 ${zh?'報名開始':'Opens'}: ${fmtTs(openAt)}</div>`;
+      return '';
+    })();
     const shareUrl = `${location.origin}${location.pathname}?session=${s.id}`;
     const signupBtnHtml = effectivelyOpen ? `
       <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
@@ -901,7 +904,7 @@
         </div>
         ${progressBar}
         ${countdownHtml}
-        ${closeAtHtml}
+        ${signupTimeHtml}
         ${signupBtnHtml}
         ${manageBtn}
         ${shareBtnHtml}
