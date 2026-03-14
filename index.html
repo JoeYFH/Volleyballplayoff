@@ -1113,10 +1113,6 @@
     const ownIsWaitlisted = currentUser && waitItems.some(s => s.uid === currentUser.uid);
 
     let html = '';
-    if (isFull) {
-      const fullMsg = getLang() === 'zh' ? '🎉 正取名額已滿！以下為候補名單' : '🎉 Full! Waitlist below';
-      html += `<div class="text-xs text-center text-orange-600 bg-orange-50 rounded-xl px-3 py-2 mb-1">${fullMsg}</div>`;
-    }
     if (ownIsWaitlisted) {
       const waitMsg = getLang() === 'zh' ? '⏳ 你目前在候補名單，有人取消時會自動候補' : '⏳ You are on the waitlist — you will be promoted if a spot opens';
       html += `<div class="text-xs text-center text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-1">${waitMsg}</div>`;
@@ -1181,8 +1177,12 @@
         let sep = '';
         if (isWait && !separatorAdded) {
           separatorAdded = true;
-          const sepLabel = getLang() === 'zh' ? '候補名單' : 'Waitlist';
-          sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
+          const zh = getLang() === 'zh';
+          const sepLabel = isFull
+            ? (zh ? '🎉 正取名額已滿！以下為候補名單' : '🎉 Full! Waitlist below')
+            : (zh ? '候補名單' : 'Waitlist');
+          const sepClass = isFull ? 'text-xs text-orange-600 shrink-0' : 'text-xs text-gray-400 shrink-0';
+          sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="${sepClass}">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
         }
         return sep + renderItem(s, isWait, null);
       }).join('');
