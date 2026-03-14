@@ -557,6 +557,7 @@
     const l = getLang();
     const zh = l === 'zh';
     document.documentElement.lang = zh ? 'zh-TW' : 'en';
+    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = zh ? 'zh-TW' : 'en'; });
     document.getElementById('langBtn2').textContent = zh ? 'EN' : '中';
     const loginBtn = document.getElementById('langBtnLogin');
     if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';
@@ -625,7 +626,7 @@
     if (sfTypeEl) { sfTypeEl.options[0].text = zh?'混排':'Mixed'; sfTypeEl.options[1].text = zh?'男生':'Male'; sfTypeEl.options[2].text = zh?'女生':'Female'; }
     const sfLMale = document.getElementById('sf_lMaleLimit'); if (sfLMale) sfLMale.textContent = zh?'男生名額（0=不限）':'Male slots (0=unlimited)';
     const sfLFemale = document.getElementById('sf_lFemaleLimit'); if (sfLFemale) sfLFemale.textContent = zh?'女生名額（0=不限）':'Female slots (0=unlimited)';
-    const sfLClose = document.getElementById('sf_lCloseAt'); if (sfLClose) sfLClose.textContent = zh?'結束報名時間':'Signup Close Time';
+    const sfLClose = document.getElementById('sf_lCloseAt'); if (sfLClose) sfLClose.textContent = zh?'結束報名時間（選填，預設為活動開始時間）':'Signup Close Time (optional, defaults to session start time)';
     const sfCloseHint = document.getElementById('sf_closeAtHint'); if (sfCloseHint) sfCloseHint.textContent = zh?'到時自動關閉報名':'Signup will close automatically';
     const sfOpenHint = document.getElementById('sf_openAtHint'); if (sfOpenHint) sfOpenHint.textContent = zh?'設定後報名頁面會顯示倒數計時':'Countdown shown on signup page';
     document.getElementById('sl7').textContent = zh ? '需要攜帶的用具' : 'Required Equipment';
@@ -2191,6 +2192,9 @@
       document.getElementById('hCaSubmit').textContent = zh ? '➕ 新增報名' : '➕ Add';
     }
   };
+
+  // ── Init ──
+  applyLang();
 </script>
 
 <!-- Creator Add Signup Modal -->

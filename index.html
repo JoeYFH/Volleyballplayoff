@@ -625,6 +625,8 @@
   function applyLang() {
     const lang = getLang();
     document.getElementById('htmlRoot').lang = lang === 'zh' ? 'zh-TW' : 'en';
+    document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = lang === 'zh' ? 'zh-TW' : 'en'; });
     document.getElementById('langBtn').textContent = lang === 'zh' ? 'EN' : '中';
     document.getElementById('hAppTitle').textContent = '🏐 ' + tr('appTitle');
     document.getElementById('hLive').textContent = tr('liveUpdate');
