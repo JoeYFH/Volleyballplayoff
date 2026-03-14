@@ -752,6 +752,7 @@
       const isPast = (s.date || '') < today;
       const closeAtMs = s.closeAt ? s.closeAt.toMillis() : null;
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
+      if (s.cancelled) return false; // hide cancelled sessions from public page
       if (currentFilter === 'all') return true;
       if (currentFilter === 'open')   return !isPast && !effectivelyClosed;
       if (currentFilter === 'closed') return !isPast && effectivelyClosed;
