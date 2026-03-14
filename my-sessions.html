@@ -587,11 +587,7 @@
       mySortTypeSel.options[2].text = zh ? '⏰ 截止時間' : '⏰ By Close';
       mySortTypeSel.options[3].text = zh ? '👥 報名人數' : '👥 Signups';
     }
-    const mySortDirSel = document.getElementById('my-sort-dir-select');
-    if (mySortDirSel) {
-      mySortDirSel.options[0].text = zh ? '遠→近' : 'Far→Near';
-      mySortDirSel.options[1].text = zh ? '近→遠' : 'Near→Far';
-    }
+    updateSortDirLabels();
     // Open time options
     document.getElementById('sfOpenNow').textContent = zh ? '立即開放' : 'Open immediately';
     document.getElementById('sfOpenHours').textContent = zh ? '開賽前 N 小時' : 'N hours before game';
@@ -704,8 +700,23 @@
     const type = document.getElementById('my-sort-type-select').value;
     const dir  = document.getElementById('my-sort-dir-select').value;
     mySessionsSort = type + '_' + dir;
+    updateSortDirLabels();
     applySessionFilter();
   };
+
+  function updateSortDirLabels() {
+    const type = document.getElementById('my-sort-type-select')?.value;
+    const dirSel = document.getElementById('my-sort-dir-select');
+    if (!dirSel) return;
+    const zh = getLang() === 'zh';
+    if (type === 'signup') {
+      dirSel.options[0].text = zh ? '多→少' : 'Most→Least';
+      dirSel.options[1].text = zh ? '少→多' : 'Least→Most';
+    } else {
+      dirSel.options[0].text = zh ? '遠→近' : 'Far→Near';
+      dirSel.options[1].text = zh ? '近→遠' : 'Near→Far';
+    }
+  }
 
   window.setAllSessionsSort = (sort) => {
     allSessionsSort = sort;
