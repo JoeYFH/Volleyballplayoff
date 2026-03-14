@@ -1230,6 +1230,14 @@
       }
     }
 
+    if (s?.equipment?.length) {
+      const equipNames = s.equipment.map(e => {
+        if (zh) return e;
+        const map = { '標竿': 'Pole', '音響': 'Speaker', '球': 'Ball' };
+        return map[e] || e;
+      });
+      msg += `\n🎒 ${zh ? '需自備：' : 'Bring: '}${equipNames.join(zh ? '、' : ', ')}`;
+    }
     if (s?.note) msg += `\n📝 ${s.note}`;
 
     document.getElementById('exportText').value = msg;
@@ -1614,14 +1622,8 @@
 
   window.saveAsTemplate = async () => {
     if (!currentUser) return;
-    const name = prompt(getLang()==='zh'?'範本名稱：':'Template name:', document.getElementById('sf_title').value || '');
-    if (!name) return;
-    if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
-      showSfMsg(getLang()==='zh' ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
-      return;
-    }
-    await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
-      name,
+    const zh = getLang() === 'zh';
+    const tmplData = {
       time: document.getElementById('sf_time').value,
       location: document.getElementById('sf_location').value.trim(),
       venue: document.getElementById('sf_venue').value.trim(),
@@ -1629,9 +1631,38 @@
       type: document.getElementById('sf_type').value,
       equipment: [...sfSelectedEquip, ...sfCustomEquip],
       note: document.getElementById('sf_note').value.trim(),
-      createdAt: Timestamp.now(),
+    };
+    // If a template is currently selected, offer update vs new
+    const sel = document.getElementById('sf_templateSelect');
+    const selectedId = sel?.value;
+    if (selectedId) {
+      const tmpls = sel._templatesData || [];
+      const tmpl = tmpls.find(t => t.id === selectedId);
+      if (tmpl) {
+        const doUpdate = confirm(zh
+          ? `要更新範本「${tmpl.name}」嗎？\n\n確定 → 更新現有範本\n取消 → 另存為新範本`
+          : `Update template "${tmpl.name}"?\n\nOK → Update existing\nCancel → Save as new`);
+        if (doUpdate) {
+          await setDoc(doc(db, 'users', currentUser.uid, 'templates', selectedId), {
+            ...tmplData, name: tmpl.name, createdAt: tmpl.createdAt,
+          });
+          showSfMsg(zh ? '✅ 範本已更新！' : '✅ Template updated!', 'success');
+          loadTemplates();
+          return;
+        }
+        // Cancel → fall through to create new
+      }
+    }
+    const name = prompt(zh?'範本名稱：':'Template name:', document.getElementById('sf_title').value || '');
+    if (!name) return;
+    if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
+      showSfMsg(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
+      return;
+    }
+    await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
+      ...tmplData, name, createdAt: Timestamp.now(),
     });
-    showSfMsg('✅ 已儲存為範本！', 'success');
+    showSfMsg(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!', 'success');
     loadTemplates();
   };
 
