@@ -246,3 +246,82 @@ export const FORM_FNS_MYSESSIONS = {
   closeWhenChange: 'onSfCloseWhenChange()',
   addEquip: 'sfAddCustomEquip()',
 };
+
+/**
+ * Initialize or update flatpickr on a form's date/time inputs.
+ * Must be called after the form is injected into the DOM.
+ * Requires flatpickr + flatpickr zh_tw locale to be loaded globally.
+ *
+ * @param {Object} ids   - FORM_IDS map
+ * @param {string} lang  - 'zh' or 'en'
+ */
+export function initFormPickers(ids, lang) {
+  if (!window.flatpickr) return;
+  const zh = lang === 'zh';
+  const locale = zh ? (flatpickr.l10ns?.zh_tw || flatpickr.l10ns?.default) : flatpickr.l10ns?.default;
+
+  const _init = (id, opts) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el._flatpickr) {
+      // Update locale and display format only
+      if (locale) el._flatpickr.set('locale', locale);
+      if (opts.altFormat) el._flatpickr.set('altFormat', opts.altFormat);
+    } else {
+      flatpickr(el, opts);
+    }
+  };
+
+  _init(ids.date, {
+    locale,
+    altInput: true,
+    altFormat: zh ? 'Y/n/j' : 'n/j/Y',
+    dateFormat: 'Y-m-d',
+    allowInput: true,
+  });
+
+  _init(ids.time, {
+    enableTime: true,
+    noCalendar: true,
+    time_24hr: true,
+    dateFormat: 'H:i',
+    allowInput: true,
+  });
+
+  _init(ids.openAt, {
+    locale,
+    enableTime: true,
+    time_24hr: true,
+    altInput: true,
+    altFormat: zh ? 'Y/n/j H:i' : 'n/j/Y H:i',
+    dateFormat: 'Y-m-d\\TH:i',
+    allowInput: true,
+  });
+
+  _init(ids.closeAt, {
+    locale,
+    enableTime: true,
+    time_24hr: true,
+    altInput: true,
+    altFormat: zh ? 'Y/n/j H:i' : 'n/j/Y H:i',
+    dateFormat: 'Y-m-d\\TH:i',
+    allowInput: true,
+  });
+}
+
+/**
+ * Set a flatpickr-managed (or plain) input value.
+ * Use this instead of el.value = ... for date/time inputs that use flatpickr.
+ *
+ * @param {string} id     - element ID
+ * @param {string} value  - value in the input's dateFormat (e.g. 'Y-m-d' or 'H:i')
+ */
+export function fpSet(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el._flatpickr) {
+    el._flatpickr.setDate(value || '', false);
+  } else {
+    el.value = value || '';
+  }
+}

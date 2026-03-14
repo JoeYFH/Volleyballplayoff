@@ -20,8 +20,11 @@
     #mapSuggestions2 li:hover, .form-map-sug li:hover { background:#f1f5f9; }
     #toastEl { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1e1b4b; color:#fff; padding:12px 24px; border-radius:14px; font-size:0.9rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s, transform 0.25s; pointer-events:none; z-index:9999; white-space:nowrap; }
     #toastEl.show { opacity:1; transform:translateX(-50%) translateY(0); }
-    html[lang="en"] input[type="date"], html[lang="en"] input[type="datetime-local"] { -webkit-locale: "en-GB"; }
-    html[lang="en"] input[type="time"] { -webkit-locale: "en-GB"; }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    .flatpickr-input[readonly] { cursor: pointer; }
+    .flatpickr-calendar { font-family: system-ui, -apple-system, sans-serif; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -338,11 +341,12 @@
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
-  import { sessionFormHTML, FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS } from './session-form.js';
+  import { sessionFormHTML, FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS, initFormPickers, fpSet } from './session-form.js';
 
   // Inject shared form fields before any DOM setup
   const _formInputLang = (localStorage.getItem('lang') || 'zh') === 'zh' ? 'zh-TW' : 'en-GB';
   document.getElementById('sfFormFieldsContainer').innerHTML = sessionFormHTML(FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS, _formInputLang);
+  setTimeout(() => initFormPickers(FORM_IDS_MYSESSIONS, getLang()), 0);
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -554,6 +558,7 @@
     if (allSessionsCache.length) renderSessionMgmtList('allSessionsList', allSessionsCache, true);
     if (feedbackDocs.length) renderFeedbackList();
     renderTemplates();
+    initFormPickers(FORM_IDS_MYSESSIONS, getLang());
   }
 
   // ── Auth ──
@@ -1222,8 +1227,8 @@
     document.getElementById('sfSaveTemplateBtn')?.classList.remove('hidden');
     // Reset form fields
     document.getElementById('sf_title').value = data?.title || '';
-    document.getElementById('sf_date').value = data?.date || '';
-    document.getElementById('sf_time').value = data?.time || '00:00';
+    fpSet('sf_date', data?.date || '');
+    fpSet('sf_time', data?.time || '00:00');
     document.getElementById('sf_location').value = data?.location || '';
     document.getElementById('sf_venue').value = data?.venue || '';
     document.getElementById('sf_limit').value = data?.limit ?? 12;
@@ -1245,7 +1250,7 @@
         closeWhenEl.value = 'custom';
         const d = new Date(closeMs);
         const pad = n => String(n).padStart(2,'0');
-        document.getElementById('sf_closeAt').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        fpSet('sf_closeAt', `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
       }
     } else {
       closeWhenEl.value = 'game_start';
@@ -1313,7 +1318,7 @@
     if (!tmpl) return;
     // Pre-fill form fields
     if (tmpl.title) document.getElementById('sf_title').value = tmpl.title;
-    document.getElementById('sf_time').value = tmpl.time || '00:00';
+    fpSet('sf_time', tmpl.time || '00:00');
     document.getElementById('sf_location').value = tmpl.location || '';
     document.getElementById('sf_venue').value = tmpl.venue || '';
     document.getElementById('sf_limit').value = tmpl.limit ?? 12;
@@ -2163,5 +2168,7 @@
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
 </body>
 </html>
