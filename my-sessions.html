@@ -1081,20 +1081,20 @@
     const maleLimit = s?.maleLimit || 0;
     const femaleLimit = s?.femaleLimit || 0;
 
-    // Compute isWait the same way as renderMgmtSignups
+    // Compute isWait the same way as renderMgmtSignups (including forceWaitlisted)
     const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
     if (hasMixedLimits) {
       let mc = 0, fc = 0;
       items.forEach(item => {
-        if (item.gender === 'male') { mc++; item.genderWait = !item.forceConfirmed && maleLimit > 0 && mc > maleLimit; }
-        else if (item.gender === 'female') { fc++; item.genderWait = !item.forceConfirmed && femaleLimit > 0 && fc > femaleLimit; }
-        else { item.genderWait = false; }
+        if (item.gender === 'male') { mc++; item.genderWait = !item.forceConfirmed && (item.forceWaitlisted || (maleLimit > 0 && mc > maleLimit)); }
+        else if (item.gender === 'female') { fc++; item.genderWait = !item.forceConfirmed && (item.forceWaitlisted || (femaleLimit > 0 && fc > femaleLimit)); }
+        else { item.genderWait = !item.forceConfirmed && !!item.forceWaitlisted; }
       });
     }
     // Match renderMgmtSignups: when gender limits exist, only use genderWait (not overall position)
     const isWaitFn = hasMixedLimits
       ? item => !!item.genderWait
-      : item => !item.forceConfirmed && limit > 0 && item.position > limit;
+      : item => !item.forceConfirmed && (item.forceWaitlisted || (limit > 0 && item.position > limit));
 
     const confirmed = items.filter(item => !isWaitFn(item));
     const waitlist  = items.filter(item =>  isWaitFn(item));
