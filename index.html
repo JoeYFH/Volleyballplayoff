@@ -978,7 +978,7 @@
     })();
     const shareUrl = `${location.origin}${location.pathname}?session=${s.id}`;
     const signupBtnHtml = effectivelyOpen ? `
-      <button onclick="openSignupModal('${s.id}', ${s.limit || 0})"
+      <button id="signup-btn-${s.id}" onclick="openSignupModal('${s.id}', ${s.limit || 0})"
         class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
         🙋 ${getLang() === 'zh' ? '我要報名' : 'Sign Up'}
       </button>` : '';
@@ -1188,6 +1188,15 @@
       }).join('');
     }
     listEl.innerHTML = html;
+
+    // Update signup button label based on full status
+    const signupBtn = document.getElementById('signup-btn-' + sessionId);
+    if (signupBtn) {
+      const zh = getLang() === 'zh';
+      signupBtn.textContent = isFull
+        ? (zh ? '⏳ 我要排候補' : '⏳ Join Waitlist')
+        : (zh ? '🙋 我要報名' : '🙋 Sign Up');
+    }
   }
 
   // ── Share Modal ──
