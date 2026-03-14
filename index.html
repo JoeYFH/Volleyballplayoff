@@ -557,9 +557,7 @@
     setLang(newLang);
     applyLang();
     applyFeedbackLang();
-    // Re-render session cards with updated language
-    const allSessions = Object.values(sessionsData);
-    if (allSessions.length) renderSessions(allSessions);
+    applyFilter();
   };
 
   function applyLang() {
