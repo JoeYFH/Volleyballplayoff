@@ -1821,7 +1821,20 @@
     document.getElementById('caGenderError').classList.add('hidden');
     document.getElementById('caMsg').classList.add('hidden');
     document.getElementById('caSubmitBtn').disabled = false;
-    document.getElementById('hCaSubmit').textContent = zh ? '➕ 新增報名' : '➕ Add';
+    document.getElementById('hCaSubmit').textContent = zh ? '➕ 新增報名' : '➕ Add Signup';
+    // Update all UI labels
+    document.getElementById('caModalTitle').textContent = zh ? '➕ 新增報名' : '➕ Add Signup';
+    document.getElementById('caSelfBtn').textContent = zh ? '自己' : 'Myself';
+    document.getElementById('caFriendBtn').textContent = zh ? '幫朋友' : 'For a Friend';
+    document.getElementById('caNameLabel').innerHTML = `${zh ? '姓名 / 暱稱' : 'Name / Nickname'} <span class="text-red-400">*</span>`;
+    document.getElementById('caFriendNameLabel').innerHTML = `${zh ? '朋友姓名' : "Friend's Name"} <span class="text-red-400">*</span>`;
+    document.getElementById('caGenderLabel').innerHTML = `${zh ? '性別' : 'Gender'} <span class="text-red-400">*</span>`;
+    document.getElementById('caGenderMale').textContent = zh ? '♂ 男生' : '♂ Male';
+    document.getElementById('caGenderFemale').textContent = zh ? '♀ 女生' : '♀ Female';
+    document.getElementById('caGenderError').textContent = zh ? '請選擇性別' : 'Please select gender';
+    document.getElementById('caLateLabel').textContent = zh ? '會晚到' : 'Will be late';
+    document.getElementById('caLateTime').placeholder = zh ? '預計幾點？' : 'Estimated arrival time?';
+    document.getElementById('caPairLabel').textContent = zh ? '希望跟誰搭檔？（選填）' : 'Preferred partner? (optional)';
     // Gender row only for mixed
     document.getElementById('caGenderRow').classList.toggle('hidden', session.type !== 'mixed');
     ['caGenderMale','caGenderFemale'].forEach(id => {
@@ -1929,7 +1942,7 @@
   <div class="absolute inset-0 bg-black/40" onclick="closeCreatorAddModal()"></div>
   <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
     <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-      <h2 class="font-bold text-gray-800">➕ 新增報名</h2>
+      <h2 id="caModalTitle" class="font-bold text-gray-800">➕ 新增報名</h2>
       <button onclick="closeCreatorAddModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
     <div class="px-5 py-4 space-y-3">
@@ -1942,21 +1955,21 @@
       </div>
       <!-- Self name -->
       <div id="caSelfRow">
-        <label class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
+        <label id="caNameLabel" class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
         <input id="caName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="caNameError" class="hidden mt-1 text-xs text-red-500"></p>
       </div>
       <!-- Friend name -->
       <div id="caFriendRow" class="hidden">
-        <label class="block text-sm font-medium text-gray-600 mb-1">朋友姓名 <span class="text-red-400">*</span></label>
+        <label id="caFriendNameLabel" class="block text-sm font-medium text-gray-600 mb-1">朋友姓名 <span class="text-red-400">*</span></label>
         <input id="caFriendName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="caFriendNameError" class="hidden mt-1 text-xs text-red-500"></p>
       </div>
       <!-- Gender (mixed sessions) -->
       <div id="caGenderRow" class="hidden">
-        <label class="block text-sm font-medium text-gray-600 mb-2">性別 <span class="text-red-400">*</span></label>
+        <label id="caGenderLabel" class="block text-sm font-medium text-gray-600 mb-2">性別 <span class="text-red-400">*</span></label>
         <div class="flex gap-2">
           <button type="button" id="caGenderMale" onclick="caSelectGender('male')"
             class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
@@ -1969,7 +1982,7 @@
       <div class="flex items-center gap-2">
         <input type="checkbox" id="caLate" class="w-4 h-4"
           onchange="document.getElementById('caLateRow').classList.toggle('hidden',!this.checked)" />
-        <label for="caLate" class="text-sm text-gray-600">會晚到</label>
+        <label id="caLateLabel" for="caLate" class="text-sm text-gray-600">會晚到</label>
       </div>
       <div id="caLateRow" class="hidden ml-6">
         <input id="caLateTime" type="text" placeholder="預計幾點？"
@@ -1977,7 +1990,7 @@
       </div>
       <!-- Pair with -->
       <div>
-        <label class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
+        <label id="caPairLabel" class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
         <select id="caPair"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
           <option value="">— 不指定 —</option>

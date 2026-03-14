@@ -95,7 +95,8 @@
         class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">⚥ 混排</button>
       <select id="sort-select" onchange="setSort(this.value)"
         class="ml-auto text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300 shrink-0">
-        <option value="date_asc">📅 日期遠近</option>
+        <option value="date_asc">📅 日期：近→遠</option>
+        <option value="date_desc">📅 日期：遠→近</option>
         <option value="closeAt_asc">⏰ 截止遠近</option>
       </select>
     </div>
@@ -700,8 +701,9 @@
     // Sort select options
     const sortSel = document.getElementById('sort-select');
     if (sortSel) {
-      sortSel.options[0].text = zh2 ? '📅 日期遠近' : '📅 By Date';
-      sortSel.options[1].text = zh2 ? '⏰ 截止遠近' : '⏰ By Close';
+      sortSel.options[0].text = zh2 ? '📅 日期：近→遠' : '📅 Date: Near→Far';
+      sortSel.options[1].text = zh2 ? '📅 日期：遠→近' : '📅 Date: Far→Near';
+      sortSel.options[2].text = zh2 ? '⏰ 截止遠近' : '⏰ By Close';
     }
     // Re-apply filter with updated labels
     applyFilter();
@@ -842,6 +844,8 @@
         const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
         return aMs - bMs;
       });
+    } else if (currentSort === 'date_desc') {
+      filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     } else {
       filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     }
