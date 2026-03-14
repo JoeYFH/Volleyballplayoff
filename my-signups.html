@@ -240,13 +240,17 @@
           ]);
           const signupData = signupSnap?.exists() ? signupSnap.data() : {};
           const sess = sessionSnap.exists() ? sessionSnap.data() : null;
-          // Determine waitlist status
+          // Determine waitlist status and position
           let isWaitlisted = signupData.forceWaitlisted || false;
-          if (!isWaitlisted && !signupData.forceConfirmed && sess?.limit > 0 && m.signupId) {
+          let waitlistPosition = 0;
+          if (!signupData.forceConfirmed && sess?.limit > 0 && m.signupId) {
             try {
               const allSnap = await getDocs(query(collection(db, 'sessions', m.sessionId, 'signups'), orderBy('signedAt', 'asc')));
               const pos = allSnap.docs.findIndex(d => d.id === m.signupId) + 1;
-              if (pos > 0 && pos > sess.limit) isWaitlisted = true;
+              if (pos > 0 && pos > sess.limit) {
+                isWaitlisted = true;
+                waitlistPosition = pos - sess.limit;
+              }
             } catch(e) {}
           }
           return {
@@ -256,6 +260,7 @@
             ...signupData,
             session: sess,
             isWaitlisted,
+            waitlistPosition,
           };
         } catch(e) {
           return { id: m.signupId || m.mirrorId, sessionId: m.sessionId, signedAt: m.signedAt, session: null, isWaitlisted: false };
@@ -414,7 +419,7 @@
 
     // Waitlist badge
     const waitlistBadge = s.isWaitlisted
-      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-500 font-medium">⏳ ${zh?'候補中':'Waitlisted'}</span>`
+      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-500 font-medium">⏳ ${s.waitlistPosition > 0 ? (zh ? `備取第 ${s.waitlistPosition} 個` : `Waitlist #${s.waitlistPosition}`) : (zh ? '候補中' : 'Waitlisted')}</span>`
       : '';
 
     // Share signup link button (only when session is open and not past)
