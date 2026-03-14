@@ -783,9 +783,9 @@
     const zh = getLang() === 'zh';
     const renderItem = (s, isWait, posLabel) => {
       const tags = [];
-      if (s.isLate) tags.push(s.lateTime ? `晚到${s.lateTime}` : '晚到');
-      if (s.forFriend) tags.push(`代:${escHtml(s.forFriend)}`);
-      if (s.pairWith) tags.push(`搭:${escHtml(s.pairWith)}`);
+      if (s.isLate) tags.push(s.lateTime ? `${zh?'晚到':'Late'} ${s.lateTime}` : (zh?'晚到':'Late'));
+      if (s.forFriend) tags.push(`${zh?'代':'For'}:${escHtml(s.forFriend)}`);
+      if (s.pairWith) tags.push(`${zh?'搭':'Pair'}:${escHtml(s.pairWith)}`);
       if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(e)}`.substring(0,8)));
       const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';
@@ -813,7 +813,7 @@
         confirmed.forEach((s, i) => { sec += renderItem(s, false, i+1); });
         if (waiting.length) {
           sec += `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
-          waiting.forEach((s, i) => { sec += renderItem(s, true, `候${i+1}`); });
+          waiting.forEach((s, i) => { sec += renderItem(s, true, `${zh?'候':'W'}${i+1}`); });
         }
         return sec;
       };
