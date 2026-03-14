@@ -106,6 +106,19 @@
         <span id="hSubTabCancelled">✕ 取消</span>
       </button>
     </div>
+    <!-- Sort controls -->
+    <div class="flex justify-end gap-1.5 mt-2">
+      <select id="su-sort-type-select" onchange="setSignupsSort()"
+        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+        <option value="date">📅 日期</option>
+        <option value="signedAt">⏱️ 報名時間</option>
+      </select>
+      <select id="su-sort-dir-select" onchange="setSignupsSort()"
+        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+        <option value="asc">近→遠</option>
+        <option value="desc">遠→近</option>
+      </select>
+    </div>
   </div>
 
   <div class="px-4 pt-4">
@@ -195,6 +208,7 @@
   let cancelledSignups = [];  // from cancelledSignups
   let mainTab = 'self';       // 'self' | 'proxy'
   let subTab = 'confirmed';   // 'confirmed' | 'past' | 'cancelled'
+  let signupsSort = 'date_asc'; // sort state
 
   // Map signupId → data needed for cancel action (avoids inline JSON in onclick)
   const signupDataMap = {};
@@ -224,6 +238,16 @@
     document.getElementById('hSubTabConfirmed').textContent = zh ? '✅ 確認' : '✅ Confirmed';
     document.getElementById('hSubTabPast').textContent = zh ? '📅 過去' : '📅 Past';
     document.getElementById('hSubTabCancelled').textContent = zh ? '✕ 取消' : '✕ Cancelled';
+    const suTypeSel = document.getElementById('su-sort-type-select');
+    if (suTypeSel) {
+      suTypeSel.options[0].text = zh ? '📅 日期' : '📅 Date';
+      suTypeSel.options[1].text = zh ? '⏱️ 報名時間' : '⏱️ Signed At';
+    }
+    const suDirSel = document.getElementById('su-sort-dir-select');
+    if (suDirSel) {
+      suDirSel.options[0].text = zh ? '近→遠' : 'Near→Far';
+      suDirSel.options[1].text = zh ? '遠→近' : 'Far→Near';
+    }
     renderSignups();
   }
 
@@ -312,6 +336,13 @@
   }
 
   // ── Tab switching ──
+  window.setSignupsSort = () => {
+    const type = document.getElementById('su-sort-type-select').value;
+    const dir  = document.getElementById('su-sort-dir-select').value;
+    signupsSort = type + '_' + dir;
+    renderSignups();
+  };
+
   window.switchMainTab = (tab) => {
     mainTab = tab;
     const activeM = 'flex-1 text-sm font-medium py-2 rounded-lg transition bg-white shadow-sm';
@@ -362,6 +393,23 @@
           return d && d < today;
         });
       }
+    }
+
+    // Sort
+    const [sortType, sortDir] = signupsSort.split('_');
+    const desc = sortDir === 'desc';
+    if (sortType === 'signedAt') {
+      items.sort((a, b) => {
+        const aMs = a.signedAt?.toMillis ? a.signedAt.toMillis() : (a.signedAt?.seconds ? a.signedAt.seconds * 1000 : 0);
+        const bMs = b.signedAt?.toMillis ? b.signedAt.toMillis() : (b.signedAt?.seconds ? b.signedAt.seconds * 1000 : 0);
+        return desc ? bMs - aMs : aMs - bMs;
+      });
+    } else {
+      items.sort((a, b) => {
+        const ad = a.session?.date || a.sessionDate || '';
+        const bd = b.session?.date || b.sessionDate || '';
+        return desc ? bd.localeCompare(ad) : ad.localeCompare(bd);
+      });
     }
 
     // Build signupDataMap for cancel action
