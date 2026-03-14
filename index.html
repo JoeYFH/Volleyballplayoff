@@ -81,6 +81,8 @@
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="sf-open" onclick="setFilter('open')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0">報名中</button>
+      <button id="sf-mixed" onclick="setFilter('mixed')"
+        class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">混排</button>
       <button id="sf-past" onclick="setFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
     </div>
@@ -766,7 +768,7 @@
     currentFilter = filter;
     const activeClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0';
     const idleClass = 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0';
-    ['all','open','past'].forEach(f => {
+    ['all','open','mixed','past'].forEach(f => {
       const btn = document.getElementById('sf-' + f);
       if (btn) btn.className = f === filter ? activeClass : idleClass;
     });
@@ -784,6 +786,7 @@
       if (currentFilter === 'all') return true;
       if (currentFilter === 'past')   return isPast;
       if (currentFilter === 'open')   return !isPast && !effectivelyClosed;
+      if (currentFilter === 'mixed')  return !isPast && s.type === 'mixed';
       return true;
     });
     const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
@@ -796,7 +799,7 @@
     }
     // Update filter button labels on lang change
     const zh = getLang() === 'zh';
-    const labels = { all: zh?'所有':'All', open: zh?'報名中':'Open', closed: zh?'已截止':'Closed', past: zh?'過去':'Past' };
+    const labels = { all: zh?'所有':'All', open: zh?'報名中':'Open', mixed: zh?'混排':'Mixed', closed: zh?'已截止':'Closed', past: zh?'過去':'Past' };
     Object.entries(labels).forEach(([k, v]) => { const b = document.getElementById('sf-' + k); if (b) b.textContent = v; });
   }
 
