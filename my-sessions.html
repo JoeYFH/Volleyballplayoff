@@ -113,13 +113,18 @@
       <button id="filter-past" onclick="setSessionFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
     </div>
-    <div class="flex justify-end mb-3">
-      <select id="my-sort-select" onchange="setMySessionsSort(this.value)"
+    <div class="flex justify-end gap-1.5 mb-3">
+      <select id="my-sort-type-select" onchange="setMySessionsSort()"
         class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
-        <option value="createdAt_desc">🕐 建立時間</option>
-        <option value="date_asc">📅 活動日期</option>
-        <option value="closeAt_asc">⏰ 截止時間</option>
-        <option value="signup_desc">👥 報名人數</option>
+        <option value="createdAt">🕐 建立時間</option>
+        <option value="date">📅 活動日期</option>
+        <option value="closeAt">⏰ 截止時間</option>
+        <option value="signup">👥 報名人數</option>
+      </select>
+      <select id="my-sort-dir-select" onchange="setMySessionsSort()"
+        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+        <option value="desc">遠→近</option>
+        <option value="asc">近→遠</option>
       </select>
     </div>
     <!-- Skeleton Loading -->
@@ -575,12 +580,17 @@
     };
     Object.entries(adminSortMap).forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.textContent = v; });
     // Sort select options
-    const mySortSel = document.getElementById('my-sort-select');
-    if (mySortSel) {
-      mySortSel.options[0].text = zh ? '🕐 建立時間' : '🕐 Created';
-      mySortSel.options[1].text = zh ? '📅 活動日期' : '📅 By Date';
-      mySortSel.options[2].text = zh ? '⏰ 截止時間' : '⏰ By Close';
-      mySortSel.options[3].text = zh ? '👥 報名人數' : '👥 Signups';
+    const mySortTypeSel = document.getElementById('my-sort-type-select');
+    if (mySortTypeSel) {
+      mySortTypeSel.options[0].text = zh ? '🕐 建立時間' : '🕐 Created';
+      mySortTypeSel.options[1].text = zh ? '📅 活動日期' : '📅 By Date';
+      mySortTypeSel.options[2].text = zh ? '⏰ 截止時間' : '⏰ By Close';
+      mySortTypeSel.options[3].text = zh ? '👥 報名人數' : '👥 Signups';
+    }
+    const mySortDirSel = document.getElementById('my-sort-dir-select');
+    if (mySortDirSel) {
+      mySortDirSel.options[0].text = zh ? '遠→近' : 'Far→Near';
+      mySortDirSel.options[1].text = zh ? '近→遠' : 'Near→Far';
     }
     // Open time options
     document.getElementById('sfOpenNow').textContent = zh ? '立即開放' : 'Open immediately';
@@ -690,8 +700,10 @@
     applySessionFilter();
   };
 
-  window.setMySessionsSort = (sort) => {
-    mySessionsSort = sort;
+  window.setMySessionsSort = () => {
+    const type = document.getElementById('my-sort-type-select').value;
+    const dir  = document.getElementById('my-sort-dir-select').value;
+    mySessionsSort = type + '_' + dir;
     applySessionFilter();
   };
 
@@ -737,22 +749,28 @@
       return true;
     });
     // Sort
-    if (mySessionsSort === 'date_asc') {
-      filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    } else if (mySessionsSort === 'closeAt_asc') {
+    const [sortType, sortDir] = mySessionsSort.split('_');
+    const desc = sortDir === 'desc';
+    if (sortType === 'date') {
+      filtered.sort((a, b) => desc
+        ? (b.date || '').localeCompare(a.date || '')
+        : (a.date || '').localeCompare(b.date || ''));
+    } else if (sortType === 'closeAt') {
       filtered.sort((a, b) => {
         const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
         const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
-        return aMs - bMs;
+        return desc ? bMs - aMs : aMs - bMs;
       });
-    } else if (mySessionsSort === 'signup_desc') {
-      filtered.sort((a, b) => (signupCountCache[b.id] || 0) - (signupCountCache[a.id] || 0));
+    } else if (sortType === 'signup') {
+      filtered.sort((a, b) => desc
+        ? (signupCountCache[b.id] || 0) - (signupCountCache[a.id] || 0)
+        : (signupCountCache[a.id] || 0) - (signupCountCache[b.id] || 0));
     } else {
-      // createdAt_desc (default)
+      // createdAt (default)
       filtered.sort((a, b) => {
         const aTs = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : +a.createdAt) : 0;
         const bTs = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : +b.createdAt) : 0;
-        return bTs - aTs;
+        return desc ? bTs - aTs : aTs - bTs;
       });
     }
     document.getElementById('noMySessions').classList.toggle('hidden', filtered.length > 0);

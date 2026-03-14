@@ -93,11 +93,15 @@
         class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">♀ 女生</button>
       <button id="sg-mixed" onclick="setGenderFilter('mixed')"
         class="text-xs px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 transition shrink-0">⚥ 混排</button>
-      <select id="sort-select" onchange="setSort(this.value)"
+      <select id="sort-type-select" onchange="setSort()"
         class="ml-auto text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300 shrink-0">
-        <option value="date_asc">📅 日期：近→遠</option>
-        <option value="date_desc">📅 日期：遠→近</option>
-        <option value="closeAt_asc">⏰ 截止遠近</option>
+        <option value="date">📅 日期</option>
+        <option value="closeAt">⏰ 截止</option>
+      </select>
+      <select id="sort-dir-select" onchange="setSort()"
+        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300 shrink-0">
+        <option value="asc">近→遠</option>
+        <option value="desc">遠→近</option>
       </select>
     </div>
   </div>
@@ -699,11 +703,15 @@
     document.getElementById('sg-female').textContent = zh2 ? '♀ 女生' : '♀ Female';
     document.getElementById('sg-mixed').textContent  = zh2 ? '⚥ 混排' : '⚥ Mixed';
     // Sort select options
-    const sortSel = document.getElementById('sort-select');
-    if (sortSel) {
-      sortSel.options[0].text = zh2 ? '📅 日期：近→遠' : '📅 Date: Near→Far';
-      sortSel.options[1].text = zh2 ? '📅 日期：遠→近' : '📅 Date: Far→Near';
-      sortSel.options[2].text = zh2 ? '⏰ 截止遠近' : '⏰ By Close';
+    const sortTypeSel = document.getElementById('sort-type-select');
+    if (sortTypeSel) {
+      sortTypeSel.options[0].text = zh2 ? '📅 日期' : '📅 Date';
+      sortTypeSel.options[1].text = zh2 ? '⏰ 截止' : '⏰ Close';
+    }
+    const sortDirSel = document.getElementById('sort-dir-select');
+    if (sortDirSel) {
+      sortDirSel.options[0].text = zh2 ? '近→遠' : 'Near→Far';
+      sortDirSel.options[1].text = zh2 ? '遠→近' : 'Far→Near';
     }
     // Re-apply filter with updated labels
     applyFilter();
@@ -815,8 +823,10 @@
     applyFilter();
   };
 
-  window.setSort = (sort) => {
-    currentSort = sort;
+  window.setSort = () => {
+    const type = document.getElementById('sort-type-select').value;
+    const dir  = document.getElementById('sort-dir-select').value;
+    currentSort = type + '_' + dir;
     applyFilter();
   };
 
