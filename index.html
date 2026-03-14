@@ -100,7 +100,7 @@
       </select>
       <select id="sort-dir-select" onchange="setSort()"
         class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300 shrink-0">
-        <option value="asc">近→遠</option>
+        <option value="asc" selected>近→遠</option>
         <option value="desc">遠→近</option>
       </select>
     </div>
@@ -848,16 +848,18 @@
       return s.type === currentGenderFilter;
     });
     // Sort
-    if (currentSort === 'closeAt_asc') {
+    const [sortType, sortDir] = currentSort.split('_');
+    const desc = sortDir === 'desc';
+    if (sortType === 'closeAt') {
       filtered.sort((a, b) => {
         const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
         const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
-        return aMs - bMs;
+        return desc ? bMs - aMs : aMs - bMs;
       });
-    } else if (currentSort === 'date_desc') {
-      filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     } else {
-      filtered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      filtered.sort((a, b) => desc
+        ? (b.date || '').localeCompare(a.date || '')
+        : (a.date || '').localeCompare(b.date || ''));
     }
     const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
     if (!filtered.length) {
