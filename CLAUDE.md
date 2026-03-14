@@ -47,6 +47,38 @@ i18n.js            # 多語系
 functions/         # Cloud Functions
 ```
 
-## Git 分支
+## Git 規範
+
+### 分支
 - 主線：`main` / `master`
 - 開發分支命名：`claude/<功能名稱>-<session-id>`
+
+### Commit 訊息格式
+**中英文對照**，標題用英文，body 可補充中文說明：
+
+```
+<英文動詞> <簡短描述>
+
+- 中文說明變更內容或原因
+- 可列多條
+
+https://claude.ai/code/session_xxx
+```
+
+範例：
+```
+redesign og-image.svg with Mikasa volleyball style
+
+- 重新設計社群分享預覽圖，改用 SVG 排球插圖
+- 加入體育館桁架結構與燈光效果
+- 保留中英文標題文字
+```
+
+- 標題動詞：`add` 新增 / `update` 更新 / `fix` 修正 / `remove` 移除 / `redesign` 重新設計
+- 標題不超過 70 字元
+- 每次 commit 附上 session URL
+
+## 使用者偏好
+- 對話語言：繁體中文
+- 回覆風格：簡潔直接
+- 上傳圖片用途：作為設計風格參考（不直接嵌入，轉為 SVG）
