@@ -787,11 +787,11 @@
       const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';
       // 強制加入按鈕（候補時才顯示）/ force-add button (only for waitlisted)
       const forceAddBtn = isWait ? `<button onclick="forceAddSignup('${sessionId}','${s.id}')" class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-600 hover:bg-green-100 transition ml-1 shrink-0">${zh?'加入正取':'Confirm'}</button>` : '';
-      return `<div class="flex items-center gap-2 ${isWait?'opacity-50':''} ${genderBorder} pl-1">
-        <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0">${posLabel}</span>
-        ${photo}
-        <span class="flex-1 text-sm text-gray-700 truncate">${escHtml(s.name)}</span>
-        ${tags.map(t2=>`<span class="text-xs text-gray-400">${t2}</span>`).join('')}
+      return `<div class="flex items-center gap-2 ${genderBorder} pl-1">
+        <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0 ${isWait?'opacity-50':''}">${posLabel}</span>
+        ${photo ? photo.replace('class="', `class="${isWait?'opacity-50 ':''}`) : ''}
+        <span class="flex-1 text-sm text-gray-700 truncate ${isWait?'opacity-50':''}">${escHtml(s.name)}</span>
+        ${tags.map(t2=>`<span class="text-xs text-gray-400 ${isWait?'opacity-50':''}">${t2}</span>`).join('')}
         ${forceAddBtn}
         <button onclick="removeSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition ml-1">✕</button>
       </div>`;
