@@ -1083,9 +1083,9 @@
     if (maleLimit > 0 || femaleLimit > 0) {
       let maleCount = 0, femaleCount = 0;
       items.forEach(s => {
-        if (s.gender === 'male') { maleCount++; s.genderPosition = maleCount; s.genderWait = !s.forceConfirmed && maleLimit > 0 && maleCount > maleLimit; }
-        else if (s.gender === 'female') { femaleCount++; s.genderPosition = femaleCount; s.genderWait = !s.forceConfirmed && femaleLimit > 0 && femaleCount > femaleLimit; }
-        else { s.genderWait = false; }
+        if (s.gender === 'male') { maleCount++; s.genderPosition = maleCount; s.genderWait = !s.forceConfirmed && (s.forceWaitlisted || (maleLimit > 0 && maleCount > maleLimit)); }
+        else if (s.gender === 'female') { femaleCount++; s.genderPosition = femaleCount; s.genderWait = !s.forceConfirmed && (s.forceWaitlisted || (femaleLimit > 0 && femaleCount > femaleLimit)); }
+        else { s.genderWait = !s.forceConfirmed && !!s.forceWaitlisted; }
       });
     }
 
@@ -1161,7 +1161,7 @@
     } else {
       let separatorAdded = false;
       html += items.map(s => {
-        const isWait = (!s.forceConfirmed && limit > 0 && s.position > limit) || !!s.genderWait;
+        const isWait = (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
         let sep = '';
         if (isWait && !separatorAdded) {
           separatorAdded = true;

@@ -524,6 +524,7 @@
   let mySessionsSort = 'createdAt_desc';
   let allSessionsSort = 'date_desc';
   const signupCountCache = {};
+  const signupItemsCache = {};
 
   // ── Language ──
   window.toggleLang = () => {
@@ -837,7 +838,10 @@
         <div class="border-t border-gray-50 px-4 py-3">
           <div class="flex items-center justify-between mb-2">
             <p class="text-xs font-semibold text-gray-500">${getLang()==='zh'?'報名名單':'Sign-ups'}</p>
-            <span id="mgmt-cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
+            <div class="flex items-center gap-2">
+              <button onclick="openCreatorAddModal('${s.id}')" class="text-xs px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition font-medium">➕ ${getLang()==='zh'?'新增':'Add'}</button>
+              <span id="mgmt-cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
+            </div>
           </div>
           ${s.limit ? (s.type === 'mixed' ? `<div class="mb-2 space-y-1">
             <div class="flex justify-between text-xs text-gray-400 mb-0.5">
@@ -887,20 +891,21 @@
 
   function renderMgmtSignups(sessionId, items, limit, maleLimit = 0, femaleLimit = 0, type = '') {
     signupCountCache[sessionId] = items.length;
+    signupItemsCache[sessionId] = items;
     const listEl = document.getElementById('mgmt-list-' + sessionId);
     const emptyEl = document.getElementById('mgmt-empty-' + sessionId);
     const cntEl = document.getElementById('mgmt-cnt-' + sessionId);
     if (!listEl) return;
     cntEl && (cntEl.textContent = items.length);
 
-    // Compute gender-based waitlist (respect forceConfirmed)
+    // Compute gender-based waitlist (respect forceConfirmed / forceWaitlisted)
     const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
     if (hasMixedLimits) {
       let maleCount = 0, femaleCount = 0;
       items.forEach(s => {
-        if (s.gender === 'male') { maleCount++; s.genderWait = !s.forceConfirmed && maleLimit > 0 && maleCount > maleLimit; }
-        else if (s.gender === 'female') { femaleCount++; s.genderWait = !s.forceConfirmed && femaleLimit > 0 && femaleCount > femaleLimit; }
-        else { s.genderWait = false; }
+        if (s.gender === 'male') { maleCount++; s.genderWait = !s.forceConfirmed && (s.forceWaitlisted || (maleLimit > 0 && maleCount > maleLimit)); }
+        else if (s.gender === 'female') { femaleCount++; s.genderWait = !s.forceConfirmed && (s.forceWaitlisted || (femaleLimit > 0 && femaleCount > femaleLimit)); }
+        else { s.genderWait = !s.forceConfirmed && !!s.forceWaitlisted; }
       });
     }
 
@@ -944,13 +949,15 @@
       const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';
       // 強制加入按鈕（候補時才顯示）/ force-add button (only for waitlisted)
-      const forceAddBtn = isWait ? `<button onclick="forceAddSignup('${sessionId}','${s.id}')" class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-600 hover:bg-green-100 transition ml-1 shrink-0">${zh?'加入正取':'Confirm'}</button>` : '';
+      const forceAddBtn = isWait ? `<button onclick="forceAddSignup('${sessionId}','${s.id}')" class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-600 hover:bg-green-100 transition ml-1 shrink-0">${zh?'移正取':'Confirm'}</button>` : '';
+      // 強制移候補按鈕（正取且有名額限制時顯示）
+      const forceWaitBtn = !isWait && limit > 0 ? `<button onclick="forceWaitlistSignup('${sessionId}','${s.id}')" class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 hover:bg-amber-100 transition ml-1 shrink-0">${zh?'移候補':'Waitlist'}</button>` : '';
       return `<div class="flex items-center gap-2 ${genderBorder} pl-1">
         <span class="w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600'} shrink-0 ${isWait?'opacity-50':''}">${posLabel}</span>
         ${photo ? photo.replace('class="', `class="${isWait?'opacity-50 ':''}`) : ''}
         <span class="flex-1 text-sm text-gray-700 truncate ${isWait?'opacity-50':''}">${escHtml(s.name)}</span>
         ${tags.map(t2=>`<span class="text-xs text-gray-400 ${isWait?'opacity-50':''}">${t2}</span>`).join('')}
-        ${forceAddBtn}
+        ${forceAddBtn}${forceWaitBtn}
         <button onclick="removeSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition ml-1">✕</button>
       </div>`;
     };
@@ -978,7 +985,7 @@
     } else {
       let sepAdded = false;
       listEl.innerHTML = items.map(s => {
-        const isWait = !s.forceConfirmed && limit > 0 && s.position > limit;
+        const isWait = !s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit));
         let sep = '';
         if (isWait && !sepAdded) { sepAdded = true; sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`; }
         return sep + renderItem(s, isWait, s.position);
@@ -1046,7 +1053,20 @@
       : '⚠️ This will force-add this person to the confirmed list, bypassing gender and count restrictions.\n\nContinue?';
     if (!confirm(msg)) return;
     try {
-      await updateDoc(doc(db, 'sessions', sessionId, 'signups', signupId), { forceConfirmed: true });
+      await updateDoc(doc(db, 'sessions', sessionId, 'signups', signupId), { forceConfirmed: true, forceWaitlisted: false });
+    } catch(e) {
+      alert((zh ? '操作失敗：' : 'Failed: ') + e.message);
+    }
+  };
+
+  window.forceWaitlistSignup = async (sessionId, signupId) => {
+    const zh = getLang() === 'zh';
+    const msg = zh
+      ? '⚠️ 此操作將強制把此人移至候補名單。\n\n確定要繼續嗎？'
+      : '⚠️ This will force-move this person to the waitlist.\n\nContinue?';
+    if (!confirm(msg)) return;
+    try {
+      await updateDoc(doc(db, 'sessions', sessionId, 'signups', signupId), { forceWaitlisted: true, forceConfirmed: false });
     } catch(e) {
       alert((zh ? '操作失敗：' : 'Failed: ') + e.message);
     }
@@ -1765,6 +1785,198 @@
   }
 
   applyLang();
+
+  // ── Creator Add Signup ──
+  let creatorAddSessionId = null;
+  let creatorAddMode = 'self';
+  let creatorAddGender = '';
+
+  window.openCreatorAddModal = (sessionId) => {
+    creatorAddSessionId = sessionId;
+    creatorAddMode = 'self';
+    creatorAddGender = '';
+    const session = [...mySessionsCache, ...allSessionsCache].find(s => s.id === sessionId) || {};
+    const zh = getLang() === 'zh';
+    // Reset form
+    document.getElementById('caName').value = currentUser?.displayName || '';
+    document.getElementById('caFriendName').value = '';
+    document.getElementById('caLate').checked = false;
+    document.getElementById('caLateRow').classList.add('hidden');
+    document.getElementById('caLateTime').value = '';
+    document.getElementById('caNameError').classList.add('hidden');
+    document.getElementById('caFriendNameError').classList.add('hidden');
+    document.getElementById('caGenderError').classList.add('hidden');
+    document.getElementById('caMsg').classList.add('hidden');
+    document.getElementById('caSubmitBtn').disabled = false;
+    document.getElementById('hCaSubmit').textContent = zh ? '➕ 新增報名' : '➕ Add';
+    // Gender row only for mixed
+    document.getElementById('caGenderRow').classList.toggle('hidden', session.type !== 'mixed');
+    ['caGenderMale','caGenderFemale'].forEach(id => {
+      document.getElementById(id).className = 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition';
+    });
+    // Pair-with dropdown
+    const pairSel = document.getElementById('caPair');
+    const noPreference = zh ? '— 不指定 —' : '— No preference —';
+    const signups = signupItemsCache[sessionId] || [];
+    pairSel.innerHTML = `<option value="">${noPreference}</option>` +
+      signups.map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
+    caSetMode('self');
+    document.getElementById('creatorAddModal').classList.remove('hidden');
+  };
+
+  window.closeCreatorAddModal = () => {
+    document.getElementById('creatorAddModal').classList.add('hidden');
+    creatorAddSessionId = null;
+  };
+
+  window.caSetMode = (mode) => {
+    creatorAddMode = mode;
+    const activeClass = 'flex-1 text-xs py-2 rounded-xl border border-indigo-500 bg-indigo-600 text-white font-semibold transition';
+    const idleClass = 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-indigo-300 transition';
+    document.getElementById('caSelfBtn').className = mode === 'self' ? activeClass : idleClass;
+    document.getElementById('caFriendBtn').className = mode === 'friend' ? activeClass : idleClass;
+    document.getElementById('caSelfRow').classList.toggle('hidden', mode === 'friend');
+    document.getElementById('caFriendRow').classList.toggle('hidden', mode === 'self');
+    creatorAddGender = '';
+    ['caGenderMale','caGenderFemale'].forEach(id => {
+      document.getElementById(id).className = 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition';
+    });
+  };
+
+  window.caSelectGender = (gender) => {
+    creatorAddGender = gender;
+    document.getElementById('caGenderError').classList.add('hidden');
+    document.getElementById('caGenderMale').className = gender === 'male'
+      ? 'flex-1 text-xs py-2 rounded-xl border border-blue-500 bg-blue-50 text-blue-600 font-semibold transition'
+      : 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition';
+    document.getElementById('caGenderFemale').className = gender === 'female'
+      ? 'flex-1 text-xs py-2 rounded-xl border border-pink-500 bg-pink-50 text-pink-600 font-semibold transition'
+      : 'flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition';
+  };
+
+  window.submitCreatorAdd = async () => {
+    if (!creatorAddSessionId || !currentUser) return;
+    const zh = getLang() === 'zh';
+    const session = [...mySessionsCache, ...allSessionsCache].find(s => s.id === creatorAddSessionId) || {};
+    const isFriend = creatorAddMode === 'friend';
+    const nameVal = isFriend
+      ? document.getElementById('caFriendName').value.trim()
+      : document.getElementById('caName').value.trim();
+    if (!nameVal) {
+      const errId = isFriend ? 'caFriendNameError' : 'caNameError';
+      document.getElementById(errId).textContent = zh ? '請輸入姓名' : 'Name required';
+      document.getElementById(errId).classList.remove('hidden');
+      return;
+    }
+    if (session.type === 'mixed' && !creatorAddGender) {
+      document.getElementById('caGenderError').classList.remove('hidden');
+      document.getElementById('caGenderRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    let signupGender = '';
+    if (session.type === 'male') signupGender = 'male';
+    else if (session.type === 'female') signupGender = 'female';
+    else if (session.type === 'mixed') signupGender = creatorAddGender;
+
+    const btn = document.getElementById('caSubmitBtn');
+    btn.disabled = true;
+    document.getElementById('hCaSubmit').textContent = zh ? '新增中...' : 'Adding...';
+    try {
+      const organizerName = !isFriend ? (document.getElementById('caName').value.trim() || currentUser.displayName || '') : (currentUser.displayName || '');
+      await addDoc(collection(db, 'sessions', creatorAddSessionId, 'signups'), {
+        name: isFriend ? organizerName : nameVal,
+        forFriend: isFriend ? nameVal : '',
+        photoURL: currentUser.photoURL || null,
+        uid: currentUser.uid,
+        signedAt: serverTimestamp(),
+        isLate: document.getElementById('caLate').checked,
+        lateTime: document.getElementById('caLateTime').value.trim(),
+        pairWith: document.getElementById('caPair').value.trim(),
+        gender: signupGender,
+        addedByOrganizer: true,
+      });
+      const msgEl = document.getElementById('caMsg');
+      msgEl.textContent = zh ? '✅ 已新增！' : '✅ Added!';
+      msgEl.className = 'text-center text-sm text-green-600';
+      msgEl.classList.remove('hidden');
+      setTimeout(closeCreatorAddModal, 900);
+    } catch(e) {
+      const msgEl = document.getElementById('caMsg');
+      msgEl.textContent = zh ? '❌ 新增失敗' : '❌ Failed';
+      msgEl.className = 'text-center text-sm text-red-500';
+      msgEl.classList.remove('hidden');
+      btn.disabled = false;
+      document.getElementById('hCaSubmit').textContent = zh ? '➕ 新增報名' : '➕ Add';
+    }
+  };
 </script>
+
+<!-- Creator Add Signup Modal -->
+<div id="creatorAddModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeCreatorAddModal()"></div>
+  <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
+    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+      <h2 class="font-bold text-gray-800">➕ 新增報名</h2>
+      <button onclick="closeCreatorAddModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+      <!-- Self / Friend mode -->
+      <div class="flex gap-2">
+        <button id="caSelfBtn" onclick="caSetMode('self')"
+          class="flex-1 text-xs py-2 rounded-xl border border-indigo-500 bg-indigo-600 text-white font-semibold transition">自己</button>
+        <button id="caFriendBtn" onclick="caSetMode('friend')"
+          class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-indigo-300 transition">幫朋友</button>
+      </div>
+      <!-- Self name -->
+      <div id="caSelfRow">
+        <label class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
+        <input id="caName" type="text" maxlength="20"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="caNameError" class="hidden mt-1 text-xs text-red-500"></p>
+      </div>
+      <!-- Friend name -->
+      <div id="caFriendRow" class="hidden">
+        <label class="block text-sm font-medium text-gray-600 mb-1">朋友姓名 <span class="text-red-400">*</span></label>
+        <input id="caFriendName" type="text" maxlength="20"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="caFriendNameError" class="hidden mt-1 text-xs text-red-500"></p>
+      </div>
+      <!-- Gender (mixed sessions) -->
+      <div id="caGenderRow" class="hidden">
+        <label class="block text-sm font-medium text-gray-600 mb-2">性別 <span class="text-red-400">*</span></label>
+        <div class="flex gap-2">
+          <button type="button" id="caGenderMale" onclick="caSelectGender('male')"
+            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition">♂ 男生</button>
+          <button type="button" id="caGenderFemale" onclick="caSelectGender('female')"
+            class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
+        </div>
+        <p id="caGenderError" class="hidden mt-1 text-xs text-red-500">請選擇性別</p>
+      </div>
+      <!-- Late -->
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="caLate" class="w-4 h-4"
+          onchange="document.getElementById('caLateRow').classList.toggle('hidden',!this.checked)" />
+        <label for="caLate" class="text-sm text-gray-600">會晚到</label>
+      </div>
+      <div id="caLateRow" class="hidden ml-6">
+        <input id="caLateTime" type="text" placeholder="預計幾點？"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      </div>
+      <!-- Pair with -->
+      <div>
+        <label class="block text-sm text-gray-600 mb-1">希望跟誰搭檔？（選填）</label>
+        <select id="caPair"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <option value="">— 不指定 —</option>
+        </select>
+      </div>
+      <button id="caSubmitBtn" onclick="submitCreatorAdd()"
+        class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
+        <span id="hCaSubmit">➕ 新增報名</span>
+      </button>
+      <p id="caMsg" class="text-center text-sm hidden"></p>
+    </div>
+  </div>
+</div>
 </body>
 </html>
