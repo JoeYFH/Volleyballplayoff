@@ -1099,20 +1099,23 @@
     const confirmed = items.filter(item => !isWaitFn(item));
     const waitlist  = items.filter(item =>  isWaitFn(item));
 
+    const zh = getLang() === 'zh';
     const fmtItem = (item, i, isWait) => {
-      const prefix = isWait ? `候${i+1}.` : `${i+1}.`;
+      const prefix = isWait ? (zh ? `候${i+1}.` : `W${i+1}.`) : `${i+1}.`;
       let line = `${prefix} ${item.name}`;
-      if (item.isLate) line += item.lateTime ? `（晚到${item.lateTime}）` : '（晚到）';
-      if (item.forFriend) line += `（代報：${item.forFriend}）`;
-      if (item.pairWith) line += `（搭檔：${item.pairWith}）`;
+      if (item.isLate) line += item.lateTime ? (zh ? `（晚到${item.lateTime}）` : ` (Late ${item.lateTime})`) : (zh ? '（晚到）' : ' (Late)');
+      if (item.forFriend) line += zh ? `（代報：${item.forFriend}）` : ` (For: ${item.forFriend})`;
+      if (item.pairWith) line += zh ? `（搭檔：${item.pairWith}）` : ` (Pair: ${item.pairWith})`;
       return line;
     };
 
-    const TYPE_LABEL = { '':'不限', mixed:'混排', male:'男生', female:'女生' };
-    const typeStr = s?.type ? `｜${TYPE_LABEL[s.type]||s.type}` : '';
-    const limitStr = limit ? `｜${limit}人` : '';
+    const TYPE_LABEL = zh
+      ? { '':'不限', mixed:'混排', male:'男生', female:'女生' }
+      : { '':'Any',  mixed:'Mixed', male:'Male', female:'Female' };
+    const typeStr = s?.type ? (zh ? `｜${TYPE_LABEL[s.type]||s.type}` : ` | ${TYPE_LABEL[s.type]||s.type}`) : '';
+    const limitStr = limit ? (zh ? `｜${limit}人` : ` | ${limit} spots`) : '';
 
-    let msg = `🏐 ${s?.title || '零打'}\n`;
+    let msg = `🏐 ${s?.title || (zh ? '零打' : 'Pickup')}\n`;
     msg += `📅 ${s?.date || ''} ${s?.time || ''}\n`;
     msg += `📍 ${s?.location || ''}`;
     if (s?.venue) msg += `\n🏟️ ${s.venue}`;
@@ -1120,7 +1123,6 @@
     msg += `\n${'─'.repeat(18)}\n`;
 
     if (hasMixedLimits) {
-      // Split confirmed by gender (only when gender limits are set, matching live list)
       const maleConf   = confirmed.filter(x => x.gender === 'male');
       const femaleConf = confirmed.filter(x => x.gender === 'female');
       const otherConf  = confirmed.filter(x => x.gender !== 'male' && x.gender !== 'female');
@@ -1128,30 +1130,30 @@
       const femaleWait = waitlist.filter(x => x.gender === 'female');
       const otherWait  = waitlist.filter(x => x.gender !== 'male' && x.gender !== 'female');
 
-      msg += `✅ 正取名單（${confirmed.length}人）\n`;
+      msg += `✅ ${zh ? `正取名單（${confirmed.length}人）` : `Confirmed (${confirmed.length})`}\n`;
       if (maleConf.length) {
-        msg += `♂ 男生${maleLimit ? `（${maleConf.length}/${maleLimit}）` : `（${maleConf.length}）`}\n`;
+        msg += `♂ ${zh ? '男生' : 'Male'}${maleLimit ? (zh ? `（${maleConf.length}/${maleLimit}）` : ` (${maleConf.length}/${maleLimit})`) : (zh ? `（${maleConf.length}）` : ` (${maleConf.length})`)}\n`;
         msg += maleConf.map((item, i) => fmtItem(item, i, false)).join('\n') + '\n';
       }
       if (femaleConf.length) {
-        msg += `♀ 女生${femaleLimit ? `（${femaleConf.length}/${femaleLimit}）` : `（${femaleConf.length}）`}\n`;
+        msg += `♀ ${zh ? '女生' : 'Female'}${femaleLimit ? (zh ? `（${femaleConf.length}/${femaleLimit}）` : ` (${femaleConf.length}/${femaleLimit})`) : (zh ? `（${femaleConf.length}）` : ` (${femaleConf.length})`)}\n`;
         msg += femaleConf.map((item, i) => fmtItem(item, i, false)).join('\n') + '\n';
       }
       if (otherConf.length) {
-        msg += `其他（${otherConf.length}）\n`;
+        msg += `${zh ? `其他（${otherConf.length}）` : `Other (${otherConf.length})`}\n`;
         msg += otherConf.map((item, i) => fmtItem(item, i, false)).join('\n') + '\n';
       }
       if (maleWait.length || femaleWait.length || otherWait.length) {
-        msg += `\n⏳ 候補名單\n`;
-        if (maleWait.length)   msg += `♂ 男生\n` + maleWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
-        if (femaleWait.length) msg += `♀ 女生\n` + femaleWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
-        if (otherWait.length)  msg += `其他\n` + otherWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
+        msg += `\n⏳ ${zh ? '候補名單' : 'Waitlist'}\n`;
+        if (maleWait.length)   msg += `♂ ${zh ? '男生' : 'Male'}\n` + maleWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
+        if (femaleWait.length) msg += `♀ ${zh ? '女生' : 'Female'}\n` + femaleWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
+        if (otherWait.length)  msg += `${zh ? '其他' : 'Other'}\n` + otherWait.map((item, i) => fmtItem(item, i, true)).join('\n') + '\n';
       }
     } else {
-      msg += `✅ 正取名單（${confirmed.length}人）\n`;
+      msg += `✅ ${zh ? `正取名單（${confirmed.length}人）` : `Confirmed (${confirmed.length})`}\n`;
       msg += confirmed.map((item, i) => fmtItem(item, i, false)).join('\n');
       if (waitlist.length) {
-        msg += `\n\n⏳ 候補名單\n` + waitlist.map((item, i) => fmtItem(item, i, true)).join('\n');
+        msg += `\n\n⏳ ${zh ? '候補名單' : 'Waitlist'}\n` + waitlist.map((item, i) => fmtItem(item, i, true)).join('\n');
       }
     }
 
