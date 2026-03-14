@@ -650,6 +650,18 @@
       if (urlSessionId) {
         const target = allSessionsCache.find(s => s.id === urlSessionId);
         if (target) {
+          // 切換到正確的 filter，確保場次卡片顯示 / switch to correct filter so session card is visible
+          const today = new Date().toISOString().split('T')[0];
+          const now2 = Date.now();
+          const closeAt2 = target.closeAt ? target.closeAt.toMillis() : null;
+          const isPastClose2 = closeAt2 && closeAt2 < now2;
+          if ((target.date || '') < today) {
+            setFilter('past');
+          } else if (!target.isOpen || isPastClose2) {
+            setFilter('closed');
+          } else {
+            setFilter('open');
+          }
           // Scroll to the session card
           setTimeout(() => {
             const card = document.getElementById('card-' + urlSessionId);
@@ -918,8 +930,8 @@
     if (maleLimit > 0 || femaleLimit > 0) {
       let maleCount = 0, femaleCount = 0;
       items.forEach(s => {
-        if (s.gender === 'male') { maleCount++; s.genderPosition = maleCount; s.genderWait = maleLimit > 0 && maleCount > maleLimit; }
-        else if (s.gender === 'female') { femaleCount++; s.genderPosition = femaleCount; s.genderWait = femaleLimit > 0 && femaleCount > femaleLimit; }
+        if (s.gender === 'male') { maleCount++; s.genderPosition = maleCount; s.genderWait = !s.forceConfirmed && maleLimit > 0 && maleCount > maleLimit; }
+        else if (s.gender === 'female') { femaleCount++; s.genderPosition = femaleCount; s.genderWait = !s.forceConfirmed && femaleLimit > 0 && femaleCount > femaleLimit; }
         else { s.genderWait = false; }
       });
     }
@@ -928,7 +940,7 @@
     const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
     // When gender sub-limits exist, use genderWait regardless of isFull
     // (time-based total overflow is secondary to gender quota)
-    const waitItems = hasMixedLimits ? items.filter(s => s.genderWait) : (isFull ? items.filter(s => s.position > limit) : []);
+    const waitItems = hasMixedLimits ? items.filter(s => s.genderWait) : (isFull ? items.filter(s => !s.forceConfirmed && s.position > limit) : []);
     const ownIsWaitlisted = currentUser && waitItems.some(s => s.uid === currentUser.uid);
 
     let html = '';
@@ -996,7 +1008,7 @@
     } else {
       let separatorAdded = false;
       html += items.map(s => {
-        const isWait = (limit > 0 && s.position > limit) || !!s.genderWait;
+        const isWait = (!s.forceConfirmed && limit > 0 && s.position > limit) || !!s.genderWait;
         let sep = '';
         if (isWait && !separatorAdded) {
           separatorAdded = true;
@@ -1549,9 +1561,12 @@
     document.getElementById('modalNameError').classList.add('hidden');
     document.getElementById('modalLate').checked = false;
     document.getElementById('modalLateSection').classList.add('hidden');
+    document.getElementById('modalLateTime').value = '';
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
+    document.getElementById('modalFriendName').value = '';
     document.getElementById('lModalLate').textContent = tr('willBeLate');
+    selectedBringEquip.clear();
     if (currentUser) document.getElementById('modalProfilePreview').classList.remove('hidden');
     document.getElementById('hConfirmBtn').textContent = tr('confirmBtn');
     // Update friend name datalist
