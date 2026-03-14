@@ -1218,9 +1218,12 @@
     }
 
     const closeAtEl = document.getElementById('sf_closeAt');
-    const closeAt = closeAtEl.value
-      ? Timestamp.fromDate(new Date(closeAtEl.value))
-      : Timestamp.fromDate(new Date(`${date}T${time}:00`));
+    const closeAtDate = closeAtEl.value
+      ? new Date(closeAtEl.value)
+      : new Date(`${date}T${time}:00`);
+    const closeAt = Timestamp.fromDate(closeAtDate);
+    // 如果結束報名時間已過，直接關閉報名
+    if (closeAtDate < new Date()) isOpen = false;
 
     const data = {
       title,
