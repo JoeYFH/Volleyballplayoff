@@ -31,13 +31,18 @@
     .tag{display:inline-flex;align-items:center;gap:4px;background:#e0e7ff;color:#4338ca;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500}
     .sheet{transition:transform .3s ease,opacity .3s ease}
     .sheet.hidden-sheet{transform:translateY(100%);opacity:0;pointer-events:none}
-    #mapSuggestions { position:absolute; z-index:50; background:white; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); max-height:200px; overflow-y:auto; width:100%; }
-    #mapSuggestions li { padding:10px 14px; font-size:13px; cursor:pointer; border-bottom:1px solid #f1f5f9; }
-    #mapSuggestions li:last-child { border-bottom:none; }
-    #mapSuggestions li:hover { background:#f1f5f9; }
+    #mapSuggestions, .form-map-sug { position:absolute; z-index:50; background:white; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); max-height:200px; overflow-y:auto; width:100%; }
+    #mapSuggestions li, .form-map-sug li { padding:10px 14px; font-size:13px; cursor:pointer; border-bottom:1px solid #f1f5f9; }
+    #mapSuggestions li:last-child, .form-map-sug li:last-child { border-bottom:none; }
+    #mapSuggestions li:hover, .form-map-sug li:hover { background:#f1f5f9; }
+    #toastEl { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1e1b4b; color:#fff; padding:12px 24px; border-radius:14px; font-size:0.9rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s, transform 0.25s; pointer-events:none; z-index:9999; white-space:nowrap; }
+    #toastEl.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    html[lang="en"] input[type="date"], html[lang="en"] input[type="datetime-local"] { -webkit-locale: "en-GB"; }
+    html[lang="en"] input[type="time"] { -webkit-locale: "en-GB"; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+<div id="toastEl"></div>
 <div class="max-w-2xl mx-auto pb-24">
 
   <!-- Sticky Header -->
@@ -208,155 +213,11 @@
           </select>
           <button id="applyTemplateBtn" type="button" onclick="applySelectedTemplate()"
             class="hidden px-3 py-2 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition shrink-0">套用</button>
-          <button id="editTemplateBtn" type="button" onclick="editSelectedTemplate()"
-            class="px-3 py-2 bg-gray-100 text-gray-600 text-xs font-semibold rounded-xl hover:bg-gray-200 transition shrink-0">編輯</button>
         </div>
       </div>
 
-      <!-- Title -->
-      <div>
-        <label id="lTitle" class="block text-sm font-medium text-gray-600 mb-1">場次名稱 <span class="text-red-400">*</span></label>
-        <input id="fTitle" type="text" maxlength="30"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <p id="fTitleErr" class="hidden text-xs text-red-500 mt-1"></p>
-      </div>
-
-      <!-- Date + Time -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label id="lDate" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
-          <input id="fDate" type="date"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="fDateErr" class="hidden text-xs text-red-500 mt-1"></p>
-        </div>
-        <div>
-          <label id="lTime" class="block text-sm font-medium text-gray-600 mb-1">時間 <span class="text-red-400">*</span></label>
-          <input id="fTime" type="time" value="00:00"
-            class="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="fTimeErr" class="hidden text-xs text-red-500 mt-1"></p>
-        </div>
-      </div>
-
-      <!-- Location with map search -->
-      <div>
-        <label id="lLocation" class="block text-sm font-medium text-gray-600 mb-1">地點 <span class="text-red-400">*</span></label>
-        <div class="relative">
-          <input id="fLocation" type="text" autocomplete="off"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <ul id="mapSuggestions" class="hidden"></ul>
-        </div>
-        <p id="fLocationErr" class="hidden text-xs text-red-500 mt-1"></p>
-      </div>
-
-      <!-- Venue -->
-      <div>
-        <label id="lVenue" class="block text-sm font-medium text-gray-600 mb-1">場地詳細（選填）</label>
-        <input id="fVenue" type="text" maxlength="50"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-      </div>
-
-      <!-- Limit + Type -->
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label id="lLimit" class="block text-sm font-medium text-gray-600 mb-1">人數上限（0=不限）</label>
-          <input id="fLimit" type="number" min="0" max="100" value="12"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        </div>
-        <div>
-          <label id="lType" class="block text-sm font-medium text-gray-600 mb-1">性別分類</label>
-          <select id="fType" onchange="onTypeChange()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="mixed" id="oMixed">混排</option>
-            <option value="male" id="oMale">男生</option>
-            <option value="female" id="oFemale">女生</option>
-          </select>
-        </div>
-      </div>
-      <!-- Mixed session gender sub-limits -->
-      <div id="mixedLimitsRow" class="hidden grid grid-cols-2 gap-3">
-        <div>
-          <label id="lMaleLimit" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
-          <input id="fMaleLimit" type="number" min="0" max="100" value="0"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        </div>
-        <div>
-          <label id="lFemaleLimit" class="block text-sm font-medium text-gray-600 mb-1">女生名額（0=不限）</label>
-          <input id="fFemaleLimit" type="number" min="0" max="100" value="0"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        </div>
-      </div>
-      <p id="fMaleLimitErr" class="hidden text-xs text-red-500 -mt-2"></p>
-
-      <!-- Equipment addable list -->
-      <div>
-        <label id="lEquip" class="block text-sm font-medium text-gray-600 mb-2">需要攜帶的用具</label>
-        <!-- Quick preset chips -->
-        <div class="flex flex-wrap gap-2 mb-2" id="equipChips">
-          <button type="button" data-equip="標竿" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏁 標竿</button>
-          <button type="button" data-equip="音響" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🔊 音響</button>
-          <button type="button" data-equip="球" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
-        </div>
-        <!-- Custom items list -->
-        <div id="equipCustomList" class="flex flex-wrap gap-2 mb-2"></div>
-        <!-- Add custom item row -->
-        <div class="flex gap-2">
-          <input id="fEquipCustom" type="text" placeholder="新增用具名稱..."
-            class="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <button type="button" id="addEquipBtn"
-            class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-xl hover:bg-indigo-100 transition">＋</button>
-        </div>
-      </div>
-
-      <!-- Open Time -->
-      <div>
-        <label id="lOpenWhen" class="block text-sm font-medium text-gray-600 mb-1">開放報名時間</label>
-        <select id="fOpenWhen" onchange="onOpenWhenChange()"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
-          <option value="now" id="oOpenNow">立即開放</option>
-          <option value="hours" id="oOpenHours">開賽前 N 小時</option>
-          <option value="days" id="oOpenDays">開賽前 N 天</option>
-          <option value="custom" id="oOpenCustom">指定時間</option>
-        </select>
-        <div id="fOpenOffsetRow" class="hidden flex items-center gap-2">
-          <input id="fOpenOffset" type="number" min="1" max="999" value="1"
-            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <span id="fOpenOffsetUnit" class="text-sm text-gray-500">小時前</span>
-        </div>
-        <div id="fOpenAtRow" class="hidden">
-          <input id="fOpenAt" type="datetime-local"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="hOpenAtHint" class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
-        </div>
-      </div>
-
-      <!-- Close Time -->
-      <div>
-        <label id="lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間</label>
-        <select id="fCloseWhen" onchange="onCloseWhenChange()"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-          <option value="game_start" id="oCloseGameStart">直到活動開始</option>
-          <option value="hours" id="oCloseHours">開賽前 N 小時</option>
-          <option value="days" id="oCloseDays">開賽前 N 天</option>
-          <option value="custom" id="oCloseCustom">自訂時間</option>
-        </select>
-        <div id="fCloseOffsetRow" class="hidden mt-2 flex items-center gap-2">
-          <input id="fCloseOffset" type="number" min="1" value="1"
-            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <span id="fCloseOffsetUnit" class="text-sm text-gray-500">小時前</span>
-        </div>
-        <div id="fCloseAtRow" class="hidden mt-2">
-          <input id="fCloseAt" type="datetime-local"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="hCloseAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
-        </div>
-      </div>
-
-      <!-- Note -->
-      <div>
-        <label id="lNote" class="block text-sm font-medium text-gray-600 mb-1">備註（選填）</label>
-        <p id="lNoteHint" class="text-xs text-amber-500 mb-1">⚠️ 此備註只有開場者能看到，不會顯示在公開報名頁面上</p>
-        <textarea id="fNote" rows="2"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
-      </div>
+      <!-- Form fields injected from session-form.js -->
+      <div id="formFieldsContainer" class="contents"></div>
 
       <div class="flex gap-3">
         <button id="submitCreateBtn"
@@ -531,6 +392,10 @@
   import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang, t } from './i18n.js';
+  import { sessionFormHTML, FORM_IDS_INDEX, FORM_FNS_INDEX } from './session-form.js';
+
+  // Inject shared form fields before any DOM setup
+  document.getElementById('formFieldsContainer').innerHTML = sessionFormHTML(FORM_IDS_INDEX, FORM_FNS_INDEX);
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -637,7 +502,8 @@
     const lang = getLang();
     document.getElementById('htmlRoot').lang = lang === 'zh' ? 'zh-TW' : 'en';
     document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
-    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = lang === 'zh' ? 'zh-TW' : 'en'; });
+    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = lang === 'zh' ? 'zh-TW' : 'en-GB'; });
+    document.querySelectorAll('input[type="time"]').forEach(el => { el.lang = lang === 'zh' ? 'zh-TW' : 'en-GB'; });
     document.getElementById('langBtn').textContent = lang === 'zh' ? 'EN' : '中';
     document.getElementById('hAppTitle').textContent = '🏐 ' + tr('appTitle');
     document.getElementById('hLive').textContent = tr('liveUpdate');
@@ -694,13 +560,11 @@
     document.getElementById('hCreateTitle').textContent = getLang()==='zh' ? '建立新場次' : 'Create New Session';
     document.getElementById('lTemplatePick').textContent = getLang()==='zh' ? '套用範本' : 'Apply Template';
     document.getElementById('applyTemplateBtn').textContent = getLang()==='zh' ? '套用' : 'Apply';
-    document.getElementById('editTemplateBtn').textContent = getLang()==='zh' ? '編輯' : 'Edit';
     // Update equipment chip labels
     const chipLabels = { '標竿': getLang()==='zh'?'🏁 標竿':'🏁 Pole', '音響': getLang()==='zh'?'🔊 音響':'🔊 Speaker', '球': getLang()==='zh'?'🏐 球':'🏐 Ball' };
     document.querySelectorAll('#equipChips [data-equip]').forEach(btn => {
       if (chipLabels[btn.dataset.equip]) btn.textContent = chipLabels[btn.dataset.equip];
     });
-    document.documentElement.lang = getLang() === 'zh' ? 'zh-TW' : 'en';
     onOpenWhenChange();
     document.getElementById('modalFormTitle').textContent = tr('formTitle');
     document.getElementById('hGoogleProfile').textContent = tr('googleProfile');
@@ -1428,18 +1292,18 @@
     renderCustomEquipList();
   };
 
-  function addCustomEquipItem() {
+  window.addCustomEquipItem = function() {
     const input = document.getElementById('fEquipCustom');
     const val = input.value.trim();
     if (!val) return;
     if (!customEquipItems.includes(val)) customEquipItems.push(val);
     input.value = '';
     renderCustomEquipList();
-  }
+  };
 
-  document.getElementById('addEquipBtn').addEventListener('click', addCustomEquipItem);
+  document.getElementById('addEquipBtn').addEventListener('click', window.addCustomEquipItem);
   document.getElementById('fEquipCustom').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addCustomEquipItem(); }
+    if (e.key === 'Enter') { e.preventDefault(); window.addCustomEquipItem(); }
   });
 
   // Helper: mark a create-form field as error
@@ -1605,6 +1469,15 @@
     // errors stay visible until user fixes them
   }
 
+  let _toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toastEl');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
   // ── Save Template ──
   window.saveTemplate = async (mode) => {
     if (!currentUser) return;
@@ -1629,7 +1502,7 @@
           await setDoc(doc(db, 'users', currentUser.uid, 'templates', selectedId), {
             ...tmplData, name: tmpl.name, createdAt: tmpl.createdAt,
           });
-          showCreateMsg(zh ? '✅ 範本已更新！' : '✅ Template updated!', 'success');
+          showToast(zh ? '✅ 範本已更新！' : '✅ Template updated!');
           loadTemplatesForDropdown();
           return;
         }
@@ -1639,13 +1512,13 @@
     const name = prompt(zh ? '範本名稱：' : 'Template name:', document.getElementById('fTitle').value || '');
     if (!name) return;
     if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
-      showCreateMsg(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
+      showToast(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists');
       return;
     }
     await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
       ...tmplData, name, createdAt: Timestamp.now(),
     });
-    showCreateMsg(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!', 'success');
+    showToast(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!');
     loadTemplatesForDropdown();
   };
 

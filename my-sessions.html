@@ -14,13 +14,18 @@
     input[type=checkbox]{accent-color:#4f46e5}
     .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    #mapSuggestions2 { position:absolute;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;width:100%; }
-    #mapSuggestions2 li { padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9; }
-    #mapSuggestions2 li:last-child { border-bottom:none; }
-    #mapSuggestions2 li:hover { background:#f1f5f9; }
+    #mapSuggestions2, .form-map-sug { position:absolute;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;width:100%; }
+    #mapSuggestions2 li, .form-map-sug li { padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9; }
+    #mapSuggestions2 li:last-child, .form-map-sug li:last-child { border-bottom:none; }
+    #mapSuggestions2 li:hover, .form-map-sug li:hover { background:#f1f5f9; }
+    #toastEl { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1e1b4b; color:#fff; padding:12px 24px; border-radius:14px; font-size:0.9rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s, transform 0.25s; pointer-events:none; z-index:9999; white-space:nowrap; }
+    #toastEl.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    html[lang="en"] input[type="date"], html[lang="en"] input[type="datetime-local"] { -webkit-locale: "en-GB"; }
+    html[lang="en"] input[type="time"] { -webkit-locale: "en-GB"; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+<div id="toastEl"></div>
 
 <!-- Auth Loading -->
 <div id="authLoading" class="flex items-center justify-center min-h-screen">
@@ -224,139 +229,8 @@
         </select>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl0">場次名稱 <span class="text-red-400" id="sl0req">*</span></label>
-        <input id="sf_title" type="text" maxlength="30"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <p id="sf_titleErr" class="hidden text-xs text-red-500 mt-1"></p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl1">日期 <span class="text-red-400">*</span></label>
-          <input id="sf_date" type="date"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="sf_dateErr" class="hidden text-xs text-red-500 mt-1"></p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl2">時間 <span class="text-red-400">*</span></label>
-          <input id="sf_time" type="time" value="00:00"
-            class="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="sf_timeErr" class="hidden text-xs text-red-500 mt-1"></p>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl3">地點 <span class="text-red-400">*</span></label>
-        <div class="relative">
-          <input id="sf_location" type="text" autocomplete="off"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <ul id="mapSuggestions2" class="hidden"></ul>
-        </div>
-        <p id="sf_locationErr" class="hidden text-xs text-red-500 mt-1"></p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl4">活動詳細說明（選填）</label>
-        <input id="sf_venue" type="text" maxlength="50"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl5">人數上限（0=不限）</label>
-          <input id="sf_limit" type="number" min="0" max="100" value="12"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-600 mb-1" id="sl6">性別分類</label>
-          <select id="sf_type" onchange="sfOnTypeChange()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-            <option value="mixed">混排</option>
-            <option value="male">男生</option>
-            <option value="female">女生</option>
-          </select>
-        </div>
-      </div>
-      <!-- Mixed session gender sub-limits -->
-      <div id="sf_mixedLimitsRow" class="hidden grid grid-cols-2 gap-3">
-        <div>
-          <label id="sf_lMaleLimit" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
-          <input id="sf_maleLimit" type="number" min="0" max="100" value="0"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        </div>
-        <div>
-          <label id="sf_lFemaleLimit" class="block text-sm font-medium text-gray-600 mb-1">女生名額（0=不限）</label>
-          <input id="sf_femaleLimit" type="number" min="0" max="100" value="0"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        </div>
-      </div>
-      <p id="sf_mixedLimitErr" class="hidden text-xs text-red-500 -mt-2"></p>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-2" id="sl7">需要攜帶的用具</label>
-        <div class="flex flex-wrap gap-2 mb-2" id="sf_equipChips">
-          <button type="button" data-equip="標竿" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏁 標竿</button>
-          <button type="button" data-equip="音響" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🔊 音響</button>
-          <button type="button" data-equip="球" class="sf-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
-        </div>
-        <div id="sf_customTagsList" class="flex flex-wrap gap-1.5 mb-2 hidden"></div>
-        <div class="flex gap-2">
-          <input id="sf_equipCustom" type="text" placeholder="新增用具"
-            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <button type="button" id="sfAddEquipBtn" onclick="sfAddCustomEquip()"
-            class="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 active:scale-95 transition">+</button>
-        </div>
-      </div>
-
-      <!-- Open Time -->
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl8">開放報名時間</label>
-        <select id="sf_openWhen" onchange="onSfOpenWhenChange()"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
-          <option value="now" id="sfOpenNow">立即開放</option>
-          <option value="hours" id="sfOpenHours">開賽前 N 小時</option>
-          <option value="days" id="sfOpenDays">開賽前 N 天</option>
-          <option value="custom" id="sfOpenCustom">指定時間</option>
-        </select>
-        <div id="sf_offsetRow" class="hidden flex items-center gap-2">
-          <input id="sf_offset" type="number" min="1" max="999" value="1"
-            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <span id="sf_offsetUnit" class="text-sm text-gray-500">小時前</span>
-        </div>
-        <div id="sf_atRow" class="hidden">
-          <input id="sf_openAt" type="datetime-local"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="sf_openAtHint" class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
-        </div>
-      </div>
-
-      <!-- Close Time -->
-      <div>
-        <label id="sf_lCloseAt" class="block text-sm font-medium text-gray-600 mb-1">結束報名時間</label>
-        <select id="sf_closeWhen" onchange="onSfCloseWhenChange()"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-2">
-          <option value="game_start" id="sfCloseGameStart">活動開始時間（預設）</option>
-          <option value="hours" id="sfCloseHours">開賽前 N 小時</option>
-          <option value="days" id="sfCloseDays">開賽前 N 天</option>
-          <option value="custom" id="sfCloseCustom">指定時間</option>
-        </select>
-        <div id="sf_closeOffsetRow" class="hidden flex items-center gap-2">
-          <input id="sf_closeOffset" type="number" min="1" max="999" value="1"
-            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <span id="sf_closeOffsetUnit" class="text-sm text-gray-500">小時前</span>
-        </div>
-        <div id="sf_closeAtRow" class="hidden">
-          <input id="sf_closeAt" type="datetime-local"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-          <p id="sf_closeAtHint" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1" id="sl9">備註（選填）</label>
-        <textarea id="sf_note" rows="2"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
-      </div>
+      <!-- Form fields injected from session-form.js -->
+      <div id="sfFormFieldsContainer" class="contents"></div>
 
       <div class="flex gap-3">
         <button id="sfSubmitBtn" onclick="submitSession()"
@@ -464,6 +338,10 @@
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
+  import { sessionFormHTML, FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS } from './session-form.js';
+
+  // Inject shared form fields before any DOM setup
+  document.getElementById('sfFormFieldsContainer').innerHTML = sessionFormHTML(FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS);
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -558,7 +436,8 @@
     const l = getLang();
     const zh = l === 'zh';
     document.documentElement.lang = zh ? 'zh-TW' : 'en';
-    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = zh ? 'zh-TW' : 'en'; });
+    document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(el => { el.lang = zh ? 'zh-TW' : 'en-GB'; });
+    document.querySelectorAll('input[type="time"]').forEach(el => { el.lang = zh ? 'zh-TW' : 'en-GB'; });
     document.getElementById('langBtn2').textContent = zh ? 'EN' : '中';
     const loginBtn = document.getElementById('langBtnLogin');
     if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';
@@ -633,6 +512,7 @@
     document.getElementById('sl7').textContent = zh ? '需要攜帶的用具' : 'Required Equipment';
     document.getElementById('sl8').textContent = zh ? '開放報名時間' : 'Signup Open Time';
     document.getElementById('sl9').textContent = zh?'備註（選填）':'Notes (optional)';
+    const sfNoteHint = document.getElementById('sf_noteHint'); if (sfNoteHint) sfNoteHint.textContent = zh ? '⚠️ 此備註只有開場者能看到，不會顯示在公開報名頁面上' : '⚠️ This note is only visible to the session creator, not shown publicly';
     const sfLTemplate = document.getElementById('sf_lTemplatePick'); if (sfLTemplate) sfLTemplate.textContent = zh?'套用範本':'Apply Template';
     const sfSaveTemplateBtn = document.getElementById('sfSaveTemplateBtn'); if (sfSaveTemplateBtn) sfSaveTemplateBtn.textContent = zh?'💾 存為範本':'💾 Save Template';
     const sfUpdateTemplateBtn = document.getElementById('sfUpdateTemplateBtn'); if (sfUpdateTemplateBtn) sfUpdateTemplateBtn.textContent = zh?'🔄 更新範本':'🔄 Update Template';
@@ -1718,7 +1598,7 @@
           await setDoc(doc(db, 'users', currentUser.uid, 'templates', selectedId), {
             ...tmplData, name: tmpl.name, createdAt: tmpl.createdAt,
           });
-          showSfMsg(zh ? '✅ 範本已更新！' : '✅ Template updated!', 'success');
+          showToast(zh ? '✅ 範本已更新！' : '✅ Template updated!');
           loadTemplates();
           return;
         }
@@ -1728,13 +1608,13 @@
     const name = prompt(zh?'範本名稱：':'Template name:', document.getElementById('sf_title').value || '');
     if (!name) return;
     if (templatesData.some(t2 => t2.name.toLowerCase() === name.toLowerCase())) {
-      showSfMsg(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists', 'error');
+      showToast(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists');
       return;
     }
     await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
       ...tmplData, name, createdAt: Timestamp.now(),
     });
-    showSfMsg(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!', 'success');
+    showToast(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!');
     loadTemplates();
   };
 
@@ -1745,6 +1625,15 @@
     el.classList.remove('hidden');
     // Only auto-hide success messages; errors stay until next action
     if (type === 'success') setTimeout(()=>el.classList.add('hidden'), 3000);
+  }
+
+  let _toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toastEl');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
   }
 
   // ── Session Created Modal ──
@@ -1832,7 +1721,7 @@
         note: document.getElementById('sf_note').value.trim(),
         createdAt: tmpl.createdAt,
       });
-      showSfMsg('✅ 範本已更新！', 'success');
+      showToast(getLang()==='zh' ? '✅ 範本已更新！' : '✅ Template updated!');
       setTimeout(closeSessionSheet, 1000);
     };
     switchTab('templates');
