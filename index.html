@@ -747,11 +747,15 @@
 
   function applyFilter() {
     const today = new Date().toISOString().split('T')[0];
+    const now = Date.now();
     const filtered = allSessionsCache.filter(s => {
+      const isPast = (s.date || '') < today;
+      const closeAtMs = s.closeAt ? s.closeAt.toMillis() : null;
+      const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
       if (currentFilter === 'all') return true;
-      if (currentFilter === 'open') return s.isOpen && (s.date || '') >= today;
-      if (currentFilter === 'closed') return !s.isOpen && (s.date || '') >= today;
-      if (currentFilter === 'past') return (s.date || '') < today;
+      if (currentFilter === 'open')   return !isPast && !effectivelyClosed;
+      if (currentFilter === 'closed') return !isPast && effectivelyClosed;
+      if (currentFilter === 'past')   return isPast;
       return true;
     });
     const isLoading = !document.getElementById('loadingSpinner').classList.contains('hidden');
