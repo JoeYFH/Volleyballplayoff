@@ -497,6 +497,34 @@
   const provider = new GoogleAuthProvider();
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+  // Detect in-app browsers that block Google OAuth (Messenger, LINE, Instagram, FB…)
+  const ua = navigator.userAgent;
+  const isInAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|Line\/|NAVER|MicroMessenger|WebView|(iPhone|iPod|iPad)(?!.*Safari)/i.test(ua)
+    || (!!window.navigator.standalone === false && /Android/.test(ua) && !/Chrome\//.test(ua));
+
+  if (isInAppBrowser) {
+    // Show full-screen prompt to open in external browser
+    document.addEventListener('DOMContentLoaded', () => {
+      const overlay = document.createElement('div');
+      overlay.id = 'inAppBrowserOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:system-ui,sans-serif;';
+      overlay.innerHTML = `
+        <div style="font-size:3rem;margin-bottom:16px;">🏐</div>
+        <h2 style="font-size:1.2rem;font-weight:700;color:#1e1b4b;margin:0 0 10px;">請用瀏覽器開啟</h2>
+        <p style="font-size:0.9rem;color:#6b7280;margin:0 0 20px;line-height:1.6;">Google 登入不支援在 Messenger / LINE 等 App 內建瀏覽器中使用。<br>請複製連結後用 <strong>Safari</strong> 或 <strong>Chrome</strong> 開啟。</p>
+        <button id="iabCopyBtn" onclick="
+          navigator.clipboard.writeText(location.href).then(()=>{
+            this.textContent='✅ 已複製！';
+          }).catch(()=>{});
+        " style="background:#6366f1;color:#fff;border:none;border-radius:14px;padding:14px 32px;font-size:1rem;font-weight:700;cursor:pointer;width:100%;max-width:320px;margin-bottom:10px;">
+          📋 複製網址
+        </button>
+        <p style="font-size:0.75rem;color:#9ca3af;">複製後請到瀏覽器貼上並開啟</p>
+      `;
+      document.body.appendChild(overlay);
+    });
+  }
+
   // 處理 redirect 登入結果 / handle redirect login result
   getRedirectResult(auth).catch(() => {});
 

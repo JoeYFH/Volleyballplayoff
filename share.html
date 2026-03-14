@@ -79,6 +79,23 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Detect in-app browser (Messenger, LINE, Instagram…) — show open-in-browser prompt
+    const _ua = navigator.userAgent;
+    const _isIAB = /FBAN|FBAV|FB_IAB|Instagram|Line\/|NAVER|MicroMessenger|WebView|(iPhone|iPod|iPad)(?!.*Safari)/i.test(_ua)
+      || (!!window.navigator.standalone === false && /Android/.test(_ua) && !/Chrome\//.test(_ua));
+    if (_isIAB) {
+      document.getElementById('loadingEl').innerHTML = `
+        <div style="font-size:2.4rem;margin-bottom:12px;">🏐</div>
+        <h2 style="font-size:1.1rem;font-weight:700;color:#1e1b4b;margin:0 0 8px;">請用瀏覽器開啟</h2>
+        <p style="font-size:0.85rem;color:#6b7280;margin:0 0 18px;line-height:1.6;">Google 登入不支援 Messenger / LINE 內建瀏覽器。<br>請用 <strong>Safari</strong> 或 <strong>Chrome</strong> 開啟。</p>
+        <button onclick="navigator.clipboard.writeText(location.href).then(()=>{this.textContent='✅ 已複製！'}).catch(()=>{})"
+          style="background:#6366f1;color:#fff;border:none;border-radius:14px;padding:13px 28px;font-size:0.95rem;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px;">
+          📋 複製網址
+        </button>
+        <p style="font-size:0.72rem;color:#9ca3af;">複製後請到瀏覽器貼上並開啟</p>
+      `;
+    }
+
     // Get session ID from query string (?id=...) or path (/share/SESSION_ID)
     const params = new URLSearchParams(window.location.search);
     let sessionId = params.get('id');
