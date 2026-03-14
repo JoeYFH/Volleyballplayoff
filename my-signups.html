@@ -221,6 +221,7 @@
 
   function applyLang() {
     const zh = getLang() === 'zh';
+    document.documentElement.lang = zh ? 'zh-TW' : 'en';
     document.getElementById('langBtn3').textContent = zh ? 'EN' : '中';
     const loginBtn = document.getElementById('langBtnLogin');
     if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';
@@ -480,7 +481,7 @@
     const tags = [];
     if (s.isLate) tags.push(`<span class="tag">${zh?'晚到':'Late'}${s.lateTime?' '+s.lateTime:''}</span>`);
     if (s.pairWith) tags.push(`<span class="tag">${zh?'搭檔':'Pair'}:${escHtml(s.pairWith)}</span>`);
-    if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`<span class="tag tag-green">🎒 ${escHtml(e)}</span>`));
+    if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`<span class="tag tag-green">🎒 ${escHtml(trEquip(e))}</span>`));
 
     const calLinks = buildCalendarLinks({ title, date, time, location, venue, equipment: s.bringEquip, note: sess?.note, zh });
 
@@ -648,8 +649,8 @@
     const utcEnd = fmt(end);
     const fullLoc = [location, venue].filter(Boolean).join(' ');
     const descParts = [zh ? '排球零打 - ' + title : 'Volleyball Pickup - ' + title];
-    if (equipment?.length) descParts.push((zh ? '需攜帶：' : 'Bring: ') + equipment.join(zh ? '、' : ', '));
-    if (note) descParts.push(note);
+    if (venue) descParts.push(venue);
+    if (equipment?.length) descParts.push((zh ? '需攜帶：' : 'Bring: ') + equipment.map(e => zh ? e : (_equipMap[e] || e)).join(zh ? '、' : ', '));
     const desc = descParts.join('\n');
     const google = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('🏐 ' + title)}&dates=${utcStart}/${utcEnd}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(fullLoc)}`;
     const icsContent = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',`DTSTART:${utcStart}`,`DTEND:${utcEnd}`,`SUMMARY:🏐 ${title}`,`LOCATION:${fullLoc}`,`DESCRIPTION:${desc.replace(/\n/g,'\\n')}`,'END:VEVENT','END:VCALENDAR'].join('\n');
@@ -666,6 +667,8 @@
   }
 
   function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  const _equipMap = { '標竿': 'Pole', '音響': 'Speaker', '球': 'Ball' };
+  function trEquip(e) { return getLang() === 'zh' ? e : (_equipMap[e] || e); }
   function pad(n) { return String(n).padStart(2,'0'); }
 
   updateSubTabStyles();

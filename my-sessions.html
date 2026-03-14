@@ -546,6 +546,7 @@
   function applyLang() {
     const l = getLang();
     const zh = l === 'zh';
+    document.documentElement.lang = zh ? 'zh-TW' : 'en';
     document.getElementById('langBtn2').textContent = zh ? 'EN' : '中';
     const loginBtn = document.getElementById('langBtnLogin');
     if (loginBtn) loginBtn.textContent = zh ? 'EN' : '中';

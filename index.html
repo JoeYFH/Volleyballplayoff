@@ -293,7 +293,6 @@
           <button type="button" data-equip="標竿" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏁 標竿</button>
           <button type="button" data-equip="音響" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🔊 音響</button>
           <button type="button" data-equip="球" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">🏐 球</button>
-          <button type="button" data-equip="其他" class="equip-chip chip-idle text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition">📦 其他</button>
         </div>
         <!-- Custom items list -->
         <div id="equipCustomList" class="flex flex-wrap gap-2 mb-2"></div>
@@ -670,10 +669,11 @@
     document.getElementById('applyTemplateBtn').textContent = getLang()==='zh' ? '套用' : 'Apply';
     document.getElementById('editTemplateBtn').textContent = getLang()==='zh' ? '編輯' : 'Edit';
     // Update equipment chip labels
-    const chipLabels = { '標竿': getLang()==='zh'?'🏁 標竿':'🏁 Pole', '音響': getLang()==='zh'?'🔊 音響':'🔊 Speaker', '球': getLang()==='zh'?'🏐 球':'🏐 Ball', '其他': getLang()==='zh'?'📦 其他':'📦 Other' };
+    const chipLabels = { '標竿': getLang()==='zh'?'🏁 標竿':'🏁 Pole', '音響': getLang()==='zh'?'🔊 音響':'🔊 Speaker', '球': getLang()==='zh'?'🏐 球':'🏐 Ball' };
     document.querySelectorAll('#equipChips [data-equip]').forEach(btn => {
       if (chipLabels[btn.dataset.equip]) btn.textContent = chipLabels[btn.dataset.equip];
     });
+    document.documentElement.lang = getLang() === 'zh' ? 'zh-TW' : 'en';
     onOpenWhenChange();
     document.getElementById('modalFormTitle').textContent = tr('formTitle');
     document.getElementById('hGoogleProfile').textContent = tr('googleProfile');
@@ -1374,9 +1374,7 @@
     const input = document.getElementById('fEquipCustom');
     const val = input.value.trim();
     if (!val) return;
-    val.split(/[,，]/).map(s => s.trim()).filter(Boolean).forEach(v => {
-      if (!customEquipItems.includes(v)) customEquipItems.push(v);
-    });
+    if (!customEquipItems.includes(val)) customEquipItems.push(val);
     input.value = '';
     renderCustomEquipList();
   }
@@ -1726,7 +1724,7 @@
         } else {
           cls = 'bring-chip text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition';
         }
-        return `<button type="button" data-bring="${escHtml(e)}" ${claimed ? 'disabled' : ''} class="${cls}"${extra}>${escHtml(e)}${claimed ? ' ✓' : ''}</button>`;
+        return `<button type="button" data-bring="${escHtml(e)}" ${claimed ? 'disabled' : ''} class="${cls}"${extra}>${escHtml(trEquip(e))}${claimed ? ' ✓' : ''}</button>`;
       }).join('');
     } else {
       bringRow.classList.add('hidden');
@@ -2061,6 +2059,8 @@
   }
 
   function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  const _equipMap = { '標竿': 'Pole', '音響': 'Speaker', '球': 'Ball' };
+  function trEquip(e) { return getLang() === 'zh' ? e : (_equipMap[e] || e); }
   function escAttr(s) { return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
 
   // ── Session Created Modal ──
