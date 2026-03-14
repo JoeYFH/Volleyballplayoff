@@ -1172,6 +1172,7 @@
       }
     } else {
       let separatorAdded = false;
+      let waitCount = 0;
       html += items.map(s => {
         const isWait = (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
         let sep = '';
@@ -1184,7 +1185,8 @@
           const sepClass = isFull ? 'text-xs text-orange-600 shrink-0' : 'text-xs text-gray-400 shrink-0';
           sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="${sepClass}">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
         }
-        return sep + renderItem(s, isWait, null);
+        if (isWait) waitCount++;
+        return sep + renderItem(s, isWait, isWait ? tr('waitPrefix') + waitCount : null);
       }).join('');
     }
     listEl.innerHTML = html;
