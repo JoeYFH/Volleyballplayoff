@@ -63,14 +63,14 @@
       <div class="flex items-center gap-2">
         <button id="langBtn3" onclick="toggleLang()"
           class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">EN</button>
-        <div class="flex items-center gap-2">
-          <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
-          <div>
-            <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
+        <div id="userInfoSu" class="hidden items-center gap-2">
+          <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 shrink-0" />
+          <div class="flex flex-col items-start gap-0.5">
             <div class="flex items-center gap-1.5">
-              <span id="adminBadgeSignups" class="hidden text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Super Admin</span>
-              <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+              <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate leading-none"></p>
+              <span id="adminBadgeSignups" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium leading-none">Admin</span>
             </div>
+            <button id="logoutBtn" class="text-[11px] text-gray-400 hover:text-red-400 transition leading-none">登出</button>
           </div>
         </div>
       </div>
@@ -264,8 +264,10 @@
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.remove('hidden');
       const photo = document.getElementById('userPhoto');
-      if (user.photoURL) { photo.src = user.photoURL; photo.classList.remove('hidden'); }
+      if (user.photoURL) photo.src = user.photoURL;
       document.getElementById('userName').textContent = user.displayName || user.email;
+      const uiSu = document.getElementById('userInfoSu');
+      uiSu.classList.remove('hidden'); uiSu.classList.add('flex');
       const adminBadge = document.getElementById('adminBadgeSignups');
       if (adminBadge) adminBadge.classList.toggle('hidden', !(ADMIN_EMAILS || []).includes(user.email));
       loadMySignups();
