@@ -33,7 +33,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     </div>
 
     <!-- Date + Time -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="flex flex-col gap-3">
       <div>
         <label id="${I.lDate}" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
         <input id="${I.date}" type="date" lang="${dl}"
