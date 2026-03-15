@@ -783,6 +783,8 @@
             ${s.limit ? `<div>👥 ${getLang()==='zh'?'名額':'Limit'} ${s.limit}${s.type === 'mixed' && (s.maleLimit || s.femaleLimit) ? ` (♂${s.maleLimit||0} ♀${s.femaleLimit||0})` : ''}</div>` : ''}
             ${s.type ? `<div>🏷️ ${TYPE_LABEL[s.type]||s.type}</div>` : ''}
             ${signupTimeHtml}
+            ${s.venue ? `<div>🏟️ ${escHtml(s.venue)}</div>` : ''}
+            ${s.note && currentUser && s.createdBy === currentUser.uid ? `<div class="mt-1 px-2 py-1 bg-amber-50 text-amber-800 rounded-lg text-xs">📝 ${zh?'備註':'Note'}: ${escHtml(s.note)}</div>` : ''}
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="toggleOpen('${s.id}', ${isOpen})"
