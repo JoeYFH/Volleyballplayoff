@@ -269,15 +269,11 @@ export const FORM_FNS_MYSESSIONS = {
  */
 export function initFormPickers(ids, lang) {
   if (!window.flatpickr) return;
-  const zh = lang === 'zh';
-  const locale = zh ? (flatpickr.l10ns?.zh_tw || flatpickr.l10ns?.default) : flatpickr.l10ns?.default;
 
   const _init = (id, opts) => {
     const el = document.getElementById(id);
     if (!el) return;
     if (el._flatpickr) {
-      // Update locale and display format only
-      if (locale) el._flatpickr.set('locale', locale);
       if (opts.altFormat) el._flatpickr.set('altFormat', opts.altFormat);
     } else {
       flatpickr(el, opts);
@@ -285,9 +281,8 @@ export function initFormPickers(ids, lang) {
   };
 
   _init(ids.date, {
-    locale,
     altInput: true,
-    altFormat: zh ? 'Y/n/j' : 'n/j/Y',
+    altFormat: 'M j, Y',
     dateFormat: 'Y-m-d',
     allowInput: true,
     minDate: 'today',
@@ -296,21 +291,19 @@ export function initFormPickers(ids, lang) {
   // ids.time is now a hidden input backed by two <select> dropdowns — no flatpickr needed
 
   _init(ids.openAt, {
-    locale,
     enableTime: true,
     time_24hr: true,
     altInput: true,
-    altFormat: zh ? 'Y/n/j H:i' : 'n/j/Y H:i',
+    altFormat: 'M j, Y H:i',
     dateFormat: 'Y-m-d\\TH:i',
     allowInput: true,
   });
 
   _init(ids.closeAt, {
-    locale,
     enableTime: true,
     time_24hr: true,
     altInput: true,
-    altFormat: zh ? 'Y/n/j H:i' : 'n/j/Y H:i',
+    altFormat: 'M j, Y H:i',
     dateFormat: 'Y-m-d\\TH:i',
     allowInput: true,
   });
