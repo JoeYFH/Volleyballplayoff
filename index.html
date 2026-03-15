@@ -1260,7 +1260,7 @@
       const el = document.getElementById(id);
       if (el) { el.classList.add('hidden'); el.textContent = ''; }
     });
-    ['fTitle','fDate','fTime','fLocation'].forEach(id => {
+    ['fTitle','fDate','fLocation'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('border-red-400');
     });
@@ -1336,7 +1336,7 @@
     err.classList.add('hidden');
   }
   // Clear errors on input
-  ['fDate','fTime','fLocation'].forEach(id => {
+  ['fDate','fLocation'].forEach(id => {
     const errId = id + 'Err';
     document.getElementById(id).addEventListener('input', () => clearFieldError(id, errId));
     document.getElementById(id).addEventListener('change', () => clearFieldError(id, errId));

@@ -42,8 +42,20 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
       </div>
       <div>
         <label id="${I.lTime}" class="block text-sm font-medium text-gray-600 mb-1">時間 <span class="text-red-400">*</span></label>
-        <input id="${I.time}" type="time" value="00:00" lang="${tl}"
-          class="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <div class="flex items-center gap-1">
+          <select id="${I.time}_h"
+            onchange="document.getElementById('${I.time}').value=this.value+':'+document.getElementById('${I.time}_m').value"
+            class="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            ${Array.from({length:24},(_,i)=>`<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}</option>`).join('')}
+          </select>
+          <span class="text-gray-400 font-medium select-none">:</span>
+          <select id="${I.time}_m"
+            onchange="document.getElementById('${I.time}').value=document.getElementById('${I.time}_h').value+':'+this.value"
+            class="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            ${Array.from({length:12},(_,i)=>`<option value="${String(i*5).padStart(2,'0')}">${String(i*5).padStart(2,'0')}</option>`).join('')}
+          </select>
+        </div>
+        <input type="hidden" id="${I.time}" value="00:00">
         <p id="${I.timeErr}" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
     </div>
@@ -280,13 +292,7 @@ export function initFormPickers(ids, lang) {
     allowInput: true,
   });
 
-  _init(ids.time, {
-    enableTime: true,
-    noCalendar: true,
-    time_24hr: true,
-    dateFormat: 'H:i',
-    allowInput: true,
-  });
+  // ids.time is now a hidden input backed by two <select> dropdowns — no flatpickr needed
 
   _init(ids.openAt, {
     locale,
@@ -319,6 +325,17 @@ export function initFormPickers(ids, lang) {
 export function fpSet(id, value) {
   const el = document.getElementById(id);
   if (!el) return;
+  // Hidden time input backed by _h / _m selects
+  const hourEl = document.getElementById(id + '_h');
+  const minEl  = document.getElementById(id + '_m');
+  if (hourEl && minEl) {
+    const [h = '00', rawM = '00'] = (value || '00:00').split(':');
+    const mRounded = String(Math.round(parseInt(rawM, 10) / 5) * 5 % 60).padStart(2, '0');
+    hourEl.value = h.padStart(2, '0');
+    minEl.value  = mRounded;
+    el.value = hourEl.value + ':' + mRounded;
+    return;
+  }
   if (el._flatpickr) {
     el._flatpickr.setDate(value || '', false);
   } else {

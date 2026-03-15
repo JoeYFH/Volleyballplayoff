@@ -1216,7 +1216,7 @@
       if (el) { el.classList.add('hidden'); el.textContent = ''; }
     });
     // Reset border colors
-    ['sf_title','sf_date','sf_time','sf_location'].forEach(eid => {
+    ['sf_title','sf_date','sf_location'].forEach(eid => {
       const el = document.getElementById(eid);
       if (el) el.classList.remove('border-red-400');
     });
@@ -1417,7 +1417,7 @@
     el.classList.add('border-gray-200');
     err.classList.add('hidden');
   }
-  ['sf_title','sf_date','sf_time','sf_location'].forEach(id => {
+  ['sf_title','sf_date','sf_location'].forEach(id => {
     const errId = id + 'Err';
     const el = document.getElementById(id);
     if (el) {
