@@ -52,15 +52,19 @@
 
   <!-- Sticky Header -->
   <div class="sticky top-0 z-20 bg-gray-50 px-4 pt-4 pb-3 border-b border-gray-100">
-    <div class="flex items-center justify-between">
-      <div class="hidden sm:block">
-        <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800">🏐 排球零打報名</h1>
-        <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-          <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
-          <span id="hLive">即時更新</span>
-        </p>
+    <div class="flex items-center justify-between gap-2">
+      <!-- Logo: ball only on mobile, full title on desktop -->
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-2xl shrink-0">🏐</span>
+        <div class="hidden sm:block min-w-0">
+          <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800 truncate">排球零打報名</h1>
+          <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+            <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
+            <span id="hLive">即時更新</span>
+          </p>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 ml-auto">
         <!-- Lang toggle -->
         <button id="langBtn" onclick="toggleLang()"
           class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition shadow-sm">
