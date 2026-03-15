@@ -1466,6 +1466,10 @@
     let firstErrorEl = null;
     if (!title) { sfSetFieldError('sf_title','sf_titleErr', zh?'請填寫場次名稱':'Please enter a session title'); firstErrorEl = firstErrorEl || document.getElementById('sf_title'); }
     if (!date) { sfSetFieldError('sf_date','sf_dateErr', zh?'請選擇日期':'Please select a date'); firstErrorEl = firstErrorEl || document.getElementById('sf_date'); }
+    else if (!editingSessionId) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (new Date(date) < today) { sfSetFieldError('sf_date','sf_dateErr', zh?'❌ 活動日期不能是過去':'❌ Session date cannot be in the past'); firstErrorEl = firstErrorEl || document.getElementById('sf_date'); }
+    }
     if (!time) { sfSetFieldError('sf_time','sf_timeErr', zh?'請選擇時間':'Please select a time'); firstErrorEl = firstErrorEl || document.getElementById('sf_time'); }
     if (!location) { sfSetFieldError('sf_location','sf_locationErr', zh?'請填寫地點':'Please enter a location'); firstErrorEl = firstErrorEl || document.getElementById('sf_location'); }
     // Mixed limit validation: maleLimit + femaleLimit must equal total limit (if both > 0 and limit > 0)

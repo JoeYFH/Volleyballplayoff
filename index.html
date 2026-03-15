@@ -1423,6 +1423,12 @@
     if (!date) {
       setFieldError('fDate', 'fDateErr', zh ? '請選擇日期' : 'Please select a date');
       if (!firstErrorEl) firstErrorEl = document.getElementById('fDate');
+    } else {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (new Date(date) < today) {
+        setFieldError('fDate', 'fDateErr', zh ? '❌ 活動日期不能是過去' : '❌ Session date cannot be in the past');
+        if (!firstErrorEl) firstErrorEl = document.getElementById('fDate');
+      }
     }
     if (!time) {
       setFieldError('fTime', 'fTimeErr', zh ? '請選擇時間' : 'Please select a time');

@@ -290,6 +290,7 @@ export function initFormPickers(ids, lang) {
     altFormat: zh ? 'Y/n/j' : 'n/j/Y',
     dateFormat: 'Y-m-d',
     allowInput: true,
+    minDate: 'today',
   });
 
   // ids.time is now a hidden input backed by two <select> dropdowns — no flatpickr needed
