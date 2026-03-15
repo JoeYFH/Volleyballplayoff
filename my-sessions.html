@@ -79,10 +79,10 @@
       <div class="flex items-center gap-2">
         <img id="adminPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-gray-200 hidden" />
         <div class="text-right">
-          <p id="adminName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-          <div class="flex gap-2 items-center justify-end">
-            <span id="adminBadge" class="hidden text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Super Admin</span>
-            <button id="logoutBtn2" class="text-xs text-gray-400 hover:text-red-400">登出</button>
+          <p id="adminName" class="text-xs font-medium text-gray-700 max-w-[96px] truncate"></p>
+          <div class="flex gap-1.5 flex-wrap items-center justify-end">
+            <span id="adminBadge" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-medium whitespace-nowrap">Super Admin</span>
+            <button id="logoutBtn2" class="text-xs text-gray-400 hover:text-red-400 whitespace-nowrap">登出</button>
           </div>
         </div>
       </div>
@@ -922,7 +922,7 @@
       if (s.isLate) tags.push(s.lateTime ? `${zh?'晚到':'Late'} ${s.lateTime}` : (zh?'晚到':'Late'));
       if (s.forFriend) tags.push(`${zh?'代':'For'}:${escHtml(s.forFriend)}`);
       if (s.pairWith) tags.push(`${zh?'搭':'Pair'}:${escHtml(s.pairWith)}`);
-      if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(e)}`.substring(0,8)));
+      if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(trEquip(e))}`.substring(0,8)));
       const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';
       // 強制加入按鈕（候補時才顯示）/ force-add button (only for waitlisted)
@@ -1912,27 +1912,8 @@
 
   applyLang();
 
-  // ── Late minute buttons (creator add modal) ──
-  function setCaLateMinutes(value) {
-    document.querySelectorAll('.ca-late-min-btn').forEach(b => {
-      const sel = !!value && b.dataset.min + '分' === value;
-      b.classList.toggle('bg-indigo-100', sel);
-      b.classList.toggle('text-indigo-700', sel);
-      b.classList.toggle('border-indigo-400', sel);
-      b.classList.toggle('bg-gray-50', !sel);
-      b.classList.toggle('text-gray-500', !sel);
-      b.classList.toggle('border-gray-200', !sel);
-    });
-    document.getElementById('caLateTime').value = value || '';
-  }
-  document.querySelectorAll('.ca-late-min-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cur = document.getElementById('caLateTime').value;
-      setCaLateMinutes(cur === btn.dataset.min + '分' ? '' : btn.dataset.min + '分');
-    });
-  });
   document.getElementById('caLate').addEventListener('change', e => {
-    if (!e.target.checked) setCaLateMinutes('');
+    if (!e.target.checked) document.getElementById('caLateTime').value = '';
   });
 
   // ── Creator Add Signup ──
@@ -1952,7 +1933,7 @@
     document.getElementById('caFriendName').value = '';
     document.getElementById('caLate').checked = false;
     document.getElementById('caLateRow').classList.add('hidden');
-    setCaLateMinutes('');
+    document.getElementById('caLateTime').value = '';
     document.getElementById('caNameError').classList.add('hidden');
     document.getElementById('caFriendNameError').classList.add('hidden');
     document.getElementById('caGenderError').classList.add('hidden');
@@ -2168,13 +2149,25 @@
         <label id="caLateLabel" for="caLate" class="text-sm text-gray-600">會晚到</label>
       </div>
       <div id="caLateRow" class="hidden ml-6">
-        <div class="flex gap-2 flex-wrap">
-          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="30">30分</button>
-          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="60">60分</button>
-          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="90">90分</button>
-          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="120">120分</button>
-        </div>
-        <input type="hidden" id="caLateTime" value="">
+        <select id="caLateTime" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-indigo-300">
+          <option value=""></option>
+          <option value="30分">30 分</option>
+          <option value="60分">60 分</option>
+          <option value="90分">90 分</option>
+          <option value="120分">120 分</option>
+          <option value="150分">150 分</option>
+          <option value="180分">180 分</option>
+          <option value="210分">210 分</option>
+          <option value="240分">240 分</option>
+          <option value="270分">270 分</option>
+          <option value="300分">300 分</option>
+          <option value="330分">330 分</option>
+          <option value="360分">360 分</option>
+          <option value="390分">390 分</option>
+          <option value="420分">420 分</option>
+          <option value="450分">450 分</option>
+          <option value="480分">480 分</option>
+        </select>
       </div>
       <!-- Pair with -->
       <div>

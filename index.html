@@ -333,13 +333,25 @@
         <label id="lModalLate" for="modalLate" class="text-sm text-gray-600">我會晚到</label>
       </div>
       <div id="modalLateSection" class="hidden ml-6">
-        <div class="flex gap-2 flex-wrap">
-          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="30">30分</button>
-          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="60">60分</button>
-          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="90">90分</button>
-          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="120">120分</button>
-        </div>
-        <input type="hidden" id="modalLateTime" value="">
+        <select id="modalLateTime" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-indigo-300">
+          <option value=""></option>
+          <option value="30分">30 分</option>
+          <option value="60分">60 分</option>
+          <option value="90分">90 分</option>
+          <option value="120分">120 分</option>
+          <option value="150分">150 分</option>
+          <option value="180分">180 分</option>
+          <option value="210分">210 分</option>
+          <option value="240分">240 分</option>
+          <option value="270分">270 分</option>
+          <option value="300分">300 分</option>
+          <option value="330分">330 分</option>
+          <option value="360分">360 分</option>
+          <option value="390分">390 分</option>
+          <option value="420分">420 分</option>
+          <option value="450分">450 分</option>
+          <option value="480分">480 分</option>
+        </select>
       </div>
 
       <!-- 自己的性別（混排場次用）/ own gender for mixed sessions -->
@@ -1035,7 +1047,7 @@
       if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
       if (s.pairWith) tags.push(`<span class="tag">${tr('pairTag')}:${escHtml(s.pairWith)}</span>`);
       if (s.bringEquip && s.bringEquip.length) {
-        s.bringEquip.forEach(e => tags.push(`<span class="tag" style="background:#d1fae5;color:#065f46">🎒${escHtml(e)}</span>`));
+        s.bringEquip.forEach(e => tags.push(`<span class="tag" style="background:#d1fae5;color:#065f46">🎒${escHtml(trEquip(e))}</span>`));
       }
       const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-7 h-7 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
       const isOwn = currentUser && s.uid && s.uid === currentUser.uid;
@@ -1766,7 +1778,7 @@
     document.getElementById('modalNameError').classList.add('hidden');
     document.getElementById('modalLate').checked = false;
     document.getElementById('modalLateSection').classList.add('hidden');
-    setLateMinutes('.late-min-btn', 'modalLateTime', '');
+    document.getElementById('modalLateTime').value = '';
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
     document.getElementById('modalFriendName').value = '';
@@ -1819,7 +1831,7 @@
     document.getElementById('signupModal').classList.remove('hidden');
     document.getElementById('modalLate').checked = !!signup.isLate;
     document.getElementById('modalLateSection').classList.toggle('hidden', !signup.isLate);
-    setLateMinutes('.late-min-btn', 'modalLateTime', signup.lateTime || '');
+    document.getElementById('modalLateTime').value = signup.lateTime || '';
     document.getElementById('modalFriend').checked = !!signup.forFriend;
     document.getElementById('modalFriendSection').classList.toggle('hidden', !signup.forFriend);
     if (currentUser) document.getElementById('modalProfilePreview').classList.toggle('hidden', !!signup.forFriend);
@@ -1850,28 +1862,7 @@
 
   document.getElementById('modalLate').addEventListener('change', e => {
     document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked);
-    if (!e.target.checked) setLateMinutes('.late-min-btn', 'modalLateTime', '');
-  });
-
-  // Late minute buttons
-  function setLateMinutes(groupSelector, hiddenId, value) {
-    document.querySelectorAll(groupSelector).forEach(b => {
-      const sel = !!value && b.dataset.min + '分' === value;
-      b.classList.toggle('bg-indigo-100', sel);
-      b.classList.toggle('text-indigo-700', sel);
-      b.classList.toggle('border-indigo-400', sel);
-      b.classList.toggle('bg-gray-50', !sel);
-      b.classList.toggle('text-gray-500', !sel);
-      b.classList.toggle('border-gray-200', !sel);
-    });
-    document.getElementById(hiddenId).value = value || '';
-  }
-  document.querySelectorAll('.late-min-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cur = document.getElementById('modalLateTime').value;
-      const next = cur === btn.dataset.min + '分' ? '' : btn.dataset.min + '分';
-      setLateMinutes('.late-min-btn', 'modalLateTime', next);
-    });
+    if (!e.target.checked) document.getElementById('modalLateTime').value = '';
   });
   document.getElementById('modalFriend').addEventListener('change', e => {
     const checked = e.target.checked;

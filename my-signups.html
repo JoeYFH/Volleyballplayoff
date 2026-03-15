@@ -296,9 +296,9 @@
           const signupData = signupSnap?.exists() ? signupSnap.data() : {};
           const sess = sessionSnap.exists() ? sessionSnap.data() : null;
           // Determine waitlist status and position
-          let isWaitlisted = signupData.forceWaitlisted || false;
+          let isWaitlisted = !signupData.forceConfirmed && (signupData.forceWaitlisted || !!signupData.genderWait || false);
           let waitlistPosition = 0;
-          if (!signupData.forceConfirmed && sess?.limit > 0 && m.signupId) {
+          if (!signupData.forceConfirmed && !isWaitlisted && sess?.limit > 0 && m.signupId) {
             try {
               const allSnap = await getDocs(query(collection(db, 'sessions', m.sessionId, 'signups'), orderBy('signedAt', 'asc')));
               const pos = allSnap.docs.findIndex(d => d.id === m.signupId) + 1;
@@ -556,7 +556,7 @@
           ${signedAtStr ? `<div class="flex items-center gap-2"><span>⏱️</span><span class="text-xs text-gray-400">${signedAtStr}</span></div>` : ''}
         </div>
         ${!isCancelled && !isPast ? `<div class="flex flex-wrap gap-2 mb-3">
-          <a href="${calLinks.google}" target="_blank"
+          <a href="${calLinks.google}" target="${calLinks.calTarget}"
             class="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition font-medium">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
             Google ${zh?'日曆':'Calendar'}
@@ -653,10 +653,15 @@
     if (venue) descParts.push(venue);
     if (equipment?.length) descParts.push((zh ? '需攜帶：' : 'Bring: ') + equipment.map(e => zh ? e : (_equipMap[e] || e)).join(zh ? '、' : ', '));
     const desc = descParts.join('\n');
-    const google = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('🏐 ' + title)}&dates=${utcStart}/${utcEnd}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(fullLoc)}`;
+    const googleWebUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('🏐 ' + title)}&dates=${utcStart}/${utcEnd}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(fullLoc)}`;
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const google = isAndroid
+      ? `intent://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent('🏐 ' + title)}&dates=${utcStart}/${utcEnd}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(fullLoc)}#Intent;scheme=https;package=com.google.android.calendar;S.browser_fallback_url=${encodeURIComponent(googleWebUrl)};end`
+      : googleWebUrl;
+    const calTarget = isAndroid ? '_self' : '_blank';
     const icsContent = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',`DTSTART:${utcStart}`,`DTEND:${utcEnd}`,`SUMMARY:🏐 ${title}`,`LOCATION:${fullLoc}`,`DESCRIPTION:${desc.replace(/\n/g,'\\n')}`,'END:VEVENT','END:VCALENDAR'].join('\n');
     const apple = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-    return { google, apple };
+    return { google, apple, calTarget };
   }
 
   function formatDate(d) {
