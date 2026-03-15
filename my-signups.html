@@ -648,7 +648,7 @@
     const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const utcStart = fmt(start);
     const utcEnd = fmt(end);
-    const fullLoc = [location, venue].filter(Boolean).join(' ');
+    const fullLoc = location || '';
     const descParts = [zh ? '排球零打 - ' + title : 'Volleyball Pickup - ' + title];
     if (venue) descParts.push(venue);
     if (equipment?.length) descParts.push((zh ? '需攜帶：' : 'Bring: ') + equipment.map(e => zh ? e : (_equipMap[e] || e)).join(zh ? '、' : ', '));

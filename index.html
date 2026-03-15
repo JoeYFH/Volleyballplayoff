@@ -73,15 +73,11 @@
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
             <span id="hLogin">Google 登入</span>
           </button>
-          <div id="userInfo" class="hidden flex items-center gap-2">
-            <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-            <div class="text-right">
-              <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-              <div class="flex items-center justify-end gap-1.5">
-                <span id="adminBadgeMain" class="hidden text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Super Admin</span>
-                <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition">登出</button>
-              </div>
-            </div>
+          <div id="userInfo" class="hidden flex items-center gap-1.5">
+            <img id="userPhoto" src="" alt="" class="w-7 h-7 rounded-full border border-white shadow-sm shrink-0" />
+            <p id="userName" class="text-xs font-medium text-gray-700 max-w-[68px] truncate"></p>
+            <span id="adminBadgeMain" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-medium shrink-0">Admin</span>
+            <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition shrink-0">登出</button>
           </div>
         </div>
       </div>
@@ -129,23 +125,24 @@
   </div>
   </div>
 
-<!-- FAB: Create Session -->
+<!-- FAB: Create Session + Speed-dial Nav -->
 <div class="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-30">
-  <div id="fabMenu" class="hidden flex-col items-end gap-2 mb-2">
-    <a href="my-sessions.html"
-      class="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 shadow-md hover:bg-gray-50 transition">
-      <span id="hMySessions">我的開場</span> 📋
-    </a>
-  </div>
-  <div class="flex flex-wrap justify-end gap-2">
+  <!-- Speed dial menu (collapsed by default) -->
+  <div id="fabMenu" class="hidden flex-col items-end gap-2 mb-1">
     <button id="mySignupsBtn"
-      class="hidden bg-white border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm font-semibold shadow-md hover:bg-green-50 active:scale-95 transition">
+      class="hidden bg-white border border-green-200 text-green-700 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-green-50 active:scale-95 transition">
       ✅ <span id="hMySignupsBtn">我的報名</span>
     </button>
     <button id="mySessionsBtn"
-      class="hidden bg-white border border-indigo-200 text-indigo-600 rounded-xl px-4 py-3 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-95 transition">
+      class="hidden bg-white border border-indigo-200 text-indigo-600 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-95 transition">
       📋 <span id="hMySessionsBtn">我的開場</span>
     </button>
+  </div>
+  <!-- Main FAB row -->
+  <div class="flex items-center gap-2">
+    <button id="fabToggle"
+      class="hidden w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 text-xl shadow-md hover:bg-gray-50 active:scale-95 transition flex items-center justify-center"
+      title="選單">≡</button>
     <button id="createBtn"
       class="hidden bg-indigo-600 text-white rounded-xl px-5 py-3 text-sm font-semibold shadow-lg hover:bg-indigo-700 active:scale-95 transition">
       <span id="hCreate">+ 建立場次</span>
@@ -539,7 +536,6 @@
     document.getElementById('hLogin').textContent = tr('googleLogin');
     document.getElementById('logoutBtn').textContent = tr('logout');
     document.getElementById('hCreate').textContent = tr('createSession');
-    document.getElementById('hMySessions').textContent = tr('mySessions');
     document.getElementById('hMySessionsBtn').textContent = tr('mySessions');
     document.getElementById('hMySignupsBtn').textContent = getLang()==='zh' ? '我的報名' : 'My Sign-ups';
     document.getElementById('hNoSessions').textContent = tr('noSessions');
@@ -647,6 +643,7 @@
       document.getElementById('userPhoto').src = user.photoURL || '';
       document.getElementById('userName').textContent = user.displayName || user.email;
       document.getElementById('createBtn').classList.remove('hidden');
+      document.getElementById('fabToggle').classList.remove('hidden');
       document.getElementById('mySessionsBtn').classList.remove('hidden');
       document.getElementById('mySignupsBtn').classList.remove('hidden');
       document.getElementById('modalProfilePreview').classList.remove('hidden');
@@ -664,6 +661,8 @@
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('hidden');
       document.getElementById('createBtn').classList.add('hidden');
+      document.getElementById('fabToggle').classList.add('hidden');
+      document.getElementById('fabMenu').classList.add('hidden');
       document.getElementById('mySessionsBtn').classList.add('hidden');
       document.getElementById('mySignupsBtn').classList.add('hidden');
       document.getElementById('modalProfilePreview').classList.add('hidden');
@@ -675,6 +674,27 @@
   document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
   document.getElementById('mySessionsBtn').addEventListener('click', () => { window.location.href = 'my-sessions.html'; });
   document.getElementById('mySignupsBtn').addEventListener('click', () => { window.location.href = 'my-signups.html'; });
+
+  // FAB speed-dial toggle
+  document.getElementById('fabToggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const menu = document.getElementById('fabMenu');
+    const isOpen = !menu.classList.contains('hidden');
+    menu.classList.toggle('hidden');
+    if (!isOpen) menu.classList.add('flex');
+    else menu.classList.remove('flex');
+    document.getElementById('fabToggle').textContent = isOpen ? '≡' : '✕';
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#fabMenu') && !e.target.closest('#fabToggle')) {
+      const menu = document.getElementById('fabMenu');
+      if (!menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+        document.getElementById('fabToggle').textContent = '≡';
+      }
+    }
+  });
 
   // ── Sessions ──
   const sevenDaysAgo = new Date();
@@ -1701,9 +1721,7 @@
       const hasMixedLimits = sessMaleLimit > 0 || sessFemaleLimit > 0;
       const claimedByOthers = new Set();
       allSignups.forEach(s => {
-        // Don't count current user's own signup as "claimed by others"
-        if (currentUser && s.uid === currentUser.uid) return;
-        // Don't count the signup being edited
+        // Don't count the signup being edited (allow re-selecting equip in edit mode)
         if (editingSignupId && s.id === editingSignupId) return;
         // Only count confirmed (non-waitlisted) signups
         const isWait = hasMixedLimits
