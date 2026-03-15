@@ -1912,6 +1912,29 @@
 
   applyLang();
 
+  // ── Late minute buttons (creator add modal) ──
+  function setCaLateMinutes(value) {
+    document.querySelectorAll('.ca-late-min-btn').forEach(b => {
+      const sel = !!value && b.dataset.min + '分' === value;
+      b.classList.toggle('bg-indigo-100', sel);
+      b.classList.toggle('text-indigo-700', sel);
+      b.classList.toggle('border-indigo-400', sel);
+      b.classList.toggle('bg-gray-50', !sel);
+      b.classList.toggle('text-gray-500', !sel);
+      b.classList.toggle('border-gray-200', !sel);
+    });
+    document.getElementById('caLateTime').value = value || '';
+  }
+  document.querySelectorAll('.ca-late-min-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = document.getElementById('caLateTime').value;
+      setCaLateMinutes(cur === btn.dataset.min + '分' ? '' : btn.dataset.min + '分');
+    });
+  });
+  document.getElementById('caLate').addEventListener('change', e => {
+    if (!e.target.checked) setCaLateMinutes('');
+  });
+
   // ── Creator Add Signup ──
   let creatorAddSessionId = null;
   let creatorAddMode = 'self';
@@ -1929,7 +1952,7 @@
     document.getElementById('caFriendName').value = '';
     document.getElementById('caLate').checked = false;
     document.getElementById('caLateRow').classList.add('hidden');
-    document.getElementById('caLateTime').value = '';
+    setCaLateMinutes('');
     document.getElementById('caNameError').classList.add('hidden');
     document.getElementById('caFriendNameError').classList.add('hidden');
     document.getElementById('caGenderError').classList.add('hidden');
@@ -1947,7 +1970,6 @@
     document.getElementById('caGenderFemale').textContent = zh ? '♀ 女生' : '♀ Female';
     document.getElementById('caGenderError').textContent = zh ? '請選擇性別' : 'Please select gender';
     document.getElementById('caLateLabel').textContent = zh ? '會晚到' : 'Will be late';
-    document.getElementById('caLateTime').placeholder = zh ? '預計幾點？' : 'Estimated arrival time?';
     document.getElementById('caPairLabel').textContent = zh ? '希望跟誰搭檔？（選填）' : 'Preferred partner? (optional)';
     // Gender row only for mixed
     document.getElementById('caGenderRow').classList.toggle('hidden', session.type !== 'mixed');
@@ -2146,8 +2168,13 @@
         <label id="caLateLabel" for="caLate" class="text-sm text-gray-600">會晚到</label>
       </div>
       <div id="caLateRow" class="hidden ml-6">
-        <input id="caLateTime" type="text" placeholder="預計幾點？"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <div class="flex gap-2 flex-wrap">
+          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="30">30分</button>
+          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="60">60分</button>
+          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="90">90分</button>
+          <button type="button" class="ca-late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="120">120分</button>
+        </div>
+        <input type="hidden" id="caLateTime" value="">
       </div>
       <!-- Pair with -->
       <div>

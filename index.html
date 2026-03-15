@@ -333,8 +333,13 @@
         <label id="lModalLate" for="modalLate" class="text-sm text-gray-600">我會晚到</label>
       </div>
       <div id="modalLateSection" class="hidden ml-6">
-        <input id="modalLateTime" type="text"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <div class="flex gap-2 flex-wrap">
+          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="30">30分</button>
+          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="60">60分</button>
+          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="90">90分</button>
+          <button type="button" class="late-min-btn text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition" data-min="120">120分</button>
+        </div>
+        <input type="hidden" id="modalLateTime" value="">
       </div>
 
       <!-- 自己的性別（混排場次用）/ own gender for mixed sessions -->
@@ -584,7 +589,6 @@
     document.getElementById('lModalName').innerHTML = tr('nameLabel') + ' <span class="text-red-400">*</span>';
     document.getElementById('modalName').placeholder = tr('namePh');
     document.getElementById('lModalLate').textContent = tr('willBeLate');
-    document.getElementById('modalLateTime').placeholder = tr('lateTimePh');
     document.getElementById('lModalFriend').textContent = tr('forFriend');
     document.getElementById('modalFriendName').placeholder = tr('friendPh');
     document.getElementById('lModalPair').textContent = tr('pairLabel');
@@ -1762,7 +1766,7 @@
     document.getElementById('modalNameError').classList.add('hidden');
     document.getElementById('modalLate').checked = false;
     document.getElementById('modalLateSection').classList.add('hidden');
-    document.getElementById('modalLateTime').value = '';
+    setLateMinutes('.late-min-btn', 'modalLateTime', '');
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
     document.getElementById('modalFriendName').value = '';
@@ -1815,7 +1819,7 @@
     document.getElementById('signupModal').classList.remove('hidden');
     document.getElementById('modalLate').checked = !!signup.isLate;
     document.getElementById('modalLateSection').classList.toggle('hidden', !signup.isLate);
-    document.getElementById('modalLateTime').value = signup.lateTime || '';
+    setLateMinutes('.late-min-btn', 'modalLateTime', signup.lateTime || '');
     document.getElementById('modalFriend').checked = !!signup.forFriend;
     document.getElementById('modalFriendSection').classList.toggle('hidden', !signup.forFriend);
     if (currentUser) document.getElementById('modalProfilePreview').classList.toggle('hidden', !!signup.forFriend);
@@ -1846,12 +1850,28 @@
 
   document.getElementById('modalLate').addEventListener('change', e => {
     document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked);
-    if (e.target.checked && !document.getElementById('modalLateTime').value && activeSessionData.time) {
-      const [hh, mm] = activeSessionData.time.split(':').map(Number);
-      const d = new Date(0, 0, 0, hh, mm + 30);
-      document.getElementById('modalLateTime').value =
-        String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-    }
+    if (!e.target.checked) setLateMinutes('.late-min-btn', 'modalLateTime', '');
+  });
+
+  // Late minute buttons
+  function setLateMinutes(groupSelector, hiddenId, value) {
+    document.querySelectorAll(groupSelector).forEach(b => {
+      const sel = !!value && b.dataset.min + '分' === value;
+      b.classList.toggle('bg-indigo-100', sel);
+      b.classList.toggle('text-indigo-700', sel);
+      b.classList.toggle('border-indigo-400', sel);
+      b.classList.toggle('bg-gray-50', !sel);
+      b.classList.toggle('text-gray-500', !sel);
+      b.classList.toggle('border-gray-200', !sel);
+    });
+    document.getElementById(hiddenId).value = value || '';
+  }
+  document.querySelectorAll('.late-min-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = document.getElementById('modalLateTime').value;
+      const next = cur === btn.dataset.min + '分' ? '' : btn.dataset.min + '分';
+      setLateMinutes('.late-min-btn', 'modalLateTime', next);
+    });
   });
   document.getElementById('modalFriend').addEventListener('change', e => {
     const checked = e.target.checked;
