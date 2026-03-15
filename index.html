@@ -73,11 +73,15 @@
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
             <span id="hLogin">Google 登入</span>
           </button>
-          <div id="userInfo" class="hidden flex items-center gap-1.5">
-            <img id="userPhoto" src="" alt="" class="w-7 h-7 rounded-full border border-white shadow-sm shrink-0" />
-            <p id="userName" class="text-xs font-medium text-gray-700 max-w-[68px] truncate"></p>
-            <span id="adminBadgeMain" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-medium shrink-0">Admin</span>
-            <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition shrink-0">登出</button>
+          <div id="userInfo" class="hidden flex items-center gap-2">
+            <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm shrink-0" />
+            <div class="text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
+                <button id="logoutBtn" class="text-xs text-gray-400 hover:text-red-400 transition shrink-0">登出</button>
+              </div>
+              <span id="adminBadgeMain" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Admin</span>
+            </div>
           </div>
         </div>
       </div>
