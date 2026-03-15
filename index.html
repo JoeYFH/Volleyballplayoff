@@ -77,12 +77,14 @@
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
             <span id="hLogin">Google 登入</span>
           </button>
-          <div id="userInfo" class="hidden flex items-center gap-2">
+          <div id="userInfo" class="hidden items-center gap-2">
             <img id="userPhoto" src="" alt="" class="w-8 h-8 rounded-full border border-white shadow-sm shrink-0" />
-            <div class="text-right space-y-0.5">
-              <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate"></p>
-              <button id="logoutBtn" class="block text-xs text-gray-400 hover:text-red-400 transition ml-auto">登出</button>
-              <span id="adminBadgeMain" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Admin</span>
+            <div class="flex flex-col items-start gap-0.5">
+              <div class="flex items-center gap-1.5">
+                <p id="userName" class="text-xs font-medium text-gray-700 max-w-[80px] truncate leading-none"></p>
+                <span id="adminBadgeMain" class="hidden text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium leading-none">Admin</span>
+              </div>
+              <button id="logoutBtn" class="text-[11px] text-gray-400 hover:text-red-400 transition leading-none">登出</button>
             </div>
           </div>
         </div>
@@ -646,6 +648,7 @@
       if (user.photoURL) creatorPhotoCache[user.uid] = user.photoURL;
       document.getElementById('loginBtn').classList.add('hidden');
       document.getElementById('userInfo').classList.remove('hidden');
+      document.getElementById('userInfo').classList.add('flex');
       document.getElementById('userPhoto').src = user.photoURL || '';
       document.getElementById('userName').textContent = user.displayName || user.email;
       document.getElementById('createBtn').classList.remove('hidden');
@@ -666,6 +669,7 @@
     } else {
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('hidden');
+      document.getElementById('userInfo').classList.remove('flex');
       document.getElementById('createBtn').classList.add('hidden');
       document.getElementById('fabToggle').classList.add('hidden');
       document.getElementById('fabMenu').classList.add('hidden');
