@@ -102,6 +102,8 @@
       class="hidden text-xs font-semibold px-4 py-2 rounded-xl bg-amber-100 text-amber-700 hover:bg-amber-200 transition">所有場次</button>
     <button id="tabFeedback" onclick="switchTab('feedback')"
       class="hidden text-xs font-semibold px-4 py-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition">💬 意見回饋</button>
+    <button id="tabMaintenance" onclick="switchTab('maintenance')"
+      class="hidden text-xs font-semibold px-4 py-2 rounded-xl bg-orange-100 text-orange-700 hover:bg-orange-200 transition">🛠️ 特殊處理</button>
   </div>
 
   <!-- Sessions Tab -->
@@ -240,6 +242,33 @@
       <p class="text-sm">沒有符合的意見回饋</p>
     </div>
   </div>
+
+  <!-- Maintenance Tab (super admin only) -->
+  <div id="contentMaintenance" class="hidden">
+    <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <p class="text-sm font-medium text-gray-700" id="hMaintenanceTitle">清理孤兒報名記錄</p>
+          <p class="text-xs text-gray-400 mt-0.5" id="hMaintenanceDesc">掃描所有用戶的 mySignups / cancelledSignups，刪除對應場次已不存在的殘留資料</p>
+        </div>
+        <button onclick="scanOrphanedData()"
+          class="shrink-0 text-xs px-4 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 active:scale-95 transition font-medium" id="hScanBtn">
+          🔍 掃描
+        </button>
+      </div>
+      <div id="orphanScanStatus" class="text-xs text-gray-400 mt-2"></div>
+    </div>
+    <div id="orphanResult" class="hidden mt-4">
+      <p class="text-sm font-medium text-gray-700 mb-2" id="hOrphanResultTitle">掃描結果</p>
+      <div id="orphanList" class="space-y-1.5 max-h-72 overflow-y-auto mb-4"></div>
+      <div id="orphanEmpty" class="hidden text-center py-6 text-gray-400 text-sm"></div>
+      <button id="orphanDeleteBtn" onclick="deleteOrphanedData()"
+        class="hidden w-full text-sm py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 active:scale-95 transition font-medium" id="hDeleteBtn">
+        🗑️ 確認刪除以上資料
+      </button>
+    </div>
+  </div>
+
   </div><!-- end px-4 wrapper -->
 </div>
 
@@ -367,7 +396,7 @@
   import {
     getFirestore, doc, collection, query, where, orderBy,
     onSnapshot, addDoc, updateDoc, deleteDoc, getDocs,
-    serverTimestamp, Timestamp, getDoc, setDoc
+    serverTimestamp, Timestamp, getDoc, setDoc, collectionGroup
   } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
@@ -579,6 +608,8 @@
     // tabFeedback
     const fbTab = document.getElementById('tabFeedback');
     if (fbTab) fbTab.textContent = zh ? '💬 意見回饋' : '💬 Feedback';
+    const mtTab = document.getElementById('tabMaintenance');
+    if (mtTab) mtTab.textContent = zh ? '🛠️ 特殊處理' : '🛠️ Maintenance';
     // Export (Reminder) modal
     const exportTitle = document.getElementById('exportModalTitle');
     if (exportTitle) exportTitle.textContent = zh ? '💬 提醒訊息' : '💬 Reminder';
@@ -622,6 +653,7 @@
         document.getElementById('adminBadge').classList.remove('hidden');
         document.getElementById('tabAdmin').classList.remove('hidden');
         document.getElementById('tabFeedback').classList.remove('hidden');
+        document.getElementById('tabMaintenance').classList.remove('hidden');
       }
       loadMySessions();
       loadTemplates();
@@ -639,7 +671,7 @@
 
   // ── Tabs ──
   window.switchTab = (tab) => {
-    ['sessions','templates','admin','feedback'].forEach(t2 => {
+    ['sessions','templates','admin','feedback','maintenance'].forEach(t2 => {
       const content = document.getElementById('content' + t2.charAt(0).toUpperCase() + t2.slice(1));
       if (content) content.classList.toggle('hidden', t2 !== tab);
       const btn = document.getElementById('tab' + t2.charAt(0).toUpperCase() + t2.slice(1));
@@ -2037,6 +2069,92 @@
       feedbackDocs = feedbackDocs.filter(d => d.id !== id);
       renderFeedbackList();
     } catch(e) { alert('刪除失敗：' + e.message); }
+  };
+
+  // ── Maintenance: Orphan Cleanup ──
+  let orphanedDocs = [];
+
+  window.scanOrphanedData = async () => {
+    const statusEl  = document.getElementById('orphanScanStatus');
+    const resultEl  = document.getElementById('orphanResult');
+    const listEl    = document.getElementById('orphanList');
+    const emptyEl   = document.getElementById('orphanEmpty');
+    const deleteBtn = document.getElementById('orphanDeleteBtn');
+    const zh = getLang() === 'zh';
+
+    statusEl.textContent = zh ? '⏳ 掃描中，請稍候...' : '⏳ Scanning...';
+    resultEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    emptyEl.classList.add('hidden');
+    deleteBtn.classList.add('hidden');
+    orphanedDocs = [];
+
+    try {
+      const sessionsSnap = await getDocs(collection(db, 'sessions'));
+      const validIds = new Set(sessionsSnap.docs.map(d => d.id));
+
+      const [mySnap, cancelSnap] = await Promise.all([
+        getDocs(collectionGroup(db, 'mySignups')),
+        getDocs(collectionGroup(db, 'cancelledSignups')),
+      ]);
+
+      const process = (docs, type) => {
+        docs.forEach(d => {
+          const data = d.data();
+          const sessionId = data.sessionId;
+          if (sessionId && !validIds.has(sessionId)) {
+            const uid = d.ref.path.split('/')[1];
+            orphanedDocs.push({
+              ref: d.ref,
+              label: `[${type}] uid: ${uid.slice(0,8)}… | session: ${sessionId} | ${data.name || data.sessionTitle || '—'}`,
+            });
+          }
+        });
+      };
+      process(mySnap.docs, 'mySignups');
+      process(cancelSnap.docs, 'cancelledSignups');
+
+      resultEl.classList.remove('hidden');
+      if (orphanedDocs.length === 0) {
+        emptyEl.textContent = zh ? '✅ 沒有孤兒資料，資料庫很乾淨！' : '✅ No orphaned data found!';
+        emptyEl.classList.remove('hidden');
+        statusEl.textContent = zh ? `✅ 掃描完成，共 ${validIds.size} 個場次，無孤兒資料` : `✅ Done. ${validIds.size} sessions checked, all clean.`;
+      } else {
+        listEl.innerHTML = orphanedDocs.map((o, i) =>
+          `<div class="text-xs bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-red-700 font-mono">${i + 1}. ${o.label}</div>`
+        ).join('');
+        deleteBtn.classList.remove('hidden');
+        statusEl.textContent = zh ? `⚠️ 發現 ${orphanedDocs.length} 筆孤兒資料` : `⚠️ Found ${orphanedDocs.length} orphaned record(s)`;
+      }
+    } catch(e) {
+      statusEl.textContent = (zh ? '❌ 掃描失敗：' : '❌ Scan failed: ') + e.message;
+    }
+  };
+
+  window.deleteOrphanedData = async () => {
+    if (!orphanedDocs.length) return;
+    const zh = getLang() === 'zh';
+    const msg = zh
+      ? `確定要刪除以上 ${orphanedDocs.length} 筆孤兒資料？此操作無法復原。`
+      : `Delete ${orphanedDocs.length} orphaned record(s)? This cannot be undone.`;
+    if (!confirm(msg)) return;
+    const statusEl = document.getElementById('orphanScanStatus');
+    const deleteBtn = document.getElementById('orphanDeleteBtn');
+    deleteBtn.disabled = true;
+    statusEl.textContent = zh ? '⏳ 刪除中...' : '⏳ Deleting...';
+    try {
+      await Promise.all(orphanedDocs.map(o => deleteDoc(o.ref)));
+      document.getElementById('orphanList').innerHTML = '';
+      const emptyEl = document.getElementById('orphanEmpty');
+      emptyEl.textContent = zh ? `✅ 已成功刪除 ${orphanedDocs.length} 筆資料！` : `✅ Deleted ${orphanedDocs.length} record(s)!`;
+      emptyEl.classList.remove('hidden');
+      deleteBtn.classList.add('hidden');
+      orphanedDocs = [];
+      statusEl.textContent = zh ? '✅ 刪除完成' : '✅ Done';
+    } catch(e) {
+      statusEl.textContent = (zh ? '❌ 刪除失敗：' : '❌ Failed: ') + e.message;
+      deleteBtn.disabled = false;
+    }
   };
 
   async function loadFeedback() {
