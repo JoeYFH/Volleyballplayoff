@@ -23,6 +23,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
   const dl = inputLang; // date lang
   const tl = inputLang; // time lang
   const F = fns;
+  const zh = inputLang === 'zh-TW'; // for initial language of hardcoded strings
   return `
     <!-- Title -->
     <div>
@@ -68,7 +69,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <ul id="${I.mapSug}" class="hidden form-map-sug"></ul>
       </div>
-      <p id="${I.locationHint}" class="text-xs text-gray-400 mt-1">請輸入完整地址或場館名稱，以取得最佳搜尋結果</p>
+      <p id="${I.locationHint}" class="text-xs text-gray-400 mt-1">${zh ? '請輸入完整地址或場館名稱，以取得最佳搜尋結果' : 'Enter a full address or venue name for best search results'}</p>
       <p id="${I.locationErr}" class="hidden text-xs text-red-500 mt-1"></p>
     </div>
 
@@ -114,7 +115,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
       </div>
       <div id="${I.customTagsList}" class="flex flex-wrap gap-1.5 mb-2 hidden"></div>
       <div class="flex gap-2">
-        <input id="${I.equipCustom}" type="text" placeholder="新增用具名稱..."
+        <input id="${I.equipCustom}" type="text" placeholder="${zh ? '新增用具名稱...' : 'Add item...'}"
           class="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <button type="button" id="${I.addEquipBtn}" onclick="${F.addEquip}"
           class="shrink-0 px-3 py-2 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-xl hover:bg-indigo-100 transition">＋</button>
@@ -266,12 +267,19 @@ export function initFormPickers(ids, lang) {
   const isZh = lang === 'zh';
   const dateFmt = isZh ? 'Y年m月d日' : 'M j, Y';
   const dtFmt   = isZh ? 'Y年m月d日 H:i' : 'M j, Y H:i';
+  // Explicitly set locale so English mode isn't overridden by zh-tw.js global registration
+  const locale  = isZh
+    ? (window.flatpickr?.l10ns?.zh_tw  || 'zh_tw')
+    : (window.flatpickr?.l10ns?.default || 'en');
+  // altInputClass: give the generated altInput the same look as our inputs
+  const altCls = 'w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300';
 
   const _init = (id, opts) => {
     const el = document.getElementById(id);
     if (!el) return;
     if (el._flatpickr) {
       if (opts.altFormat) el._flatpickr.set('altFormat', opts.altFormat);
+      el._flatpickr.set('locale', locale);
     } else {
       flatpickr(el, opts);
     }
@@ -279,8 +287,10 @@ export function initFormPickers(ids, lang) {
 
   _init(ids.date, {
     altInput: true,
+    altInputClass: altCls,
     altFormat: dateFmt,
     dateFormat: 'Y-m-d',
+    locale,
     minDate: 'today',
   });
 
@@ -290,16 +300,20 @@ export function initFormPickers(ids, lang) {
     enableTime: true,
     time_24hr: true,
     altInput: true,
+    altInputClass: altCls,
     altFormat: dtFmt,
     dateFormat: 'Y-m-d\\TH:i',
+    locale,
   });
 
   _init(ids.closeAt, {
     enableTime: true,
     time_24hr: true,
     altInput: true,
+    altInputClass: altCls,
     altFormat: dtFmt,
     dateFormat: 'Y-m-d\\TH:i',
+    locale,
   });
 }
 
