@@ -2200,6 +2200,26 @@
     else if (session.type === 'female') signupGender = 'female';
     else if (session.type === 'mixed') signupGender = creatorAddGender;
 
+    // Duplicate check
+    const existingItems = signupItemsCache[creatorAddSessionId] || [];
+    const msgElDup = document.getElementById('caMsg');
+    if (!isFriend) {
+      if (existingItems.some(s => s.uid === currentUser.uid && !s.forFriend)) {
+        msgElDup.textContent = zh ? '⚠️ 你已報名此場次' : '⚠️ You have already signed up';
+        msgElDup.className = 'text-center text-sm text-orange-500';
+        msgElDup.classList.remove('hidden');
+        return;
+      }
+    } else {
+      const friendName = nameVal;
+      if (existingItems.some(s => (s.forFriend && s.forFriend === friendName) || (!s.forFriend && s.name === friendName))) {
+        msgElDup.textContent = zh ? `⚠️ "${friendName}" 已報名此場次` : `⚠️ "${friendName}" is already signed up`;
+        msgElDup.className = 'text-center text-sm text-orange-500';
+        msgElDup.classList.remove('hidden');
+        return;
+      }
+    }
+
     const btn = document.getElementById('caSubmitBtn');
     btn.disabled = true;
     document.getElementById('hCaSubmit').textContent = zh ? '新增中...' : 'Adding...';

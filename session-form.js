@@ -36,7 +36,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     <div class="flex flex-col gap-3">
       <div>
         <label id="${I.lDate}" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
-        <input id="${I.date}" type="date" lang="${dl}"
+        <input id="${I.date}" type="text" readonly
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.dateErr}" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
@@ -80,35 +80,27 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     </div>
 
     <!-- Limit + Type -->
-    <div class="flex flex-col gap-3 min-[480px]:grid min-[480px]:grid-cols-2">
-      <div>
-        <label id="${I.lLimit}" class="block text-sm font-medium text-gray-600 mb-1">人數上限（0=不限）</label>
-        <input id="${I.limit}" type="number" min="0" max="100" value="12"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-      </div>
-      <div>
-        <label id="${I.lType}" class="block text-sm font-medium text-gray-600 mb-1">性別分類</label>
-        <select id="${I.type}" onchange="${F.typeChange}"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
-          <option id="${I.oMixed}" value="mixed">混排</option>
-          <option id="${I.oMale}" value="male">男生</option>
-          <option id="${I.oFemale}" value="female">女生</option>
-        </select>
-      </div>
+    <div class="grid grid-cols-2 gap-x-3 gap-y-1">
+      <label id="${I.lLimit}" class="block text-sm font-medium text-gray-600 self-end">人數上限（0=不限）</label>
+      <label id="${I.lType}" class="block text-sm font-medium text-gray-600 self-end">性別分類</label>
+      <input id="${I.limit}" type="number" min="0" max="100" value="12"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      <select id="${I.type}" onchange="${F.typeChange}"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        <option id="${I.oMixed}" value="mixed">混排</option>
+        <option id="${I.oMale}" value="male">男生</option>
+        <option id="${I.oFemale}" value="female">女生</option>
+      </select>
     </div>
 
     <!-- Mixed session gender sub-limits -->
-    <div id="${I.mixedLimitsRow}" class="hidden grid grid-cols-2 gap-3">
-      <div>
-        <label id="${I.lMaleLimit}" class="block text-sm font-medium text-gray-600 mb-1">男生名額（0=不限）</label>
-        <input id="${I.maleLimit}" type="number" min="0" max="100" value="0"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-      </div>
-      <div>
-        <label id="${I.lFemaleLimit}" class="block text-sm font-medium text-gray-600 mb-1">女生名額（0=不限）</label>
-        <input id="${I.femaleLimit}" type="number" min="0" max="100" value="0"
-          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-      </div>
+    <div id="${I.mixedLimitsRow}" class="hidden grid grid-cols-2 gap-x-3 gap-y-1">
+      <label id="${I.lMaleLimit}" class="block text-sm font-medium text-gray-600 self-end">男生名額（0=不限）</label>
+      <label id="${I.lFemaleLimit}" class="block text-sm font-medium text-gray-600 self-end">女生名額（0=不限）</label>
+      <input id="${I.maleLimit}" type="number" min="0" max="100" value="0"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      <input id="${I.femaleLimit}" type="number" min="0" max="100" value="0"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
     </div>
     <p id="${I.maleLimitErr}" class="hidden text-xs text-red-500 -mt-2"></p>
 
@@ -145,7 +137,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
         <span id="${I.openOffsetUnit}" class="text-sm text-gray-500">小時前</span>
       </div>
       <div id="${I.openAtRow}" class="hidden">
-        <input id="${I.openAt}" type="datetime-local" lang="${dl}"
+        <input id="${I.openAt}" type="text" readonly
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.openAtHint}" class="text-xs text-gray-400 mt-1">設定後報名頁面會顯示倒數計時</p>
       </div>
@@ -167,7 +159,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
         <span id="${I.closeOffsetUnit}" class="text-sm text-gray-500">小時前</span>
       </div>
       <div id="${I.closeAtRow}" class="hidden mt-2">
-        <input id="${I.closeAt}" type="datetime-local" lang="${dl}"
+        <input id="${I.closeAt}" type="text" readonly
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.closeAtHint}" class="text-xs text-gray-400 mt-1">到時自動關閉報名</p>
       </div>
@@ -271,6 +263,10 @@ export const FORM_FNS_MYSESSIONS = {
 export function initFormPickers(ids, lang) {
   if (!window.flatpickr) return;
 
+  const isZh = lang === 'zh';
+  const dateFmt = isZh ? 'Y年m月d日' : 'M j, Y';
+  const dtFmt   = isZh ? 'Y年m月d日 H:i' : 'M j, Y H:i';
+
   const _init = (id, opts) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -283,9 +279,8 @@ export function initFormPickers(ids, lang) {
 
   _init(ids.date, {
     altInput: true,
-    altFormat: 'M j, Y',
+    altFormat: dateFmt,
     dateFormat: 'Y-m-d',
-    allowInput: true,
     minDate: 'today',
   });
 
@@ -295,18 +290,16 @@ export function initFormPickers(ids, lang) {
     enableTime: true,
     time_24hr: true,
     altInput: true,
-    altFormat: 'M j, Y H:i',
+    altFormat: dtFmt,
     dateFormat: 'Y-m-d\\TH:i',
-    allowInput: true,
   });
 
   _init(ids.closeAt, {
     enableTime: true,
     time_24hr: true,
     altInput: true,
-    altFormat: 'M j, Y H:i',
+    altFormat: dtFmt,
     dateFormat: 'Y-m-d\\TH:i',
-    allowInput: true,
   });
 }
 
