@@ -30,14 +30,31 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 我的報名記錄：只有本人可以讀寫
+    // 我的報名記錄：只有本人或管理員可以讀寫
     match /users/{userId}/mySignups/{signupId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
+      );
     }
 
-    // 取消的報名記錄：只有本人可以讀寫
+    // 取消的報名記錄：只有本人或管理員可以讀寫
     match /users/{userId}/cancelledSignups/{signupId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
+      );
+    }
+
+    // 管理員 collectionGroup 查詢用（跨用戶掃描孤兒資料）
+    match /{path=**}/mySignups/{signupId} {
+      allow read, write: if request.auth != null &&
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
+    }
+
+    match /{path=**}/cancelledSignups/{signupId} {
+      allow read, write: if request.auth != null &&
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
 
     // 設定：所有人可讀
