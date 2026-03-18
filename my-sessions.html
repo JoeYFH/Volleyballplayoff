@@ -2106,7 +2106,7 @@
             const uid = d.ref.path.split('/')[1];
             orphanedDocs.push({
               ref: d.ref,
-              label: `[${type}] uid: ${uid.slice(0,8)}… | session: ${sessionId} | ${data.name || data.sessionTitle || '—'}`,
+              label: `[${type}] ${data.sessionTitle || '—'} ${data.sessionDate || ''} | 報名者: ${data.name || '—'} | uid: ${uid.slice(0,8)}…`,
             });
           }
         });
