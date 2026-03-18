@@ -169,7 +169,7 @@
     <div id="noMySessions" class="hidden text-center py-10 text-gray-400">
       <div class="text-4xl mb-2">📭</div>
       <p id="hNoMySessions" class="text-sm">還沒有建立任何場次</p>
-      <p class="text-xs mt-2 text-gray-300">只顯示透過本網頁建立的場次</p>
+      <p id="hNoMySessionsSub" class="text-xs mt-2 text-gray-300">只顯示透過本網頁建立的場次</p>
     </div>
   </div>
 
@@ -489,6 +489,7 @@
     document.getElementById('hPageTitle').textContent = zh ? '📋 我的開場' : '📋 My Sessions';
     document.getElementById('hCreateNew').textContent = zh ? '建立新場次' : 'New Session';
     document.getElementById('hNoMySessions').textContent = zh ? '還沒有建立任何場次' : 'No sessions created yet';
+    document.getElementById('hNoMySessionsSub').textContent = zh ? '只顯示透過本網頁建立的場次' : 'Only shows sessions created through this website';
     document.getElementById('tabSessions').textContent = zh ? '我的場次' : 'My Sessions';
     document.getElementById('tabTemplates').textContent = zh ? '我的範本' : 'My Templates';
     const adminTab = document.getElementById('tabAdmin');
