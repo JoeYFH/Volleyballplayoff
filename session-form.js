@@ -279,8 +279,16 @@ export function initFormPickers(ids, lang) {
     const el = document.getElementById(id);
     if (!el) return;
     if (el._flatpickr) {
-      if (opts.altFormat) el._flatpickr.set('altFormat', opts.altFormat);
-      if (opts.locale !== undefined) el._flatpickr.set('locale', opts.locale);
+      const fp = el._flatpickr;
+      if (opts.altFormat) fp.set('altFormat', opts.altFormat);
+      if (opts.locale !== undefined) fp.set('locale', opts.locale);
+      // set() updates the config but does NOT re-render the altInput displayed text.
+      // Manually reformat so the visible value switches language immediately.
+      if (fp.altInput) {
+        fp.altInput.value = fp.selectedDates.length
+          ? fp.formatDate(fp.selectedDates[0], fp.config.altFormat)
+          : '';
+      }
     } else {
       flatpickr(el, opts);
     }
