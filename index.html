@@ -1126,23 +1126,19 @@
         others.forEach((s, i) => { html += renderItem(s, limit > 0 && s.position > limit, null); });
       }
     } else {
-      let separatorAdded = false;
-      let waitCount = 0;
-      html += items.map(s => {
-        const isWait = (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
-        let sep = '';
-        if (isWait && !separatorAdded) {
-          separatorAdded = true;
-          const zh = getLang() === 'zh';
-          const sepLabel = isFull
-            ? (zh ? '🎉 正取名額已滿！以下為候補名單' : '🎉 Full! Waitlist below')
-            : (zh ? '候補名單' : 'Waitlist');
-          const sepClass = isFull ? 'text-xs text-orange-600 shrink-0' : 'text-xs text-gray-400 shrink-0';
-          sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="${sepClass}">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
-        }
-        if (isWait) waitCount++;
-        return sep + renderItem(s, isWait, isWait ? tr('waitPrefix') + waitCount : null);
-      }).join('');
+      const isWaitFn = s => (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
+      const confirmed = items.filter(s => !isWaitFn(s));
+      const waitlist  = items.filter(s =>  isWaitFn(s));
+      html += confirmed.map((s, i) => renderItem(s, false, null)).join('');
+      if (waitlist.length) {
+        const zh = getLang() === 'zh';
+        const sepLabel = isFull
+          ? (zh ? '🎉 正取名額已滿！以下為候補名單' : '🎉 Full! Waitlist below')
+          : (zh ? '候補名單' : 'Waitlist');
+        const sepClass = isFull ? 'text-xs text-orange-600 shrink-0' : 'text-xs text-gray-400 shrink-0';
+        html += `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="${sepClass}">${sepLabel}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
+        html += waitlist.map((s, i) => renderItem(s, true, tr('waitPrefix') + (i + 1))).join('');
+      }
     }
     listEl.innerHTML = html;
 
