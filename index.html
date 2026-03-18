@@ -509,6 +509,7 @@
   let selectedSelfGender = ''; // 自己的性別 / own gender
   let selectedFriendGender = ''; // 代報名朋友的性別 / friend gender
   let mapDebounce = null;
+  let mapSessionToken = null;
   let userSignupMap = {}; // sessionId -> signupId for current user
   let sessionsData = {}; // sessionId -> session object
   let signupsCache = {}; // sessionId -> signup items[]
@@ -1689,14 +1690,16 @@
     document.querySelector('#createSheet .overflow-y-auto').scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Map Search ──
+  // ── Map Search (Google Places Autocomplete) ──
   const locInput = document.getElementById('fLocation');
   const suggestions = document.getElementById('mapSuggestions');
+  const PLACES_API_KEY = 'AIzaSyDWnkCkBPZl1aQMdgEP0n9CT8r4GqJuNGc';
 
   locInput.addEventListener('input', () => {
     clearTimeout(mapDebounce);
     const val = locInput.value.trim();
     if (val.length < 2) { suggestions.classList.add('hidden'); return; }
+    if (!mapSessionToken) mapSessionToken = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
     mapDebounce = setTimeout(() => searchLocation(val), 400);
   });
 
@@ -1704,12 +1707,24 @@
     try {
       suggestions.innerHTML = `<li class="text-gray-400">${tr('searching')}</li>`;
       suggestions.classList.remove('hidden');
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q2)}&format=json&limit=5&accept-language=${getLang()==='zh'?'zh-TW,zh':'en'}`);
+      const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': PLACES_API_KEY,
+          'X-Goog-FieldMask': 'suggestions.placePrediction.text'
+        },
+        body: JSON.stringify({
+          input: q2,
+          sessionToken: mapSessionToken,
+          languageCode: getLang() === 'zh' ? 'zh-TW' : 'en'
+        })
+      });
       const data = await res.json();
-      if (!data.length) { suggestions.innerHTML = `<li class="text-gray-400">${tr('noResults')}</li>`; return; }
-      suggestions.innerHTML = data.map(item => {
-        const parts = item.display_name.split(',');
-        const name = parts.length > 5 ? parts.slice(0, 5).join(', ') : item.display_name;
+      const items = data.suggestions || [];
+      if (!items.length) { suggestions.innerHTML = `<li class="text-gray-400">${tr('noResults')}</li>`; return; }
+      suggestions.innerHTML = items.map(s => {
+        const name = s.placePrediction?.text?.text || '';
         return `<li onclick="selectLocation('${escAttr(name)}')">${escHtml(name)}</li>`;
       }).join('');
     } catch { suggestions.innerHTML = `<li class="text-gray-400">Error</li>`; }
@@ -1718,6 +1733,7 @@
   window.selectLocation = (name) => {
     locInput.value = name;
     suggestions.classList.add('hidden');
+    mapSessionToken = null; // 結束 session，下次重新計費單元
   };
 
   document.addEventListener('click', (e) => {
