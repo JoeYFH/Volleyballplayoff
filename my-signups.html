@@ -299,6 +299,11 @@
           ]);
           const signupData = signupSnap?.exists() ? signupSnap.data() : {};
           const sess = sessionSnap.exists() ? sessionSnap.data() : null;
+          // 場次已刪除，清理孤兒 mySignups 記錄
+          if (!sess) {
+            deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', m.mirrorId)).catch(() => {});
+            return null;
+          }
           // Determine waitlist status and position
           let isWaitlisted = !signupData.forceConfirmed && (signupData.forceWaitlisted || !!signupData.genderWait || false);
           let waitlistPosition = 0;
@@ -325,7 +330,7 @@
           return { id: m.signupId || m.mirrorId, sessionId: m.sessionId, signedAt: m.signedAt, session: null, isWaitlisted: false };
         }
       }));
-      currentSignups = enriched;
+      currentSignups = enriched.filter(Boolean);
       dataLoaded = true;
       renderSignups();
     }, (err) => {
