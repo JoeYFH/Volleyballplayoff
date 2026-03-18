@@ -174,9 +174,16 @@
 
   <!-- Admin Tab -->
   <div id="contentAdmin" class="hidden">
-    <div class="flex justify-end mb-3">
+    <div class="flex flex-wrap gap-2 mb-3">
+      <div class="flex gap-1 bg-gray-100 rounded-xl p-1 text-xs overflow-x-auto">
+        <button onclick="setAdminFilter('all')" id="adf_all" class="px-3 py-1.5 rounded-lg bg-white shadow-sm font-medium text-gray-700 whitespace-nowrap">全部</button>
+        <button onclick="setAdminFilter('upcoming')" id="adf_upcoming" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">即將到來</button>
+        <button onclick="setAdminFilter('open')" id="adf_open" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">報名中</button>
+        <button onclick="setAdminFilter('closed')" id="adf_closed" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">已截止</button>
+        <button onclick="setAdminFilter('past')" id="adf_past" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">已結束</button>
+      </div>
       <select id="admin-sort-select" onchange="setAllSessionsSort(this.value)"
-        class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+        class="ml-auto text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
         <option value="date_desc" id="adminSortDateDesc">📅 活動日期：新→舊</option>
         <option value="date_asc" id="adminSortDateAsc">📅 活動日期：舊→新</option>
         <option value="closeAt_asc" id="adminSortCloseAt">⏰ 截止時間</option>
@@ -426,6 +433,7 @@
   let mySessionsCache = [];
   let allSessionsCache = [];
   let currentSessionFilter = 'open';
+  let adminSessionFilter = 'all';
   let mySessionsSort = 'createdAt_desc';
   let allSessionsSort = 'date_desc';
   const signupCountCache = {};
@@ -552,11 +560,14 @@
     // Feedback filter + sort labels
     const fbFilters = { all: zh?'全部':'All', pending: zh?'🔴 尚未處理':'🔴 Pending', processing: zh?'🟡 處理中':'🟡 In Progress', resolved: zh?'🟢 已解決':'🟢 Resolved' };
     Object.entries(fbFilters).forEach(([k, v]) => { const b = document.getElementById('fbf_' + k); if (b) b.textContent = v; });
+    // Admin session filter labels
+    const adfFilters = { all: zh?'全部':'All', upcoming: zh?'即將到來':'Upcoming', open: zh?'報名中':'Open', closed: zh?'已截止':'Closed', past: zh?'已結束':'Past' };
+    Object.entries(adfFilters).forEach(([k, v]) => { const b = document.getElementById('adf_' + k); if (b) b.textContent = v; });
     const fbSortMap = { fbSortTimeDesc: zh?'時間：新→舊':'Time: New→Old', fbSortTimeAsc: zh?'時間：舊→新':'Time: Old→New', fbSortUrgency: zh?'優先等級：高→低':'Priority: High→Low', fbSortStatus: zh?'狀態：未處理優先':'Status: Pending first' };
     Object.entries(fbSortMap).forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.textContent = v; });
     // Re-render cards to pick up new language
     if (mySessionsCache.length) applySessionFilter();
-    if (allSessionsCache.length) renderSessionMgmtList('allSessionsList', allSessionsCache, true);
+    if (allSessionsCache.length) renderAdminSessionsList();
     if (feedbackDocs.length) renderFeedbackList();
     renderTemplates();
     initFormPickers(FORM_IDS_MYSESSIONS, getLang());
@@ -585,6 +596,12 @@
       }
       loadMySessions();
       loadTemplates();
+      // Handle ?edit=sessionId from main page admin edit button
+      const editId = new URLSearchParams(window.location.search).get('edit');
+      if (editId) {
+        history.replaceState(null, '', window.location.pathname);
+        openEditSession(editId);
+      }
     } else {
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('mainApp').classList.add('hidden');
@@ -657,7 +674,40 @@
 
   window.setAllSessionsSort = (sort) => {
     allSessionsSort = sort;
-    renderSessionMgmtList('allSessionsList', sortSessions(allSessionsCache, sort), true);
+    renderAdminSessionsList();
+  };
+
+  function filterAdminSessions(sessions) {
+    const today = new Date().toISOString().slice(0, 10);
+    const now = Date.now();
+    return sessions.filter(s => {
+      if (adminSessionFilter === 'all') return true;
+      if (adminSessionFilter === 'upcoming') return (s.date || '') >= today;
+      if (adminSessionFilter === 'open') return s.isOpen && (!s.closeAt || (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) > now);
+      if (adminSessionFilter === 'closed') return !s.isOpen || (s.closeAt && (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) <= now);
+      if (adminSessionFilter === 'past') return (s.date || '') < today;
+      return true;
+    });
+  }
+
+  function renderAdminSessionsList() {
+    const filtered = filterAdminSessions(allSessionsCache);
+    renderSessionMgmtList('allSessionsList', sortSessions(filtered, allSessionsSort), true);
+    // Update filter button styles
+    ['all','upcoming','open','closed','past'].forEach(k => {
+      const btn = document.getElementById('adf_' + k);
+      if (!btn) return;
+      if (k === adminSessionFilter) {
+        btn.className = 'px-3 py-1.5 rounded-lg bg-white shadow-sm font-medium text-amber-700 whitespace-nowrap';
+      } else {
+        btn.className = 'px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap';
+      }
+    });
+  }
+
+  window.setAdminFilter = (filter) => {
+    adminSessionFilter = filter;
+    renderAdminSessionsList();
   };
 
   function sortSessions(sessions, sort) {
@@ -729,8 +779,7 @@
     const q = query(collection(db, 'sessions'));
     onSnapshot(q, (snap) => {
       allSessionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const sessions = sortSessions(allSessionsCache, allSessionsSort);
-      renderSessionMgmtList('allSessionsList', sessions, true);
+      renderAdminSessionsList();
     });
   }
 
@@ -777,8 +826,8 @@
             </div>
             <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${badgeCls} shrink-0">${badgeText}</span>
           </div>
-          <div class="text-sm text-gray-600 space-y-1 mb-3">
-            <div class="flex gap-4">
+          <div class="text-sm text-gray-800 space-y-1 mb-3">
+            <div class="flex flex-wrap gap-x-4 gap-y-0.5">
               <span>📅 ${formatDate(s.date)}</span>
               <span>🕐 ${s.time || '—'}</span>
             </div>
@@ -1232,7 +1281,16 @@
     document.getElementById('sfSaveTemplateBtn')?.classList.remove('hidden');
     // Reset form fields
     document.getElementById('sf_title').value = data?.title || '';
+    // When editing an existing session, allow past dates by removing minDate constraint
+    const sfDateEl = document.getElementById('sf_date');
+    if (id && data?.date && sfDateEl?._flatpickr) {
+      sfDateEl._flatpickr.set('minDate', null);
+    }
     fpSet('sf_date', data?.date || '');
+    // Restore minDate for new sessions
+    if (!id && sfDateEl?._flatpickr) {
+      sfDateEl._flatpickr.set('minDate', 'today');
+    }
     fpSet('sf_time', data?.time || '00:00');
     document.getElementById('sf_location').value = data?.location || '';
     document.getElementById('sf_venue').value = data?.venue || '';
@@ -2199,6 +2257,53 @@
     </div>
   </div>
 </div>
+<!-- FAB Navigation -->
+<div id="fabContainer" class="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2">
+  <div id="fabMenu" class="hidden flex-col items-end gap-2 mb-1">
+    <a href="index.html"
+      class="flex items-center gap-2 bg-white border border-indigo-100 shadow-md rounded-full px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition whitespace-nowrap">
+      🏐 <span id="fabLinkIndex">報名頁面</span>
+    </a>
+    <a href="my-signups.html"
+      class="flex items-center gap-2 bg-white border border-indigo-100 shadow-md rounded-full px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition whitespace-nowrap">
+      📋 <span id="fabLinkSignups">我的報名</span>
+    </a>
+  </div>
+  <button id="fabBtn" onclick="toggleFab()"
+    class="w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 active:scale-95 transition-all">
+    ☰
+  </button>
+</div>
+<script>
+  function toggleFab() {
+    const menu = document.getElementById('fabMenu');
+    const btn = document.getElementById('fabBtn');
+    const open = menu.classList.toggle('hidden');
+    btn.textContent = open ? '☰' : '✕';
+    menu.classList.toggle('flex', !open);
+  }
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('fabContainer').contains(e.target)) {
+      const menu = document.getElementById('fabMenu');
+      if (!menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+        document.getElementById('fabBtn').textContent = '☰';
+      }
+    }
+  });
+  // Localize FAB labels after page lang init
+  document.addEventListener('DOMContentLoaded', () => {
+    const updateFabLabels = () => {
+      const zh = document.documentElement.lang !== 'en' && localStorage.getItem('lang') !== 'en';
+      document.getElementById('fabLinkIndex').textContent = zh ? '報名頁面' : 'Sign-up Page';
+      document.getElementById('fabLinkSignups').textContent = zh ? '我的報名' : 'My Sign-ups';
+    };
+    updateFabLabels();
+    // Re-check after potential lang change
+    setTimeout(updateFabLabels, 500);
+  });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
 </body>
