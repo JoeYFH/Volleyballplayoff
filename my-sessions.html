@@ -14,8 +14,8 @@
     input[type=checkbox]{accent-color:#4f46e5}
     .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    #mapSuggestions2, .form-map-sug { position:absolute;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;width:100%; }
-    #mapSuggestions2 li, .form-map-sug li { padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9; }
+    #mapSuggestions2, .form-map-sug { position:absolute;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;overflow-x:hidden;width:100%;box-sizing:border-box; }
+    #mapSuggestions2 li, .form-map-sug li { padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9;word-break:break-word; }
     #mapSuggestions2 li:last-child, .form-map-sug li:last-child { border-bottom:none; }
     #mapSuggestions2 li:hover, .form-map-sug li:hover { background:#f1f5f9; }
     #toastEl { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1e1b4b; color:#fff; padding:12px 24px; border-radius:14px; font-size:0.9rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s, transform 0.25s; pointer-events:none; z-index:9999; white-space:nowrap; }
@@ -251,7 +251,7 @@
       <h2 id="sheetTitle" class="font-bold text-gray-800">建立新場次</h2>
       <button onclick="closeSessionSheet()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
-    <div class="px-5 py-4 space-y-4">
+    <div class="px-5 py-4 space-y-4 overflow-x-hidden">
 
       <!-- Template Dropdown -->
       <div id="sf_templateDropdownRow" class="hidden">
@@ -263,7 +263,7 @@
       </div>
 
       <!-- Form fields injected from session-form.js -->
-      <div id="sfFormFieldsContainer" class="contents"></div>
+      <div id="sfFormFieldsContainer" class="space-y-4 min-w-0 overflow-x-hidden"></div>
 
       <div class="flex gap-3">
         <button id="sfSubmitBtn" onclick="submitSession()"
@@ -2395,7 +2395,9 @@
     }
   }
   document.addEventListener('click', (e) => {
-    if (!document.getElementById('fabContainer').contains(e.target)) closeFab();
+    // Use composedPath() so detached nodes (after btn.innerHTML replacement) still match
+    const path = e.composedPath ? e.composedPath() : [];
+    if (!path.some(el => el && el.id === 'fabContainer')) closeFab();
   });
   document.addEventListener('DOMContentLoaded', () => {
     const updateFabLabels = () => {

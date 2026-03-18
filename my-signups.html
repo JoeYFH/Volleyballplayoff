@@ -535,7 +535,7 @@
       const sid = escHtml(s.sessionId);
       const id = escHtml(s.id);
       footer = `<button onclick="cancelMySignup('${sid}','${id}')"
-        class="w-full text-xs text-red-400 border border-red-100 rounded-xl py-2 hover:bg-red-50 transition">
+        class="w-full text-xs text-red-400 border border-red-100 rounded-xl py-2 hover:bg-red-50 transition mt-2">
         ✕ ${zh?'取消報名':'Cancel Sign-up'}
       </button>`;
     } else {
@@ -728,7 +728,9 @@
     }
   }
   document.addEventListener('click', (e) => {
-    if (!document.getElementById('fabContainerSu').contains(e.target)) closeFabSu();
+    // Use composedPath() so detached nodes (after btn.innerHTML replacement) still match
+    const path = e.composedPath ? e.composedPath() : [];
+    if (!path.some(el => el && el.id === 'fabContainerSu')) closeFabSu();
   });
   document.addEventListener('DOMContentLoaded', () => {
     const updateFabLabelsSu = () => {

@@ -265,12 +265,13 @@ export function initFormPickers(ids, lang) {
   if (!window.flatpickr) return;
 
   const isZh = lang === 'zh';
-  const dateFmt = isZh ? 'Y年m月d日' : 'M j, Y';
-  const dtFmt   = isZh ? 'Y年m月d日 H:i' : 'M j, Y H:i';
-  // Explicitly set locale so English mode isn't overridden by zh-tw.js global registration
-  const locale  = isZh
-    ? (window.flatpickr?.l10ns?.zh_tw  || 'zh_tw')
-    : (window.flatpickr?.l10ns?.default || 'en');
+  // Use numeric-only formats — avoids any dependency on flatpickr locale's month names.
+  // zh-tw.js loaded globally can override l10ns.default, so 'M j, Y' would still show
+  // Chinese month names in English mode. Pure numbers are always locale-neutral.
+  const dateFmt = isZh ? 'Y年n月j日' : 'n/j/Y';
+  const dtFmt   = isZh ? 'Y年n月j日 H:i' : 'n/j/Y H:i';
+  // Use zh_tw locale for calendar UI in Chinese mode; English mode uses flatpickr default.
+  const locale  = isZh ? (window.flatpickr?.l10ns?.zh_tw || 'zh_tw') : undefined;
   // altInputClass: give the generated altInput the same look as our inputs
   const altCls = 'w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300';
 
@@ -279,42 +280,22 @@ export function initFormPickers(ids, lang) {
     if (!el) return;
     if (el._flatpickr) {
       if (opts.altFormat) el._flatpickr.set('altFormat', opts.altFormat);
-      el._flatpickr.set('locale', locale);
+      if (opts.locale !== undefined) el._flatpickr.set('locale', opts.locale);
     } else {
       flatpickr(el, opts);
     }
   };
 
-  _init(ids.date, {
-    altInput: true,
-    altInputClass: altCls,
-    altFormat: dateFmt,
-    dateFormat: 'Y-m-d',
-    locale,
-    minDate: 'today',
-  });
+  const dateOpts = { altInput: true, altInputClass: altCls, altFormat: dateFmt, dateFormat: 'Y-m-d', minDate: 'today' };
+  const dtOpts   = { enableTime: true, time_24hr: true, altInput: true, altInputClass: altCls, altFormat: dtFmt, dateFormat: 'Y-m-d\\TH:i' };
+  if (locale) { dateOpts.locale = locale; dtOpts.locale = locale; }
+
+  _init(ids.date,    dateOpts);
 
   // ids.time is now a hidden input backed by two <select> dropdowns — no flatpickr needed
 
-  _init(ids.openAt, {
-    enableTime: true,
-    time_24hr: true,
-    altInput: true,
-    altInputClass: altCls,
-    altFormat: dtFmt,
-    dateFormat: 'Y-m-d\\TH:i',
-    locale,
-  });
-
-  _init(ids.closeAt, {
-    enableTime: true,
-    time_24hr: true,
-    altInput: true,
-    altInputClass: altCls,
-    altFormat: dtFmt,
-    dateFormat: 'Y-m-d\\TH:i',
-    locale,
-  });
+  _init(ids.openAt,  dtOpts);
+  _init(ids.closeAt, { ...dtOpts });
 }
 
 /**
