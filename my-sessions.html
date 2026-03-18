@@ -1160,6 +1160,15 @@
 
   window.deleteSession = async (id) => {
     if (!confirm(getLang()==='zh'?'確定要刪除此場次嗎？':'Delete this session?')) return;
+    // 刪除所有報名者的 mySignups 記錄，再刪除 signups subcollection，最後刪除場次
+    const signupsSnap = await getDocs(collection(db, 'sessions', id, 'signups'));
+    await Promise.all(signupsSnap.docs.map(async (signupDoc) => {
+      const uid = signupDoc.data().uid;
+      if (uid) {
+        await deleteDoc(doc(db, 'users', uid, 'mySignups', signupDoc.id));
+      }
+      await deleteDoc(signupDoc.ref);
+    }));
     await deleteDoc(doc(db, 'sessions', id));
   };
 
