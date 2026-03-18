@@ -2074,6 +2074,52 @@
   // ── Maintenance: Orphan Cleanup ──
   let orphanedDocs = [];
 
+  function renderOrphanList() {
+    const zh = getLang() === 'zh';
+    const listEl    = document.getElementById('orphanList');
+    const emptyEl   = document.getElementById('orphanEmpty');
+    const deleteBtn = document.getElementById('orphanDeleteBtn');
+    const statusEl  = document.getElementById('orphanScanStatus');
+
+    if (!orphanedDocs.length) {
+      listEl.innerHTML = '';
+      emptyEl.textContent = zh ? '✅ 沒有孤兒資料，資料庫很乾淨！' : '✅ All clean!';
+      emptyEl.classList.remove('hidden');
+      deleteBtn.classList.add('hidden');
+      statusEl.textContent = zh ? '✅ 全部清理完畢' : '✅ All done';
+      return;
+    }
+
+    const field = (label, value) => value ? `<div class="flex gap-2 text-xs"><span class="text-gray-400 shrink-0 w-16">${label}</span><span class="text-gray-700 break-all">${value}</span></div>` : '';
+
+    listEl.innerHTML = orphanedDocs.map((o, i) => {
+      const d = o.data;
+      const location = [d.sessionLocation, d.sessionVenue].filter(Boolean).join(' ') || null;
+      return `<div id="orphan-card-${i}" class="bg-red-50 border border-red-100 rounded-xl p-3">
+        <div class="flex items-start gap-2">
+          <div class="flex-1 space-y-0.5">
+            <div class="text-xs font-semibold text-red-500 mb-1">${o.type}</div>
+            ${field('活動', d.sessionTitle || null)}
+            ${field('日期', d.sessionDate || null)}
+            ${field('時間', d.sessionTime || null)}
+            ${field('地點', location)}
+            ${field('報名者', d.name || null)}
+            ${field('代報', d.forFriend || null)}
+            ${field('uid', o.uid)}
+          </div>
+          <button onclick="deleteOrphanDoc(${i})"
+            class="shrink-0 mt-0.5 text-xs px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 active:scale-95 transition font-medium">
+            🗑️ 刪除
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    emptyEl.classList.add('hidden');
+    deleteBtn.classList.remove('hidden');
+    statusEl.textContent = zh ? `⚠️ 發現 ${orphanedDocs.length} 筆孤兒資料` : `⚠️ Found ${orphanedDocs.length} orphaned record(s)`;
+  }
+
   window.scanOrphanedData = async () => {
     const statusEl  = document.getElementById('orphanScanStatus');
     const resultEl  = document.getElementById('orphanResult');
@@ -2101,13 +2147,8 @@
       const process = (docs, type) => {
         docs.forEach(d => {
           const data = d.data();
-          const sessionId = data.sessionId;
-          if (sessionId && !validIds.has(sessionId)) {
-            const uid = d.ref.path.split('/')[1];
-            orphanedDocs.push({
-              ref: d.ref,
-              label: `[${type}] ${data.sessionTitle || '—'} ${data.sessionDate || ''} | 報名者: ${data.name || '—'} | uid: ${uid.slice(0,8)}…`,
-            });
+          if (data.sessionId && !validIds.has(data.sessionId)) {
+            orphanedDocs.push({ ref: d.ref, data, type, uid: d.ref.path.split('/')[1] });
           }
         });
       };
@@ -2120,14 +2161,25 @@
         emptyEl.classList.remove('hidden');
         statusEl.textContent = zh ? `✅ 掃描完成，共 ${validIds.size} 個場次，無孤兒資料` : `✅ Done. ${validIds.size} sessions checked, all clean.`;
       } else {
-        listEl.innerHTML = orphanedDocs.map((o, i) =>
-          `<div class="text-xs bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-red-700 font-mono">${i + 1}. ${o.label}</div>`
-        ).join('');
-        deleteBtn.classList.remove('hidden');
-        statusEl.textContent = zh ? `⚠️ 發現 ${orphanedDocs.length} 筆孤兒資料` : `⚠️ Found ${orphanedDocs.length} orphaned record(s)`;
+        renderOrphanList();
       }
     } catch(e) {
       statusEl.textContent = (zh ? '❌ 掃描失敗：' : '❌ Scan failed: ') + e.message;
+    }
+  };
+
+  window.deleteOrphanDoc = async (idx) => {
+    const o = orphanedDocs[idx];
+    if (!o) return;
+    const card = document.getElementById(`orphan-card-${idx}`);
+    if (card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
+    try {
+      await deleteDoc(o.ref);
+      orphanedDocs.splice(idx, 1);
+      renderOrphanList();
+    } catch(e) {
+      if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+      alert('刪除失敗：' + e.message);
     }
   };
 
@@ -2144,13 +2196,8 @@
     statusEl.textContent = zh ? '⏳ 刪除中...' : '⏳ Deleting...';
     try {
       await Promise.all(orphanedDocs.map(o => deleteDoc(o.ref)));
-      document.getElementById('orphanList').innerHTML = '';
-      const emptyEl = document.getElementById('orphanEmpty');
-      emptyEl.textContent = zh ? `✅ 已成功刪除 ${orphanedDocs.length} 筆資料！` : `✅ Deleted ${orphanedDocs.length} record(s)!`;
-      emptyEl.classList.remove('hidden');
-      deleteBtn.classList.add('hidden');
       orphanedDocs = [];
-      statusEl.textContent = zh ? '✅ 刪除完成' : '✅ Done';
+      renderOrphanList();
     } catch(e) {
       statusEl.textContent = (zh ? '❌ 刪除失敗：' : '❌ Failed: ') + e.message;
       deleteBtn.disabled = false;
