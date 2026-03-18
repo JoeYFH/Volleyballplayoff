@@ -914,10 +914,11 @@
       </div>`) : '';
 
     const isOrganizer = currentUser && s.createdBy === currentUser.uid;
-    const manageBtn = isOrganizer ? `
-      <a href="my-sessions.html"
+    const isAdminOnCard = currentUser && (ADMIN_EMAILS || []).includes(currentUser.email);
+    const manageBtn = (isOrganizer || isAdminOnCard) ? `
+      <a href="my-sessions.html?edit=${s.id}"
         class="block w-full mt-2 text-center bg-amber-50 text-amber-700 border border-amber-200 rounded-xl py-2 font-semibold text-xs hover:bg-amber-100 transition">
-        ⚙️ ${getLang() === 'zh' ? '管理場次' : 'Manage Session'}
+        ⚙️ ${getLang() === 'zh' ? '編輯場次' : 'Edit Session'}
       </a>` : '';
     const fmtTs = ms => { const d = new Date(ms); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
     const signupTimeHtml = (() => {
@@ -954,10 +955,10 @@
             ${signedBadge}
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm text-gray-600 mt-3">
+        <div class="flex flex-wrap gap-y-1.5 gap-x-4 text-sm text-gray-800 mt-3">
           <div class="flex items-center gap-1"><span>📅</span><span>${formatDate(s.date)}</span></div>
           <div class="flex items-center gap-1"><span>🕐</span><span>${s.time || '—'}</span></div>
-          <div class="flex items-center gap-1 col-span-2"><span>📍</span>
+          <div class="flex items-center gap-1 w-full"><span>📍</span>
             <a href="https://maps.google.com/?q=${encodeURIComponent(s.location || '')}" target="_blank" class="text-indigo-500 hover:underline">${escHtml(s.location || '—')}</a>
           </div>
           ${venueHtml}${limitHtml}${typeHtml}${equipHtml}
