@@ -1705,7 +1705,8 @@
       const data = await res.json();
       if (!data.length) { suggestions.innerHTML = `<li class="text-gray-400">${tr('noResults')}</li>`; return; }
       suggestions.innerHTML = data.map(item => {
-        const name = item.display_name.split(',').slice(0, 3).join(', ');
+        const parts = item.display_name.split(',');
+        const name = parts.length > 5 ? parts.slice(0, 5).join(', ') : item.display_name;
         return `<li onclick="selectLocation('${escAttr(name)}')">${escHtml(name)}</li>`;
       }).join('');
     } catch { suggestions.innerHTML = `<li class="text-gray-400">Error</li>`; }
