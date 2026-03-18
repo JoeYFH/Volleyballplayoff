@@ -2135,8 +2135,18 @@
     btn.disabled = true;
     document.getElementById('hCaSubmit').textContent = zh ? '新增中...' : 'Adding...';
     try {
+      // Determine if there is vacancy; if full → let normal waitlist logic apply
+      const sessLimit = session.limit || 0;
+      let shouldForceConfirm = sessLimit === 0; // no limit → always confirm
+      if (sessLimit > 0) {
+        const currentItems = signupItemsCache[creatorAddSessionId] || [];
+        const confirmedCount = currentItems.filter(s =>
+          s.forceConfirmed || (!s.forceWaitlisted && !s.genderWait && s.position <= sessLimit)
+        ).length;
+        shouldForceConfirm = confirmedCount < sessLimit;
+      }
       const organizerName = !isFriend ? (document.getElementById('caName').value.trim() || currentUser.displayName || '') : (currentUser.displayName || '');
-      await addDoc(collection(db, 'sessions', creatorAddSessionId, 'signups'), {
+      const docData = {
         name: isFriend ? organizerName : nameVal,
         forFriend: isFriend ? nameVal : '',
         photoURL: currentUser.photoURL || null,
@@ -2147,9 +2157,10 @@
         pairWith: document.getElementById('caPair').value.trim(),
         gender: signupGender,
         addedByOrganizer: true,
-        forceConfirmed: true,
         bringEquip: [...creatorAddBringEquip],
-      });
+      };
+      if (shouldForceConfirm) docData.forceConfirmed = true;
+      await addDoc(collection(db, 'sessions', creatorAddSessionId, 'signups'), docData);
       const msgEl = document.getElementById('caMsg');
       msgEl.textContent = zh ? '✅ 已新增！' : '✅ Added!';
       msgEl.className = 'text-center text-sm text-green-600';
