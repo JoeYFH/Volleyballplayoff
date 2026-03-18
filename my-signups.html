@@ -342,8 +342,19 @@
 
     // Cancelled signups
     const qC = query(collection(db, 'users', currentUser.uid, 'cancelledSignups'), orderBy('cancelledAt', 'desc'));
-    onSnapshot(qC, (snap) => {
-      cancelledSignups = snap.docs.map(d => ({ id: d.id, cancelled: true, ...d.data() }));
+    onSnapshot(qC, async (snap) => {
+      const results = await Promise.all(snap.docs.map(async (d) => {
+        const data = d.data();
+        if (data.sessionId) {
+          const sessSnap = await getDoc(doc(db, 'sessions', data.sessionId));
+          if (!sessSnap.exists()) {
+            deleteDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', d.id)).catch(() => {});
+            return null;
+          }
+        }
+        return { id: d.id, cancelled: true, ...data };
+      }));
+      cancelledSignups = results.filter(Boolean);
       if (subTab === 'cancelled') renderSignups();
     }, () => {});
   }
