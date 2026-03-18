@@ -555,6 +555,8 @@
     document.getElementById('lTime').innerHTML = tr('fTime') + ' <span class="text-red-400">*</span>';
     document.getElementById('lLocation').innerHTML = tr('fLocation') + ' <span class="text-red-400">*</span>';
     document.getElementById('fLocation').placeholder = tr('fLocationPh');
+    const locHint = document.getElementById('fLocationHint');
+    if (locHint) locHint.textContent = tr('fLocationHint');
     document.getElementById('lVenue').textContent = tr('fVenue');
     document.getElementById('fVenue').placeholder = tr('fVenuePh');
     document.getElementById('lLimit').textContent = tr('fLimit');

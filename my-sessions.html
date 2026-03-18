@@ -536,7 +536,8 @@
     const sfSaveNewTemplateBtn = document.getElementById('sfSaveNewTemplateBtn'); if (sfSaveNewTemplateBtn) sfSaveNewTemplateBtn.textContent = zh?'💾 另存新範本':'💾 Save as New';
     // Placeholders
     const sfTitleEl = document.getElementById('sf_title'); if (sfTitleEl) sfTitleEl.placeholder = zh?'例：第15週零打':'e.g. Week 15 Pickup';
-    const sfLocEl = document.getElementById('sf_location'); if (sfLocEl) sfLocEl.placeholder = zh?'輸入或搜尋地點':'Enter or search location';
+    const sfLocEl = document.getElementById('sf_location'); if (sfLocEl) sfLocEl.placeholder = zh?'請輸入完整地址或場館名稱':'Enter full address or venue name';
+    const sfLocHint = document.getElementById('sf_locationHint'); if (sfLocHint) sfLocHint.textContent = zh?'請輸入完整地址或場館名稱，以取得最佳搜尋結果':'Enter a full address or venue name for best search results';
     const sfVenueEl = document.getElementById('sf_venue'); if (sfVenueEl) sfVenueEl.placeholder = zh?'例：B1 室內球場4號場':'e.g. Court B1, Indoor Hall';
     const sfNoteEl = document.getElementById('sf_note'); if (sfNoteEl) sfNoteEl.placeholder = zh?'其他說明...':'Other info...';
     document.getElementById('sf_equipCustom').placeholder = zh?'新增用具':'Add item';

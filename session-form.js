@@ -68,6 +68,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <ul id="${I.mapSug}" class="hidden form-map-sug"></ul>
       </div>
+      <p id="${I.locationHint}" class="text-xs text-gray-400 mt-1">請輸入完整地址或場館名稱，以取得最佳搜尋結果</p>
       <p id="${I.locationErr}" class="hidden text-xs text-red-500 mt-1"></p>
     </div>
 
@@ -79,7 +80,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     </div>
 
     <!-- Limit + Type -->
-    <div class="grid grid-cols-2 gap-3">
+    <div class="flex flex-col gap-3 min-[480px]:grid min-[480px]:grid-cols-2">
       <div>
         <label id="${I.lLimit}" class="block text-sm font-medium text-gray-600 mb-1">人數上限（0=不限）</label>
         <input id="${I.limit}" type="number" min="0" max="100" value="12"
@@ -196,7 +197,7 @@ export const FORM_IDS_INDEX = {
   title: 'fTitle', titleErr: 'fTitleErr',
   date: 'fDate', dateErr: 'fDateErr',
   time: 'fTime', timeErr: 'fTimeErr',
-  location: 'fLocation', locationErr: 'fLocationErr', mapSug: 'mapSuggestions',
+  location: 'fLocation', locationErr: 'fLocationErr', locationHint: 'fLocationHint', mapSug: 'mapSuggestions',
   venue: 'fVenue',
   limit: 'fLimit', type: 'fType',
   oMixed: 'oMixed', oMale: 'oMale', oFemale: 'oFemale',
@@ -226,7 +227,7 @@ export const FORM_IDS_MYSESSIONS = {
   title: 'sf_title', titleErr: 'sf_titleErr',
   date: 'sf_date', dateErr: 'sf_dateErr',
   time: 'sf_time', timeErr: 'sf_timeErr',
-  location: 'sf_location', locationErr: 'sf_locationErr', mapSug: 'mapSuggestions2',
+  location: 'sf_location', locationErr: 'sf_locationErr', locationHint: 'sf_locationHint', mapSug: 'mapSuggestions2',
   venue: 'sf_venue',
   limit: 'sf_limit', type: 'sf_type',
   oMixed: 'sf_oMixed', oMale: 'sf_oMale', oFemale: 'sf_oFemale',
