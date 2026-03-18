@@ -1345,6 +1345,7 @@
         <button type="button" onclick="removeCustomEquip(${i})" class="ml-1 text-indigo-400 hover:text-red-500 font-bold leading-none">✕</button>
       </span>`
     ).join('');
+    list.classList.toggle('hidden', customEquipItems.length === 0);
   }
 
   window.removeCustomEquip = (i) => {
