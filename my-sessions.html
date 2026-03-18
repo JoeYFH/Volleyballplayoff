@@ -1115,13 +1115,13 @@
         renderSection(females, femaleLimit, zh ? '♀ 女生' : '♀ Female', 'text-pink-500') +
         (others.length ? `<div class="text-xs font-semibold text-gray-400 px-1 mt-2 mb-1">${zh?'其他':'Other'}</div>${others.map((s,i) => renderItem(s, !s.forceConfirmed && limit > 0 && s.position > limit, i+1)).join('')}` : '');
     } else {
-      let sepAdded = false;
-      listEl.innerHTML = items.map(s => {
-        const isWait = !s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit));
-        let sep = '';
-        if (isWait && !sepAdded) { sepAdded = true; sep = `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`; }
-        return sep + renderItem(s, isWait, s.position);
-      }).join('');
+      const confirmed = items.filter(s => !(!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))));
+      const waitlist  = items.filter(s =>   !s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit)));
+      const sep = waitlist.length ? `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>` : '';
+      listEl.innerHTML =
+        confirmed.map((s, i) => renderItem(s, false, i + 1)).join('') +
+        sep +
+        waitlist.map((s, i) => renderItem(s, true, confirmed.length + i + 1)).join('');
     }
 
     // Update unclaimed equipment notice (only confirmed signups count as "claimed")
