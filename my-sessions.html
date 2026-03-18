@@ -111,7 +111,7 @@
       + <span id="hCreateNew">建立新場次</span>
     </button>
     <!-- Session Filters -->
-    <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
+    <div class="flex gap-1.5 mb-1.5 overflow-x-auto pb-1">
       <button id="filter-all" onclick="setSessionFilter('all')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">所有</button>
       <button id="filter-upcoming" onclick="setSessionFilter('upcoming')"
@@ -122,6 +122,17 @@
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">已關閉</button>
       <button id="filter-past" onclick="setSessionFilter('past')"
         class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">過去</button>
+    </div>
+    <!-- Gender Filters -->
+    <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
+      <button id="mygf-all" onclick="setMyGenderFilter('all')"
+        class="text-xs px-3 py-1 rounded-xl bg-indigo-600 text-white transition shrink-0">⚥ 全部</button>
+      <button id="mygf-mixed" onclick="setMyGenderFilter('mixed')"
+        class="text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">⚥ 混排</button>
+      <button id="mygf-male" onclick="setMyGenderFilter('male')"
+        class="text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-blue-300 transition shrink-0">♂ 男生</button>
+      <button id="mygf-female" onclick="setMyGenderFilter('female')"
+        class="text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-pink-300 transition shrink-0">♀ 女生</button>
     </div>
     <div class="flex justify-end gap-1.5 mb-3">
       <select id="my-sort-type-select" onchange="setMySessionsSort()"
@@ -174,9 +185,9 @@
 
   <!-- Admin Tab -->
   <div id="contentAdmin" class="hidden">
-    <div class="flex flex-wrap gap-2 mb-3">
+    <div class="flex flex-wrap gap-2 mb-2">
       <div class="flex gap-1 bg-gray-100 rounded-xl p-1 text-xs overflow-x-auto">
-        <button onclick="setAdminFilter('all')" id="adf_all" class="px-3 py-1.5 rounded-lg bg-white shadow-sm font-medium text-gray-700 whitespace-nowrap">全部</button>
+        <button onclick="setAdminFilter('all')" id="adf_all" class="px-3 py-1.5 rounded-lg bg-white shadow-sm font-medium text-amber-700 whitespace-nowrap">全部</button>
         <button onclick="setAdminFilter('upcoming')" id="adf_upcoming" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">即將到來</button>
         <button onclick="setAdminFilter('open')" id="adf_open" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">報名中</button>
         <button onclick="setAdminFilter('closed')" id="adf_closed" class="px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">已截止</button>
@@ -190,6 +201,17 @@
         <option value="createdAt_desc" id="adminSortCreated">🕐 建立時間</option>
         <option value="signup_desc" id="adminSortSignup">👥 報名人數</option>
       </select>
+    </div>
+    <!-- Admin Gender Filter -->
+    <div class="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+      <button id="agf-all" onclick="setAdminGenderFilter('all')"
+        class="text-xs px-3 py-1 rounded-xl bg-amber-100 text-amber-700 font-medium transition shrink-0">⚥ 全部</button>
+      <button id="agf-mixed" onclick="setAdminGenderFilter('mixed')"
+        class="text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0">⚥ 混排</button>
+      <button id="agf-male" onclick="setAdminGenderFilter('male')"
+        class="text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-blue-300 transition shrink-0">♂ 男生</button>
+      <button id="agf-female" onclick="setAdminGenderFilter('female')"
+        class="text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-pink-300 transition shrink-0">♀ 女生</button>
     </div>
     <div id="allSessionsList" class="space-y-4"></div>
   </div>
@@ -433,7 +455,9 @@
   let mySessionsCache = [];
   let allSessionsCache = [];
   let currentSessionFilter = 'open';
+  let myGenderFilter = 'all';
   let adminSessionFilter = 'all';
+  let adminGenderFilter = 'all';
   let mySessionsSort = 'createdAt_desc';
   let allSessionsSort = 'date_desc';
   const signupCountCache = {};
@@ -484,6 +508,9 @@
       const btn = document.getElementById('filter-' + k);
       if (btn) btn.textContent = v;
     });
+    // Update My Sessions gender filter labels
+    const myGenderLabels = { all: `⚥ ${zh?'全部':'All'}`, mixed: `⚥ ${zh?'混排':'Mixed'}`, male: `♂ ${zh?'男生':'Male'}`, female: `♀ ${zh?'女生':'Female'}` };
+    Object.entries(myGenderLabels).forEach(([k, v]) => { const btn = document.getElementById('mygf-' + k); if (btn) btn.textContent = v; });
     // Admin sort options
     const adminSortMap = {
       adminSortDateDesc: zh?'📅 活動日期：新→舊':'📅 Date: New→Old',
@@ -651,6 +678,24 @@
     applySessionFilter();
   };
 
+  window.setMyGenderFilter = (gender) => {
+    myGenderFilter = gender;
+    const zh = getLang() === 'zh';
+    const types = { all: `⚥ ${zh?'全部':'All'}`, mixed: `⚥ ${zh?'混排':'Mixed'}`, male: `♂ ${zh?'男生':'Male'}`, female: `♀ ${zh?'女生':'Female'}` };
+    Object.keys(types).forEach(k => {
+      const btn = document.getElementById('mygf-' + k);
+      if (!btn) return;
+      btn.textContent = types[k];
+      if (k === gender) {
+        btn.className = 'text-xs px-3 py-1 rounded-xl bg-indigo-600 text-white font-medium transition shrink-0';
+      } else {
+        const hoverColor = k === 'male' ? 'hover:border-blue-300' : k === 'female' ? 'hover:border-pink-300' : 'hover:border-indigo-300';
+        btn.className = `text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 ${hoverColor} transition shrink-0`;
+      }
+    });
+    applySessionFilter();
+  };
+
   window.setMySessionsSort = () => {
     const type = document.getElementById('my-sort-type-select').value;
     const dir  = document.getElementById('my-sort-dir-select').value;
@@ -682,32 +727,52 @@
     const today = new Date().toISOString().slice(0, 10);
     const now = Date.now();
     return sessions.filter(s => {
-      if (adminSessionFilter === 'all') return true;
-      if (adminSessionFilter === 'upcoming') return (s.date || '') >= today;
-      if (adminSessionFilter === 'open') return s.isOpen && (!s.closeAt || (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) > now);
-      if (adminSessionFilter === 'closed') return !s.isOpen || (s.closeAt && (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) <= now);
-      if (adminSessionFilter === 'past') return (s.date || '') < today;
-      return true;
+      // Status filter
+      let passStatus = true;
+      if (adminSessionFilter === 'upcoming') passStatus = (s.date || '') >= today;
+      else if (adminSessionFilter === 'open') passStatus = s.isOpen && (!s.closeAt || (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) > now);
+      else if (adminSessionFilter === 'closed') passStatus = !s.isOpen || (s.closeAt && (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) <= now);
+      else if (adminSessionFilter === 'past') passStatus = (s.date || '') < today;
+      // Gender filter
+      const passGender = adminGenderFilter === 'all' || (s.type || 'mixed') === adminGenderFilter;
+      return passStatus && passGender;
     });
   }
 
   function renderAdminSessionsList() {
     const filtered = filterAdminSessions(allSessionsCache);
     renderSessionMgmtList('allSessionsList', sortSessions(filtered, allSessionsSort), true);
-    // Update filter button styles
+    const zh = getLang() === 'zh';
+    // Update status filter button styles
     ['all','upcoming','open','closed','past'].forEach(k => {
       const btn = document.getElementById('adf_' + k);
       if (!btn) return;
-      if (k === adminSessionFilter) {
-        btn.className = 'px-3 py-1.5 rounded-lg bg-white shadow-sm font-medium text-amber-700 whitespace-nowrap';
+      btn.className = k === adminSessionFilter
+        ? 'px-3 py-1.5 rounded-lg bg-white shadow-sm font-medium text-amber-700 whitespace-nowrap'
+        : 'px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap';
+    });
+    // Update gender filter button styles
+    const genders = { all: `⚥ ${zh?'全部':'All'}`, mixed: `⚥ ${zh?'混排':'Mixed'}`, male: `♂ ${zh?'男生':'Male'}`, female: `♀ ${zh?'女生':'Female'}` };
+    Object.keys(genders).forEach(k => {
+      const btn = document.getElementById('agf-' + k);
+      if (!btn) return;
+      btn.textContent = genders[k];
+      if (k === adminGenderFilter) {
+        btn.className = 'text-xs px-3 py-1 rounded-xl bg-amber-100 text-amber-700 font-medium transition shrink-0';
       } else {
-        btn.className = 'px-3 py-1.5 rounded-lg font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap';
+        const hoverColor = k === 'male' ? 'hover:border-blue-300' : k === 'female' ? 'hover:border-pink-300' : 'hover:border-indigo-300';
+        btn.className = `text-xs px-3 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 ${hoverColor} transition shrink-0`;
       }
     });
   }
 
   window.setAdminFilter = (filter) => {
     adminSessionFilter = filter;
+    renderAdminSessionsList();
+  };
+
+  window.setAdminGenderFilter = (gender) => {
+    adminGenderFilter = gender;
     renderAdminSessionsList();
   };
 
@@ -740,12 +805,16 @@
       const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
       const notStarted = !!(openAtMs && openAtMs > now);
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
-      if (currentSessionFilter === 'all')      return true;
-      if (currentSessionFilter === 'past')     return isPast;
-      if (currentSessionFilter === 'upcoming') return !isPast && notStarted;
-      if (currentSessionFilter === 'open')     return !isPast && !notStarted && !effectivelyClosed;
-      if (currentSessionFilter === 'closed')   return !isPast && !notStarted && effectivelyClosed;
-      return true;
+      // Status filter
+      let passStatus = true;
+      if (currentSessionFilter === 'all')      passStatus = true;
+      else if (currentSessionFilter === 'past')     passStatus = isPast;
+      else if (currentSessionFilter === 'upcoming') passStatus = !isPast && notStarted;
+      else if (currentSessionFilter === 'open')     passStatus = !isPast && !notStarted && !effectivelyClosed;
+      else if (currentSessionFilter === 'closed')   passStatus = !isPast && !notStarted && effectivelyClosed;
+      // Gender filter
+      const passGender = myGenderFilter === 'all' || (s.type || 'mixed') === myGenderFilter;
+      return passStatus && passGender;
     });
     // Sort
     const [sortType, sortDir] = mySessionsSort.split('_');
