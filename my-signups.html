@@ -210,6 +210,7 @@
   let mainTab = 'self';       // 'self' | 'proxy'
   let subTab = 'confirmed';   // 'confirmed' | 'past' | 'cancelled'
   let signupsSort = 'date_asc'; // sort state
+  let dataLoaded = false;     // prevent empty-state flash before data arrives
 
   // Map signupId → data needed for cancel action (avoids inline JSON in onclick)
   const signupDataMap = {};
@@ -250,7 +251,7 @@
       suDirSel.options[0].text = zh ? '近→遠' : 'Near→Far';
       suDirSel.options[1].text = zh ? '遠→近' : 'Far→Near';
     }
-    renderSignups();
+    if (dataLoaded) renderSignups();
   }
 
   // ── Auth ──
@@ -285,6 +286,7 @@
       document.getElementById('loadingSkeletons').classList.add('hidden');
       if (snap.empty) {
         currentSignups = [];
+        dataLoaded = true;
         renderSignups();
         return;
       }
@@ -324,10 +326,12 @@
         }
       }));
       currentSignups = enriched;
+      dataLoaded = true;
       renderSignups();
     }, (err) => {
       console.error('loadMySignups error:', err);
       document.getElementById('loadingSkeletons').classList.add('hidden');
+      dataLoaded = true;
       renderSignups();
     });
 
@@ -363,12 +367,16 @@
   };
 
   function updateSubTabStyles() {
-    const activeS = 'flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-white shadow-sm';
     const inactiveS = 'flex-1 text-xs font-medium py-1.5 rounded-lg transition text-gray-500 hover:text-gray-700';
-    const colors = { waitlist: 'text-orange-500', confirmed: 'text-indigo-600', past: 'text-gray-700', cancelled: 'text-red-500' };
+    const activeStyles = {
+      waitlist:  'flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-orange-100 text-orange-600 shadow-sm font-semibold',
+      confirmed: 'flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-indigo-100 text-indigo-700 shadow-sm font-semibold',
+      past:      'flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-gray-200 text-gray-700 shadow-sm font-semibold',
+      cancelled: 'flex-1 text-xs font-medium py-1.5 rounded-lg transition bg-red-100 text-red-500 shadow-sm font-semibold',
+    };
     ['waitlist', 'confirmed', 'past', 'cancelled'].forEach(t => {
       const btn = document.getElementById('subTab' + t.charAt(0).toUpperCase() + t.slice(1));
-      if (btn) btn.className = t === subTab ? activeS + ' ' + colors[t] : inactiveS;
+      if (btn) btn.className = t === subTab ? activeStyles[t] : inactiveS;
     });
   }
 
@@ -388,12 +396,12 @@
         mainTab === 'proxy' ? !!(s.forFriend) : !(s.forFriend)
       );
       if (subTab === 'waitlist') {
-        items = byPerson.filter(s => s.isWaitlisted && (s.session?.date || '') >= today);
+        items = byPerson.filter(s => s.isWaitlisted && (s.session?.date || s.sessionDate || '') >= today);
       } else if (subTab === 'confirmed') {
-        items = byPerson.filter(s => !s.isWaitlisted && (s.session?.date || '') >= today);
+        items = byPerson.filter(s => !s.isWaitlisted && (s.session?.date || s.sessionDate || '') >= today);
       } else { // past
         items = byPerson.filter(s => {
-          const d = s.session?.date || '';
+          const d = s.session?.date || s.sessionDate || '';
           return d && d < today;
         });
       }
@@ -681,6 +689,52 @@
 
   updateSubTabStyles();
   applyLang();
+</script>
+
+<!-- FAB Navigation -->
+<div id="fabContainerSu" class="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2">
+  <div id="fabMenuSu" class="hidden flex-col items-end gap-2 mb-1">
+    <a href="index.html"
+      class="flex items-center gap-2 bg-white border border-indigo-100 shadow-md rounded-full px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition whitespace-nowrap">
+      🏐 <span id="fabLinkIndexSu">報名頁面</span>
+    </a>
+    <a href="my-sessions.html"
+      class="flex items-center gap-2 bg-white border border-indigo-100 shadow-md rounded-full px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition whitespace-nowrap">
+      ⚙️ <span id="fabLinkSessionsSu">我的開場</span>
+    </a>
+  </div>
+  <button id="fabBtnSu" onclick="toggleFabSu()"
+    class="w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 active:scale-95 transition-all">
+    ☰
+  </button>
+</div>
+<script>
+  function toggleFabSu() {
+    const menu = document.getElementById('fabMenuSu');
+    const btn = document.getElementById('fabBtnSu');
+    const open = menu.classList.toggle('hidden');
+    btn.textContent = open ? '☰' : '✕';
+    menu.classList.toggle('flex', !open);
+  }
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('fabContainerSu').contains(e.target)) {
+      const menu = document.getElementById('fabMenuSu');
+      if (!menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        menu.classList.remove('flex');
+        document.getElementById('fabBtnSu').textContent = '☰';
+      }
+    }
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    const updateFabLabelsSu = () => {
+      const zh = localStorage.getItem('lang') !== 'en';
+      document.getElementById('fabLinkIndexSu').textContent = zh ? '報名頁面' : 'Sign-up Page';
+      document.getElementById('fabLinkSessionsSu').textContent = zh ? '我的開場' : 'My Sessions';
+    };
+    updateFabLabelsSu();
+    setTimeout(updateFabLabelsSu, 500);
+  });
 </script>
 </body>
 </html>
