@@ -1762,13 +1762,14 @@
 
   async function doMapSearch2(q2) {
     try {
-      sugg2.innerHTML = `<li class="text-gray-400">搜尋中...</li>`;
+      sugg2.innerHTML = `<li class="text-gray-400">${tr('searching')}</li>`;
       sugg2.classList.remove('hidden');
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q2)}&format=json&limit=5&accept-language=${getLang()==='zh'?'zh-TW,zh':'en'}`);
       const data = await res.json();
-      if (!data.length) { sugg2.innerHTML = `<li class="text-gray-400">找不到結果</li>`; return; }
+      if (!data.length) { sugg2.innerHTML = `<li class="text-gray-400">${tr('noResults')}</li>`; return; }
       sugg2.innerHTML = data.map(item => {
-        const name = item.display_name.split(',').slice(0,3).join(', ');
+        const parts2 = item.display_name.split(',');
+        const name = parts2.length > 5 ? parts2.slice(0, 5).join(', ') : item.display_name;
         return `<li onclick="selLoc2('${escAttr(name)}')">${escHtml(name)}</li>`;
       }).join('');
     } catch { sugg2.innerHTML = `<li class="text-gray-400">Error</li>`; }
