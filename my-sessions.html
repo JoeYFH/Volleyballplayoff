@@ -2116,11 +2116,14 @@
       const d = o.data;
       const location = [d.sessionLocation, d.sessionVenue].filter(Boolean).join(' ') || null;
       const signupId = o.ref.id;
-      const sessionId = d.sessionId || null;
+      const sessionId = d.sessionId || (o.type === 'sessions/signups' ? o.ref.path.split('/')[1] : null);
+      const typeLabel = o.type === 'sessions/signups'
+        ? (zh ? '⚠️ 殘留報名（場次已刪）' : '⚠️ Orphan signup (session deleted)')
+        : `${o.type} — ${zh ? '場次已刪除' : 'Session deleted'}`;
       return `<div id="orphan-card-${i}" class="bg-red-50 border border-red-100 rounded-xl p-3">
         <div class="flex items-start gap-2">
           <div class="flex-1 space-y-0.5">
-            <div class="text-xs font-semibold text-red-500 mb-1">${o.type} — ${zh ? '場次已刪除' : 'Session deleted'}</div>
+            <div class="text-xs font-semibold text-red-500 mb-1">${typeLabel}</div>
             ${field(zh?'活動':'Title', d.sessionTitle || null)}
             ${field(zh?'日期':'Date', d.sessionDate || null)}
             ${field(zh?'時間':'Time', d.sessionTime || null)}
@@ -2164,9 +2167,10 @@
       const sessionsSnap = await getDocs(collection(db, 'sessions'));
       const validIds = new Set(sessionsSnap.docs.map(d => d.id));
 
-      const [mySnap, cancelSnap] = await Promise.all([
+      const [mySnap, cancelSnap, signupsSnap] = await Promise.all([
         getDocs(collectionGroup(db, 'mySignups')),
         getDocs(collectionGroup(db, 'cancelledSignups')),
+        getDocs(collectionGroup(db, 'signups')),
       ]);
 
       const process = (docs, type) => {
@@ -2179,6 +2183,16 @@
       };
       process(mySnap.docs, 'mySignups');
       process(cancelSnap.docs, 'cancelledSignups');
+
+      // Also scan sessions/{sessionId}/signups directly for orphaned signup docs
+      signupsSnap.docs.forEach(d => {
+        const parts = d.ref.path.split('/'); // ['sessions', sessionId, 'signups', signupId]
+        const sessionId = parts[1];
+        if (!validIds.has(sessionId)) {
+          const data = d.data();
+          orphanedDocs.push({ ref: d.ref, data: { ...data, sessionId }, type: 'sessions/signups', uid: data.uid || null });
+        }
+      });
 
       resultEl.classList.remove('hidden');
       if (orphanedDocs.length === 0) {
@@ -2200,9 +2214,12 @@
     if (card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
     try {
       await deleteDoc(o.ref);
-      // Also try to delete the orphaned sessions/{id}/signups/{signupId} subcollection document
       if (o.type === 'mySignups' && o.data.sessionId) {
+        // Also clean the actual signup doc in sessions subcollection
         try { await deleteDoc(doc(db, 'sessions', o.data.sessionId, 'signups', o.ref.id)); } catch(_) {}
+      } else if (o.type === 'sessions/signups' && o.uid) {
+        // Also clean the user's mySignups mirror if uid exists
+        try { await deleteDoc(doc(db, 'users', o.uid, 'mySignups', o.ref.id)); } catch(_) {}
       }
       orphanedDocs.splice(idx, 1);
       renderOrphanList();
@@ -2226,9 +2243,10 @@
     try {
       await Promise.all(orphanedDocs.map(async o => {
         await deleteDoc(o.ref);
-        // Also try to delete the orphaned sessions/{id}/signups/{signupId} subcollection document
         if (o.type === 'mySignups' && o.data.sessionId) {
           try { await deleteDoc(doc(db, 'sessions', o.data.sessionId, 'signups', o.ref.id)); } catch(_) {}
+        } else if (o.type === 'sessions/signups' && o.uid) {
+          try { await deleteDoc(doc(db, 'users', o.uid, 'mySignups', o.ref.id)); } catch(_) {}
         }
       }));
       orphanedDocs = [];
