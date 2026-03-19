@@ -1047,8 +1047,6 @@
       if (own) foundOwnSignup = own.id;
     }
     userSignupMap[sessionId] = foundOwnSignup;
-    const badge = document.getElementById('signed-badge-' + sessionId);
-    if (badge) badge.classList.toggle('hidden', !foundOwnSignup);
 
     // Compute gender positions for sub-limit waitlisting
     if (maleLimit > 0 || femaleLimit > 0) {
@@ -1062,10 +1060,29 @@
 
     const isFull = limit > 0 && items.length > limit;
     const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
-    // When gender sub-limits exist, use genderWait regardless of isFull
-    // (time-based total overflow is secondary to gender quota)
-    const waitItems = hasMixedLimits ? items.filter(s => s.genderWait) : (isFull ? items.filter(s => !s.forceConfirmed && s.position > limit) : []);
-    const ownIsWaitlisted = currentUser && waitItems.some(s => s.uid === currentUser.uid);
+    // Unified waitlist check — matches the isWaitFn used during rendering
+    const isWaitlisted = s => (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
+    const ownIsWaitlisted = currentUser && items.some(s => s.uid === currentUser.uid && isWaitlisted(s));
+
+    // Update signed badge — show with waitlist style when on waitlist
+    const badge = document.getElementById('signed-badge-' + sessionId);
+    if (badge) {
+      if (foundOwnSignup) {
+        badge.classList.remove('hidden');
+        const zh = getLang() === 'zh';
+        if (ownIsWaitlisted) {
+          badge.textContent = zh ? '⏳ 候補中' : '⏳ Waitlisted';
+          badge.className = badge.className.replace(/bg-\S+\s*text-\S+/g, '').trim();
+          badge.classList.add('bg-amber-100', 'text-amber-700');
+        } else {
+          badge.textContent = zh ? '✅ 已報名' : '✅ Signed up';
+          badge.className = badge.className.replace(/bg-\S+\s*text-\S+/g, '').trim();
+          badge.classList.add('bg-green-100', 'text-green-700');
+        }
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
 
     let html = '';
     if (ownIsWaitlisted) {
@@ -1126,9 +1143,8 @@
         others.forEach((s, i) => { html += renderItem(s, limit > 0 && s.position > limit, null); });
       }
     } else {
-      const isWaitFn = s => (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
-      const confirmed = items.filter(s => !isWaitFn(s));
-      const waitlist  = items.filter(s =>  isWaitFn(s));
+      const confirmed = items.filter(s => !isWaitlisted(s));
+      const waitlist  = items.filter(s =>  isWaitlisted(s));
       html += confirmed.map((s, i) => renderItem(s, false, null)).join('');
       if (waitlist.length) {
         const zh = getLang() === 'zh';
