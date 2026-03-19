@@ -2095,22 +2095,27 @@
       return;
     }
 
-    const field = (label, value) => value ? `<div class="flex gap-2 text-xs"><span class="text-gray-400 shrink-0 w-16">${label}</span><span class="text-gray-700 break-all">${value}</span></div>` : '';
+    const field = (label, value) => value ? `<div class="flex gap-2 text-xs"><span class="text-gray-400 shrink-0 w-20">${label}</span><span class="text-gray-700 break-all">${value}</span></div>` : '';
 
     listEl.innerHTML = orphanedDocs.map((o, i) => {
       const d = o.data;
       const location = [d.sessionLocation, d.sessionVenue].filter(Boolean).join(' ') || null;
+      const signupId = o.ref.id;
+      const sessionId = d.sessionId || null;
       return `<div id="orphan-card-${i}" class="bg-red-50 border border-red-100 rounded-xl p-3">
         <div class="flex items-start gap-2">
           <div class="flex-1 space-y-0.5">
-            <div class="text-xs font-semibold text-red-500 mb-1">${o.type}</div>
-            ${field('活動', d.sessionTitle || null)}
-            ${field('日期', d.sessionDate || null)}
-            ${field('時間', d.sessionTime || null)}
-            ${field('地點', location)}
-            ${field('報名者', d.name || null)}
-            ${field('代報', d.forFriend || null)}
+            <div class="text-xs font-semibold text-red-500 mb-1">${o.type} — ${zh ? '場次已刪除' : 'Session deleted'}</div>
+            ${field(zh?'活動':'Title', d.sessionTitle || null)}
+            ${field(zh?'日期':'Date', d.sessionDate || null)}
+            ${field(zh?'時間':'Time', d.sessionTime || null)}
+            ${field(zh?'地點':'Location', location)}
+            ${field(zh?'報名者':'Name', d.name || null)}
+            ${field(zh?'代報':'For', d.forFriend || null)}
+            ${field(zh?'場次ID':'Session', sessionId)}
+            ${field(zh?'報名ID':'SignupID', signupId)}
             ${field('uid', o.uid)}
+            <div class="text-xs text-gray-400 mt-1 break-all">📁 ${o.ref.path}</div>
           </div>
           <button onclick="deleteOrphanDoc(${i})"
             class="shrink-0 mt-0.5 text-xs px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 active:scale-95 transition font-medium">
@@ -2180,6 +2185,10 @@
     if (card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
     try {
       await deleteDoc(o.ref);
+      // Also try to delete the orphaned sessions/{id}/signups/{signupId} subcollection document
+      if (o.type === 'mySignups' && o.data.sessionId) {
+        try { await deleteDoc(doc(db, 'sessions', o.data.sessionId, 'signups', o.ref.id)); } catch(_) {}
+      }
       orphanedDocs.splice(idx, 1);
       renderOrphanList();
     } catch(e) {
@@ -2200,7 +2209,13 @@
     deleteBtn.disabled = true;
     statusEl.textContent = zh ? '⏳ 刪除中...' : '⏳ Deleting...';
     try {
-      await Promise.all(orphanedDocs.map(o => deleteDoc(o.ref)));
+      await Promise.all(orphanedDocs.map(async o => {
+        await deleteDoc(o.ref);
+        // Also try to delete the orphaned sessions/{id}/signups/{signupId} subcollection document
+        if (o.type === 'mySignups' && o.data.sessionId) {
+          try { await deleteDoc(doc(db, 'sessions', o.data.sessionId, 'signups', o.ref.id)); } catch(_) {}
+        }
+      }));
       orphanedDocs = [];
       renderOrphanList();
     } catch(e) {
