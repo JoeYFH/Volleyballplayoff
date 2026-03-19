@@ -420,6 +420,10 @@
 
   window.removeSignup = async (id) => {
     if (!confirm('確定移除此報名？')) return;
+    const signup = signupsData.find(s => s.id === id);
+    if (signup?.uid) {
+      await deleteDoc(doc(db, 'users', signup.uid, 'mySignups', id));
+    }
     await deleteDoc(doc(db, 'sessions', currentSessionId, 'signups', id));
   };
 
