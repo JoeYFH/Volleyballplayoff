@@ -10,6 +10,16 @@ service cloud.firestore {
         (request.auth.uid == resource.data.createdBy ||
          request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
 
+      // 取消報名參照（供刪場次時清理用）：登入者可建立，場主/管理員可讀取刪除
+      match /cancelledSignups/{signupId} {
+        allow create: if request.auth != null;
+        allow read, delete: if request.auth != null && (
+          request.auth.uid == resource.data.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdBy ||
+          request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
+        );
+      }
+
       // 報名：所有人可讀，登入者可建立自己的，本人/場主/管理員可修改或刪除
       match /signups/{signupId} {
         allow read: if true;
@@ -38,12 +48,14 @@ service cloud.firestore {
       );
     }
 
-    // 取消的報名記錄：只有本人或管理員可以讀寫
+    // 取消的報名記錄：本人或管理員可讀寫；場主可刪除（刪場次時清理用）
     match /users/{userId}/cancelledSignups/{signupId} {
       allow read, write: if request.auth != null && (
         request.auth.uid == userId ||
         request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
       );
+      allow delete: if request.auth != null &&
+        request.auth.uid == get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.createdBy;
     }
 
     // 管理員 collectionGroup 查詢用（跨用戶掃描孤兒資料）
