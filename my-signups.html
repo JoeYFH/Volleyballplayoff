@@ -141,12 +141,6 @@
       </div>
     </div>
 
-    <!-- Bulk clear stale cancelled records -->
-    <div id="cancelledBulkClear" class="hidden mb-3 flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5">
-      <p class="text-xs text-gray-400" id="staleClearMsg">清除已刪除場次的取消記錄</p>
-      <button onclick="clearStaleCancelledSignups()" class="text-xs text-red-400 font-medium hover:underline">清除失效記錄</button>
-    </div>
-
     <!-- Signups List -->
     <div id="signupsList" class="space-y-4 hidden"></div>
 
@@ -447,15 +441,6 @@
     });
 
     // Show bulk-clear button only in cancelled tab
-    const bulkClearEl = document.getElementById('cancelledBulkClear');
-    if (bulkClearEl) {
-      if (subTab === 'cancelled' && items.length > 0) {
-        bulkClearEl.classList.remove('hidden');
-      } else {
-        bulkClearEl.classList.add('hidden');
-      }
-    }
-
     if (!items.length) {
       list.classList.add('hidden');
       noEl.classList.remove('hidden');
@@ -679,35 +664,6 @@
       await deleteDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId));
     } catch(e) {
       alert((zh ? '刪除失敗：' : 'Failed: ') + e.message);
-    }
-  };
-
-  window.clearStaleCancelledSignups = async () => {
-    const zh = getLang() === 'zh';
-    const msgEl = document.getElementById('staleClearMsg');
-    if (msgEl) msgEl.textContent = zh ? '⏳ 檢查中...' : '⏳ Checking...';
-    try {
-      // Check which cancelled signups point to deleted sessions
-      const checks = await Promise.all(
-        cancelledSignups.map(async s => {
-          if (!s.sessionId) return { s, stale: true };
-          const snap = await getDoc(doc(db, 'sessions', s.sessionId));
-          return { s, stale: !snap.exists() };
-        })
-      );
-      const stale = checks.filter(c => c.stale).map(c => c.s);
-      if (!stale.length) {
-        if (msgEl) msgEl.textContent = zh ? '✅ 沒有失效記錄' : '✅ No stale records';
-        return;
-      }
-      if (!confirm(zh ? `發現 ${stale.length} 筆已刪除場次的記錄，確定清除？` : `Found ${stale.length} record(s) from deleted sessions. Clear them?`)) {
-        if (msgEl) msgEl.textContent = zh ? '清除已刪除場次的取消記錄' : 'Clear stale cancelled records';
-        return;
-      }
-      await Promise.all(stale.map(s => deleteDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', s.id))));
-      if (msgEl) msgEl.textContent = zh ? `✅ 已清除 ${stale.length} 筆` : `✅ Cleared ${stale.length} record(s)`;
-    } catch(e) {
-      if (msgEl) msgEl.textContent = zh ? '❌ 失敗：' + e.message : '❌ Failed: ' + e.message;
     }
   };
 
