@@ -1129,7 +1129,7 @@
         const confirmed = gLimit > 0 ? group.filter(s => !s.genderWait) : group;
         const waiting = gLimit > 0 ? group.filter(s => s.genderWait) : [];
         let sec = `<div class="text-xs font-semibold ${color} px-1 mt-2 mb-1">${gLabel}${gLimit > 0 ? ` (${confirmed.length}/${gLimit})` : ` (${group.length})`}</div>`;
-        confirmed.forEach((s, i) => { sec += renderItem(s, false, '#'+(i+1)); });
+        confirmed.forEach((s, i) => { sec += renderItem({ ...s, position: i + 1 }, false, null); });
         if (waiting.length) {
           sec += `<div class="flex items-center gap-2 my-1"><div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400 shrink-0">${zh?'候補':'Waitlist'}</span><div class="flex-1 h-px bg-gray-200"></div></div>`;
           waiting.forEach((s, i) => { sec += renderItem(s, true, tr('waitPrefix')+(i+1)); });
@@ -1145,7 +1145,7 @@
     } else {
       const confirmed = items.filter(s => !isWaitlisted(s));
       const waitlist  = items.filter(s =>  isWaitlisted(s));
-      html += confirmed.map((s, i) => renderItem(s, false, null)).join('');
+      html += confirmed.map((s, idx) => renderItem({ ...s, position: idx + 1 }, false, null)).join('');
       if (waitlist.length) {
         const zh = getLang() === 'zh';
         const sepLabel = isFull
