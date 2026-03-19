@@ -1208,7 +1208,12 @@
 
   window.removeSignup = async (sessionId, signupId) => {
     if (!confirm(getLang()==='zh'?'確定移除此報名？':'Remove this signup?')) return;
-    await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
+    const signupRef = doc(db, 'sessions', sessionId, 'signups', signupId);
+    const signupSnap = await getDoc(signupRef);
+    if (signupSnap.exists() && signupSnap.data().uid) {
+      await deleteDoc(doc(db, 'users', signupSnap.data().uid, 'mySignups', signupId));
+    }
+    await deleteDoc(signupRef);
   };
 
   // 場主強制將候補加入正取（無視性別及人數限制）
