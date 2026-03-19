@@ -2444,7 +2444,20 @@
         bringEquip: [...creatorAddBringEquip],
       };
       if (shouldForceConfirm) docData.forceConfirmed = true;
-      await addDoc(collection(db, 'sessions', creatorAddSessionId, 'signups'), docData);
+      const signupRef = await addDoc(collection(db, 'sessions', creatorAddSessionId, 'signups'), docData);
+      // Create mySignups mirror so the signup appears in the user's "我的報名"
+      if (docData.uid) {
+        await setDoc(doc(db, 'users', docData.uid, 'mySignups', signupRef.id), {
+          sessionId: creatorAddSessionId,
+          signupId: signupRef.id,
+          sessionTitle: session.title || '',
+          sessionDate: session.date || '',
+          sessionTime: session.time || '',
+          sessionLocation: session.location || '',
+          sessionVenue: session.venue || '',
+          signedAt: Timestamp.now(),
+        });
+      }
       const msgEl = document.getElementById('caMsg');
       msgEl.textContent = zh ? '✅ 已新增！' : '✅ Added!';
       msgEl.className = 'text-center text-sm text-green-600';
