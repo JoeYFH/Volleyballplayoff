@@ -1264,7 +1264,7 @@
       const sess = sessionsData[sessionId] || {};
       const signupItems = signupsCache[sessionId] || [];
       const signupItem = signupItems.find(s => s.id === signupId) || {};
-      await setDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId), {
+      const cancelData = {
         sessionId,
         sessionTitle: sess.title || '',
         sessionDate: sess.date || '',
@@ -1275,7 +1275,11 @@
         forFriend: signupItem.forFriend || '',
         signedAt: signupItem.signedAt || null,
         cancelledAt: serverTimestamp(),
-      });
+      };
+      // 寫入用戶自己的取消記錄
+      await setDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId), cancelData);
+      // 在場次 subcollection 留參照（供場主刪場次時清理用）
+      await setDoc(doc(db, 'sessions', sessionId, 'cancelledSignups', signupId), { uid: currentUser.uid });
     }
     await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
     if (currentUser) {
