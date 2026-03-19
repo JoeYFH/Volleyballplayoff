@@ -57,6 +57,12 @@ service cloud.firestore {
         request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
 
+    // 管理員 collectionGroup 查詢 signups（掃描父場次已刪的孤兒報名）
+    match /{path=**}/signups/{signupId} {
+      allow read, delete: if request.auth != null &&
+        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
+    }
+
     // 設定：所有人可讀
     match /config/{docId} {
       allow read: if true;
