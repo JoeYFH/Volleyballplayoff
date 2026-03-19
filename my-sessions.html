@@ -271,21 +271,6 @@
         🗑️ 確認刪除以上資料
       </button>
     </div>
-
-    <!-- Backfill mySignups -->
-    <div class="border border-gray-100 rounded-xl p-4 bg-gray-50 mt-4">
-      <div class="flex items-start justify-between gap-3 mb-2">
-        <div>
-          <p class="text-sm font-medium text-gray-700" id="hBackfillTitle">補建 mySignups 記錄</p>
-          <p class="text-xs text-gray-400 mt-0.5" id="hBackfillDesc">掃描所有場次，補建早期從後台新增但缺少 mySignups 的報名記錄</p>
-        </div>
-        <button onclick="backfillMySignups()"
-          class="shrink-0 text-xs px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 active:scale-95 transition font-medium" id="hBackfillBtn">
-          🔧 補建
-        </button>
-      </div>
-      <div id="backfillStatus" class="text-xs text-gray-400 mt-2"></div>
-    </div>
   </div>
 
   </div><!-- end px-4 wrapper -->
@@ -2268,45 +2253,7 @@
     }
   };
 
-  window.backfillMySignups = async () => {
-    if (!currentUser) return;
-    const zh = getLang() === 'zh';
-    const statusEl = document.getElementById('backfillStatus');
-    statusEl.textContent = zh ? '⏳ 掃描中，請稍候...' : '⏳ Scanning...';
-    try {
-      const sessionsSnap = await getDocs(collection(db, 'sessions'));
-      let checked = 0, created = 0;
-      for (const sessDoc of sessionsSnap.docs) {
-        const sessData = sessDoc.data();
-        const signupsSnap = await getDocs(collection(db, 'sessions', sessDoc.id, 'signups'));
-        for (const signupDoc of signupsSnap.docs) {
-          const s = signupDoc.data();
-          if (s.uid !== currentUser.uid) continue;
-          checked++;
-          const mirrorRef = doc(db, 'users', currentUser.uid, 'mySignups', signupDoc.id);
-          const mirrorSnap = await getDoc(mirrorRef);
-          if (!mirrorSnap.exists()) {
-            await setDoc(mirrorRef, {
-              sessionId: sessDoc.id,
-              signupId: signupDoc.id,
-              sessionTitle: sessData.title || '',
-              sessionDate: sessData.date || '',
-              sessionTime: sessData.time || '',
-              sessionLocation: sessData.location || '',
-              sessionVenue: sessData.venue || '',
-              signedAt: s.signedAt || Timestamp.now(),
-            });
-            created++;
-          }
-        }
-      }
-      statusEl.textContent = zh
-        ? `✅ 完成！共檢查 ${checked} 筆，補建 ${created} 筆 mySignups`
-        : `✅ Done! Checked ${checked}, created ${created} mySignups`;
-    } catch(e) {
-      statusEl.textContent = (zh ? '❌ 失敗：' : '❌ Failed: ') + e.message;
-    }
-  };
+
 
   async function loadFeedback() {
     const loadingEl = document.getElementById('feedbackLoadingIndicator');
