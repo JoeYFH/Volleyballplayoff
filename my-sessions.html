@@ -1217,11 +1217,13 @@
       }
       await deleteDoc(signupDoc.ref);
     }));
-    // 清理所有用戶指向此場次的 cancelledSignups（管理員才有權限，失敗則靜默略過）
-    try {
-      const cancelSnap = await getDocs(query(collectionGroup(db, 'cancelledSignups'), where('sessionId', '==', id)));
-      await Promise.all(cancelSnap.docs.map(d => deleteDoc(d.ref)));
-    } catch(_) {}
+    // 清理所有取消報名者的 cancelledSignups 記錄（透過場次 subcollection，場主即可執行）
+    const cancelledSnap = await getDocs(collection(db, 'sessions', id, 'cancelledSignups'));
+    await Promise.all(cancelledSnap.docs.map(async (cd) => {
+      const uid = cd.data().uid;
+      if (uid) await deleteDoc(doc(db, 'users', uid, 'cancelledSignups', cd.id));
+      await deleteDoc(cd.ref);
+    }));
     await deleteDoc(doc(db, 'sessions', id));
   };
 
