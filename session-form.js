@@ -294,7 +294,14 @@ export function initFormPickers(ids, lang) {
     }
   };
 
-  const dateOpts = { altInput: true, altInputClass: altCls, altFormat: dateFmt, dateFormat: 'Y-m-d', minDate: 'today' };
+  // onChange: clear error styling on the visible altInput when user picks a date
+  const _onDateChange = (_dates, _str, instance) => {
+    const ai = instance.altInput;
+    if (ai) { ai.classList.remove('border-red-400', 'ring-2', 'ring-red-200'); ai.classList.add('border-gray-200'); }
+    const errEl = document.getElementById(instance.input.id + '_err');
+    if (errEl) errEl.classList.add('hidden');
+  };
+  const dateOpts = { altInput: true, altInputClass: altCls, altFormat: dateFmt, dateFormat: 'Y-m-d', minDate: 'today', onChange: _onDateChange };
   const dtOpts   = { enableTime: true, time_24hr: true, altInput: true, altInputClass: altCls, altFormat: dtFmt, dateFormat: 'Y-m-d\\TH:i' };
   if (locale) { dateOpts.locale = locale; dtOpts.locale = locale; }
 

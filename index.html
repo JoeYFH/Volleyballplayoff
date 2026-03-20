@@ -1326,15 +1326,9 @@
     document.getElementById('fCloseAtRow').classList.add('hidden');
     onTypeChange();
     onOpenWhenChange();
-    // Clear errors
-    ['fTitleErr','fevendate_err','fTimeErr','fLocationErr','fMaleLimitErr'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.classList.add('hidden'); el.textContent = ''; }
-    });
-    ['fTitle','fevendate','fLocation'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove('border-red-400');
-    });
+    // Clear errors (clearFieldError handles flatpickr altInput visibility)
+    [['fTitle','fTitleErr'],['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([inputId, errId]) => clearFieldError(inputId, errId));
+    ['fTimeErr','fMaleLimitErr'].forEach(id => { const el = document.getElementById(id); if (el) { el.classList.add('hidden'); el.textContent = ''; } });
     document.getElementById('createSheet').classList.remove('hidden');
   };
   window.closeCreateSheet = () => {
@@ -1391,26 +1385,30 @@
     if (e.key === 'Enter') { e.preventDefault(); window.addCustomEquipItem(); }
   });
 
+  // Helper: return visible input (flatpickr altInput if present, else original)
+  function _visibleInput(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    return el._flatpickr?.altInput ?? el;
+  }
   // Helper: mark a create-form field as error
   function setFieldError(inputId, errId, msg) {
-    const input = document.getElementById(inputId);
+    const input = _visibleInput(inputId);
     const err = document.getElementById(errId);
     if (input) { input.classList.add('border-red-400', 'ring-2', 'ring-red-200'); input.classList.remove('border-gray-200'); }
     if (err) { err.textContent = msg; err.classList.remove('hidden'); }
   }
   function clearFieldError(inputId, errId) {
-    const input = document.getElementById(inputId);
+    const input = _visibleInput(inputId);
     const err = document.getElementById(errId);
     if (input) { input.classList.remove('border-red-400', 'ring-2', 'ring-red-200'); input.classList.add('border-gray-200'); }
     if (err) err.classList.add('hidden');
   }
-  // Clear errors on input
-  [['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([id, errId]) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('input', () => clearFieldError(id, errId));
-    el.addEventListener('change', () => clearFieldError(id, errId));
-  });
+  // Clear errors on input (fevendate handled by flatpickr onChange in initFormPickers)
+  const _locEl = document.getElementById('fLocation');
+  if (_locEl) {
+    _locEl.addEventListener('input', () => clearFieldError('fLocation', 'fLocationErr'));
+  }
   ['fMaleLimit','fFemaleLimit','fLimit'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
       const errEl = document.getElementById('fMaleLimitErr');
