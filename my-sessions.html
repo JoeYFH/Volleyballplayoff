@@ -1206,13 +1206,18 @@
       }
       await deleteDoc(signupDoc.ref);
     }));
-    // 清理所有取消報名者的 cancelledSignups 記錄（透過場次 subcollection，場主即可執行）
+    // 方法一：透過場次 subcollection（場主即可；需 Firestore rules 已部署）
     const cancelledSnap = await getDocs(collection(db, 'sessions', id, 'cancelledSignups'));
     await Promise.all(cancelledSnap.docs.map(async (cd) => {
       const uid = cd.data().uid;
       if (uid) await deleteDoc(doc(db, 'users', uid, 'cancelledSignups', cd.id));
       await deleteDoc(cd.ref);
     }));
+    // 方法二：管理員 collectionGroup 全掃（涵蓋未建立 subcollection 參照的舊資料）
+    try {
+      const cgSnap = await getDocs(query(collectionGroup(db, 'cancelledSignups'), where('sessionId', '==', id)));
+      await Promise.all(cgSnap.docs.map(d => deleteDoc(d.ref)));
+    } catch(_) {}
     await deleteDoc(doc(db, 'sessions', id));
   };
 
