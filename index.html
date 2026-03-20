@@ -1403,13 +1403,11 @@
   function clearFieldError(inputId, errId) {
     const input = document.getElementById(inputId);
     const err = document.getElementById(errId);
-    input.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
-    input.classList.add('border-gray-200');
-    err.classList.add('hidden');
+    if (input) { input.classList.remove('border-red-400', 'ring-2', 'ring-red-200'); input.classList.add('border-gray-200'); }
+    if (err) err.classList.add('hidden');
   }
   // Clear errors on input
-  ['fevendate','fLocation'].forEach(id => {
-    const errId = id + 'Err';
+  [['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([id, errId]) => {
     document.getElementById(id).addEventListener('input', () => clearFieldError(id, errId));
     document.getElementById(id).addEventListener('change', () => clearFieldError(id, errId));
   });
