@@ -270,8 +270,9 @@ export function initFormPickers(ids, lang) {
   // Chinese month names in English mode. Pure numbers are always locale-neutral.
   const dateFmt = isZh ? 'Y年n月j日' : 'n/j/Y';
   const dtFmt   = isZh ? 'Y年n月j日 H:i' : 'n/j/Y H:i';
-  // Use zh_tw locale for calendar UI in Chinese mode; English mode uses flatpickr default.
-  const locale  = isZh ? (window.flatpickr?.l10ns?.zh_tw || 'zh_tw') : undefined;
+  // Always set locale explicitly — zh-tw.js overrides flatpickr default, so English mode
+  // must also explicitly restore the English locale to get an English calendar UI.
+  const locale  = isZh ? (window.flatpickr?.l10ns?.zh_tw || 'zh_tw') : (window.flatpickr?.l10ns?.en || 'en');
   // altInputClass: give the generated altInput the same look as our inputs
   const altCls = 'w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300';
 
@@ -294,8 +295,7 @@ export function initFormPickers(ids, lang) {
     }
   };
 
-  const dtOpts   = { enableTime: true, time_24hr: true, altInput: true, altInputClass: altCls, altFormat: dtFmt, dateFormat: 'Y-m-d\\TH:i' };
-  if (locale) { dtOpts.locale = locale; }
+  const dtOpts   = { enableTime: true, time_24hr: true, altInput: true, altInputClass: altCls, altFormat: dtFmt, dateFormat: 'Y-m-d\\TH:i', locale };
 
   // Date field: flatpickr with allowInput so users can type directly in YYYY-MM-DD
   const dateOpts = {
@@ -310,7 +310,7 @@ export function initFormPickers(ids, lang) {
       if (errEl) errEl.classList.add('hidden');
     },
   };
-  if (locale) dateOpts.locale = locale;
+  dateOpts.locale = locale;
   _init(ids.date, dateOpts);
 
   // ids.time is now a hidden input backed by two <select> dropdowns — no flatpickr needed
