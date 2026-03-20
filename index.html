@@ -1395,10 +1395,8 @@
   function setFieldError(inputId, errId, msg) {
     const input = document.getElementById(inputId);
     const err = document.getElementById(errId);
-    input.classList.add('border-red-400', 'ring-2', 'ring-red-200');
-    input.classList.remove('border-gray-200');
-    err.textContent = msg;
-    err.classList.remove('hidden');
+    if (input) { input.classList.add('border-red-400', 'ring-2', 'ring-red-200'); input.classList.remove('border-gray-200'); }
+    if (err) { err.textContent = msg; err.classList.remove('hidden'); }
   }
   function clearFieldError(inputId, errId) {
     const input = document.getElementById(inputId);
@@ -1408,8 +1406,10 @@
   }
   // Clear errors on input
   [['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([id, errId]) => {
-    document.getElementById(id).addEventListener('input', () => clearFieldError(id, errId));
-    document.getElementById(id).addEventListener('change', () => clearFieldError(id, errId));
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => clearFieldError(id, errId));
+    el.addEventListener('change', () => clearFieldError(id, errId));
   });
   ['fMaleLimit','fFemaleLimit','fLimit'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
