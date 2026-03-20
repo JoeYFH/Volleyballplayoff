@@ -37,7 +37,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     <div class="flex flex-col gap-3">
       <div>
         <label id="${I.lDate}" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
-        <input id="${I.date}" type="date"
+        <input id="${I.date}" type="date" lang="${dl}"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.dateErr}" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
