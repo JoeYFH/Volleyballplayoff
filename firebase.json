@@ -10,7 +10,7 @@
       "functions/**"
     ],
     "rewrites": [
-      { "source": "/share/**", "destination": "/share.html" },
+      { "source": "/share/**", "function": "og" },
       { "source": "/og-image/**", "function": "ogImage" },
       { "source": "**", "destination": "/index.html" }
     ]
