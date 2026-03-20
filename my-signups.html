@@ -336,25 +336,10 @@
       renderSignups();
     });
 
-    // Cancelled signups — 載入後自動清除場次已被刪除的孤兒記錄
-    let _staleCancelChecked = false;
+    // Cancelled signups
     const qC = query(collection(db, 'users', currentUser.uid, 'cancelledSignups'), orderBy('cancelledAt', 'desc'));
-    onSnapshot(qC, async (snap) => {
-      const loaded = snap.docs.map(d => ({ id: d.id, cancelled: true, ...d.data() }));
-      // 每次頁面載入只掃描一次，找出指向已刪場次的失效記錄並自動刪除
-      if (!_staleCancelChecked) {
-        _staleCancelChecked = true;
-        const stale = (await Promise.all(loaded.map(async s => {
-          if (!s.sessionId) return s;
-          try { const ss = await getDoc(doc(db, 'sessions', s.sessionId)); return ss.exists() ? null : s; }
-          catch(e) { return null; }
-        }))).filter(Boolean);
-        if (stale.length) {
-          await Promise.all(stale.map(s => deleteDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', s.id))));
-          return; // 等下次 snapshot 重新渲染
-        }
-      }
-      cancelledSignups = loaded;
+    onSnapshot(qC, (snap) => {
+      cancelledSignups = snap.docs.map(d => ({ id: d.id, cancelled: true, ...d.data() }));
       if (subTab === 'cancelled') renderSignups();
     }, () => {});
   }
