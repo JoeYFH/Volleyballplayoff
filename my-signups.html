@@ -647,6 +647,8 @@
         forFriend: info.forFriend || '',
         cancelledAt: serverTimestamp(),
       });
+      // 在場次 subcollection 留參照（供場主刪場次時清理用）
+      try { await setDoc(doc(db, 'sessions', sessionId, 'cancelledSignups', signupId), { uid: currentUser.uid }); } catch(e) {}
       // Delete from sessions collection
       await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
       // Clean up mirror
