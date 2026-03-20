@@ -558,7 +558,7 @@
     document.getElementById('fTitle').placeholder = tr('fTitlePh');
     document.getElementById('lDate').innerHTML = tr('fevendate') + ' <span class="text-red-400">*</span>';
     const _dateInputEl = document.getElementById('fevendate');
-    if (_dateInputEl) _dateInputEl.lang = getLang() === 'zh' ? 'zh-TW' : 'en';
+    if (_dateInputEl) _dateInputEl.placeholder = getLang() === 'zh' ? 'YYYY-MM-DD（例：2025-06-15）' : 'YYYY-MM-DD (e.g. 2025-06-15)';
     document.getElementById('lTime').innerHTML = tr('fTime') + ' <span class="text-red-400">*</span>';
     document.getElementById('lLocation').innerHTML = tr('fLocation') + ' <span class="text-red-400">*</span>';
     document.getElementById('fLocation').placeholder = tr('fLocationPh');

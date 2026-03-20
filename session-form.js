@@ -37,7 +37,7 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     <div class="flex flex-col gap-3">
       <div>
         <label id="${I.lDate}" class="block text-sm font-medium text-gray-600 mb-1">日期 <span class="text-red-400">*</span></label>
-        <input id="${I.date}" type="date" lang="${dl}"
+        <input id="${I.date}" type="text" placeholder="${zh ? 'YYYY-MM-DD（例：2025-06-15）' : 'YYYY-MM-DD (e.g. 2025-06-15)'}"
           class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <p id="${I.dateErr}" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
@@ -297,9 +297,21 @@ export function initFormPickers(ids, lang) {
   const dtOpts   = { enableTime: true, time_24hr: true, altInput: true, altInputClass: altCls, altFormat: dtFmt, dateFormat: 'Y-m-d\\TH:i' };
   if (locale) { dtOpts.locale = locale; }
 
-  // Date field is now type="date" — just set min to today
-  const dateEl = document.getElementById(ids.date);
-  if (dateEl) dateEl.min = new Date().toISOString().split('T')[0];
+  // Date field: flatpickr with allowInput so users can type directly in YYYY-MM-DD
+  const dateOpts = {
+    allowInput: true,
+    dateFormat: 'Y-m-d',
+    minDate: 'today',
+    onChange: (_dates, _str, instance) => {
+      const el = instance.input;
+      el.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+      el.classList.add('border-gray-200');
+      const errEl = document.getElementById(el.id + '_err');
+      if (errEl) errEl.classList.add('hidden');
+    },
+  };
+  if (locale) dateOpts.locale = locale;
+  _init(ids.date, dateOpts);
 
   // ids.time is now a hidden input backed by two <select> dropdowns — no flatpickr needed
 
