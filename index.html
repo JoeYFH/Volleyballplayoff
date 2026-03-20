@@ -1404,11 +1404,13 @@
     if (input) { input.classList.remove('border-red-400', 'ring-2', 'ring-red-200'); input.classList.add('border-gray-200'); }
     if (err) err.classList.add('hidden');
   }
-  // Clear errors on input (fevendate handled by flatpickr onChange in initFormPickers)
-  const _locEl = document.getElementById('fLocation');
-  if (_locEl) {
-    _locEl.addEventListener('input', () => clearFieldError('fLocation', 'fLocationErr'));
-  }
+  // Clear errors on input
+  [['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([id, errId]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => clearFieldError(id, errId));
+    el.addEventListener('change', () => clearFieldError(id, errId));
+  });
   ['fMaleLimit','fFemaleLimit','fLimit'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
       const errEl = document.getElementById('fMaleLimitErr');
