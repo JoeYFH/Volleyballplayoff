@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🏐 排球零打報名系統</title>
+  <title>🏐 排球臨打報名系統</title>
 
   <!-- Open Graph / Social Preview (updated dynamically by JS) -->
   <meta property="og:type" content="website" />
-  <meta id="ogTitle" property="og:title" content="🏐 排球零打報名系統" />
+  <meta id="ogTitle" property="og:title" content="🏐 排球臨打報名系統" />
   <meta id="ogDesc" property="og:description" content="點擊查看活動詳情並報名參加！" />
   <meta property="og:image" content="https://volleyballplayoff.web.app/og-default.png" />
   <meta name="twitter:card" content="summary" />
@@ -137,7 +137,7 @@
         const desc = `📅 ${formatDate(s.date)}  ⏰ ${s.time || ''}  📍 ${s.location || ''}`;
 
         // Update OG tags (for crawlers that execute JS)
-        document.title = `🏐 ${title} — 排球零打報名`;
+        document.title = `🏐 ${title} — 排球臨打報名`;
         document.getElementById('ogTitle').setAttribute('content', `🏐 ${title}`);
         document.getElementById('ogDesc').setAttribute('content', desc);
 

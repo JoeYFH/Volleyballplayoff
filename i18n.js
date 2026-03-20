@@ -1,6 +1,6 @@
 const t = {
   zh: {
-    appTitle: '排球零打報名',
+    appTitle: '排球臨打報名',
     liveUpdate: '即時更新',
     googleLogin: 'Google 登入',
     logout: '登出',
@@ -37,7 +37,7 @@ const t = {
     signedAtFmt: (m, d, hh, mm) => `${m}/${d} ${hh}:${mm} 報名`,
     // create form
     createTitle: '建立新場次',
-    fTitle: '場次名稱', fTitlePh: '例：第15週零打',
+    fTitle: '場次名稱', fTitlePh: '例：第15週臨打',
     fDate: '日期', fevendate: '日期', fTime: '時間',
     fLocation: '地點', fLocationPh: '請輸入完整地址或場館名稱',
     fLocationHint: '請輸入完整地址或場館名稱，以取得最佳搜尋結果',

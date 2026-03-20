@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <script>try{var _l=localStorage.getItem('lang')||((navigator.language||'').toLowerCase().startsWith('zh')?'zh':'en');document.documentElement.lang=_l==='zh'?'zh-TW':'en';}catch(e){document.documentElement.lang='zh-TW';}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🏐 排球零打報名系統 | Volleyball Pickup Sign-up</title>
+  <title>🏐 排球臨打報名系統 | Volleyball Pickup Sign-up</title>
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Volleyball Pickup Sign-up" />
   <meta property="og:description" content="Sign up for this week's volleyball pickup game! Check the schedule, location, and available spots." />
@@ -62,7 +62,7 @@
       <div class="flex items-center gap-2 min-w-0">
         <span class="text-2xl shrink-0">🏐</span>
         <div class="hidden sm:block min-w-0">
-          <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800 truncate">排球零打報名</h1>
+          <h1 id="hAppTitle" class="text-xl font-bold text-indigo-800 truncate">排球臨打報名</h1>
           <p class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
             <span class="pulse-dot w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
             <span id="hLive">即時更新</span>
@@ -944,7 +944,7 @@
         🙋 ${getLang() === 'zh' ? '我要報名' : 'Sign Up'}
       </button>` : '';
     const shareBtnHtml = `
-      <button onclick="shareSession('${s.id}', '${escHtml(s.title || s.date + ' 零打')}')"
+      <button onclick="shareSession('${s.id}', '${escHtml(s.title || s.date + ' 臨打')}')"
         class="flex items-center justify-center gap-1.5 w-full mt-2 text-xs text-gray-500 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 hover:text-indigo-600 transition">
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
         ${getLang() === 'zh' ? '分享活動連結' : 'Share Link'}
@@ -956,7 +956,7 @@
       <div class="p-5">
         <div class="flex items-start justify-between gap-2 mb-1">
           <div>
-            <h3 class="font-bold text-gray-800">${escHtml(s.title || s.date + ' 零打')}</h3>
+            <h3 class="font-bold text-gray-800">${escHtml(s.title || s.date + ' 臨打')}</h3>
             ${organizerHtml}
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0">
@@ -2086,7 +2086,7 @@
           await setDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupRef.id), {
             sessionId: activeSessionId,
             signupId: signupRef.id,
-            sessionTitle: activeSessionData.title || activeSessionData.date + ' 零打',
+            sessionTitle: activeSessionData.title || activeSessionData.date + ' 臨打',
             sessionDate: activeSessionData.date || '',
             sessionTime: activeSessionData.time || '',
             sessionLocation: activeSessionData.location || '',

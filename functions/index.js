@@ -32,13 +32,13 @@ exports.og = functions.https.onRequest(async (req, res) => {
   try {
     const snap = await admin.firestore().doc('sessions/' + sessionId).get();
 
-    let title = '🏐 排球零打報名';
-    let description = '快來報名這週的排球零打！';
+    let title = '🏐 排球臨打報名';
+    let description = '快來報名這週的排球臨打！';
     const imageUrl = `${HOST}/og-image/${sessionId}`;
 
     if (snap.exists) {
       const s = snap.data();
-      title = '🏐 ' + esc(s.title || (s.date + ' 零打'));
+      title = '🏐 ' + esc(s.title || (s.date + ' 臨打'));
       const parts = [];
       if (s.date) parts.push('📅 ' + fmtDate(s.date));
       if (s.time) parts.push('🕐 ' + s.time);
@@ -89,7 +89,7 @@ exports.ogImage = functions.https.onRequest(async (req, res) => {
   const parts = req.path.split('/').filter(Boolean);
   const sessionId = parts[parts.length - 1];
 
-  let sessionTitle = '排球零打報名';
+  let sessionTitle = '排球臨打報名';
   let dateStr = '';
   let timeStr = '';
   let locationStr = '';
@@ -103,7 +103,7 @@ exports.ogImage = functions.https.onRequest(async (req, res) => {
       const snap = await admin.firestore().doc('sessions/' + sessionId).get();
       if (snap.exists) {
         const s = snap.data();
-        sessionTitle = s.title || (s.date + ' 零打');
+        sessionTitle = s.title || (s.date + ' 臨打');
         dateStr = s.date ? fmtDate(s.date) : '';
         timeStr = s.time || '';
         locationStr = s.location || '';

@@ -456,7 +456,7 @@
     const isCancelled = !!s.cancelled;
     const sess = s.session;
     const zh = getLang() === 'zh';
-    const title = sess?.title || s.sessionTitle || (s.sessionDate ? s.sessionDate + (zh ? ' 零打' : ' Pickup') : '—');
+    const title = sess?.title || s.sessionTitle || (s.sessionDate ? s.sessionDate + (zh ? ' 臨打' : ' Pickup') : '—');
     const date = sess?.date || s.sessionDate || '';
     const time = sess?.time || s.sessionTime || '';
     const location = sess?.location || s.sessionLocation || '';
@@ -680,7 +680,7 @@
     const utcStart = fmt(start);
     const utcEnd = fmt(end);
     const fullLoc = location || '';
-    const descParts = [zh ? '排球零打 - ' + title : 'Volleyball Pickup - ' + title];
+    const descParts = [zh ? '排球臨打 - ' + title : 'Volleyball Pickup - ' + title];
     if (venue) descParts.push(venue);
     if (equipment?.length) descParts.push((zh ? '需攜帶：' : 'Bring: ') + equipment.map(e => zh ? e : (_equipMap[e] || e)).join(zh ? '、' : ', '));
     const desc = descParts.join('\n');
