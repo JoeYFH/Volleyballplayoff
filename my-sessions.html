@@ -1393,12 +1393,12 @@
     document.getElementById('sheetTitle').textContent = id ? (getLang()==='zh'?'編輯場次':'Edit Session') : (getLang()==='zh'?'建立新場次':'New Session');
     document.getElementById('sfSubmitBtn').textContent = id ? (getLang()==='zh'?'💾 更新場次':'💾 Update') : (getLang()==='zh'?'🚀 建立場次':'🚀 Create');
     // Clear all error messages
-    ['sf_titleErr','sf_dateErr','sf_timeErr','sf_locationErr','sf_mixedLimitErr'].forEach(eid => {
+    ['sf_titleErr','sf_evendate_err','sf_timeErr','sf_locationErr','sf_mixedLimitErr'].forEach(eid => {
       const el = document.getElementById(eid);
       if (el) { el.classList.add('hidden'); el.textContent = ''; }
     });
     // Reset border colors
-    ['sf_title','sf_date','sf_location'].forEach(eid => {
+    ['sf_title','sf_evendate','sf_location'].forEach(eid => {
       const el = document.getElementById(eid);
       if (el) el.classList.remove('border-red-400');
     });
@@ -1410,11 +1410,11 @@
     // Reset form fields
     document.getElementById('sf_title').value = data?.title || '';
     // When editing an existing session, allow past dates by removing minDate constraint
-    const sfDateEl = document.getElementById('sf_date');
+    const sfDateEl = document.getElementById('sf_evendate');
     if (id && data?.date && sfDateEl?._flatpickr) {
       sfDateEl._flatpickr.set('minDate', null);
     }
-    fpSet('sf_date', data?.date || '');
+    fpSet('sf_evendate', data?.date || '');
     // Restore minDate for new sessions
     if (!id && sfDateEl?._flatpickr) {
       sfDateEl._flatpickr.set('minDate', 'today');
@@ -1608,7 +1608,7 @@
     el.classList.add('border-gray-200');
     err.classList.add('hidden');
   }
-  ['sf_title','sf_date','sf_location'].forEach(id => {
+  ['sf_title','sf_evendate','sf_location'].forEach(id => {
     const errId = id + 'Err';
     const el = document.getElementById(id);
     if (el) {
@@ -1636,7 +1636,7 @@
   window.submitSession = async () => {
     if (!currentUser) return;
     const zh = getLang() === 'zh';
-    const date = document.getElementById('sf_date').value;
+    const date = document.getElementById('sf_evendate').value;
     const time = document.getElementById('sf_time').value;
     const location = document.getElementById('sf_location').value.trim();
     const type = document.getElementById('sf_type').value;
@@ -1647,17 +1647,17 @@
     const title = document.getElementById('sf_title').value.trim();
     // Inline validation
     sfClearFieldError('sf_title','sf_titleErr');
-    sfClearFieldError('sf_date','sf_dateErr');
+    sfClearFieldError('sf_evendate','sf_evendate_err');
     sfClearFieldError('sf_time','sf_timeErr');
     sfClearFieldError('sf_location','sf_locationErr');
     document.getElementById('sf_mixedLimitErr').classList.add('hidden');
 
     let firstErrorEl = null;
     if (!title) { sfSetFieldError('sf_title','sf_titleErr', zh?'請填寫場次名稱':'Please enter a session title'); firstErrorEl = firstErrorEl || document.getElementById('sf_title'); }
-    if (!date) { sfSetFieldError('sf_date','sf_dateErr', zh?'請選擇日期':'Please select a date'); firstErrorEl = firstErrorEl || document.getElementById('sf_date'); }
+    if (!date) { sfSetFieldError('sf_evendate','sf_evendate_err', zh?'請選擇日期':'Please select a date'); firstErrorEl = firstErrorEl || document.getElementById('sf_evendate'); }
     else if (!editingSessionId) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      if (new Date(date) < today) { sfSetFieldError('sf_date','sf_dateErr', zh?'❌ 活動日期不能是過去':'❌ Session date cannot be in the past'); firstErrorEl = firstErrorEl || document.getElementById('sf_date'); }
+      if (new Date(date) < today) { sfSetFieldError('sf_evendate','sf_evendate_err', zh?'❌ 活動日期不能是過去':'❌ Session date cannot be in the past'); firstErrorEl = firstErrorEl || document.getElementById('sf_evendate'); }
     }
     if (!time) { sfSetFieldError('sf_time','sf_timeErr', zh?'請選擇時間':'Please select a time'); firstErrorEl = firstErrorEl || document.getElementById('sf_time'); }
     if (!location) { sfSetFieldError('sf_location','sf_locationErr', zh?'請填寫地點':'Please enter a location'); firstErrorEl = firstErrorEl || document.getElementById('sf_location'); }

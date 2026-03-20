@@ -38,7 +38,7 @@ const t = {
     // create form
     createTitle: '建立新場次',
     fTitle: '場次名稱', fTitlePh: '例：第15週零打',
-    fDate: '日期', fTime: '時間',
+    fDate: '日期', fevendate: '日期', fTime: '時間',
     fLocation: '地點', fLocationPh: '請輸入完整地址或場館名稱',
     fLocationHint: '請輸入完整地址或場館名稱，以取得最佳搜尋結果',
     fVenue: '活動詳細說明（選填）', fVenuePh: '例：B1 室內球場4號場',
@@ -108,7 +108,7 @@ const t = {
     signedAtFmt: (m, d, hh, mm) => `Signed ${m}/${d} ${hh}:${mm}`,
     createTitle: 'Create New Session',
     fTitle: 'Session Title', fTitlePh: 'e.g. Week 15 Pickup',
-    fDate: 'Date', fTime: 'Time',
+    fDate: 'Date', fevendate: 'Date', fTime: 'Time',
     fLocation: 'Location', fLocationPh: 'Enter full address or venue name',
     fLocationHint: 'Enter a full address or venue name for best search results',
     fVenue: 'Activity Details (optional)', fVenuePh: 'e.g. Court B1, Indoor Hall',

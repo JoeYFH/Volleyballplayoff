@@ -556,7 +556,7 @@
     document.getElementById('hCreateTitle').textContent = tr('createTitle');
     document.getElementById('lTitle').textContent = tr('fTitle');
     document.getElementById('fTitle').placeholder = tr('fTitlePh');
-    document.getElementById('lDate').innerHTML = tr('fDate') + ' <span class="text-red-400">*</span>';
+    document.getElementById('lDate').innerHTML = tr('fevendate') + ' <span class="text-red-400">*</span>';
     document.getElementById('lTime').innerHTML = tr('fTime') + ' <span class="text-red-400">*</span>';
     document.getElementById('lLocation').innerHTML = tr('fLocation') + ' <span class="text-red-400">*</span>';
     document.getElementById('fLocation').placeholder = tr('fLocationPh');
@@ -1307,7 +1307,7 @@
   window.openCreateSheet = () => {
     // Full reset
     document.getElementById('fTitle').value = '';
-    fpSet('fDate', '');
+    fpSet('fevendate', '');
     fpSet('fTime', '00:00');
     document.getElementById('fLocation').value = '';
     document.getElementById('fVenue').value = '';
@@ -1327,11 +1327,11 @@
     onTypeChange();
     onOpenWhenChange();
     // Clear errors
-    ['fTitleErr','fDateErr','fTimeErr','fLocationErr','fMaleLimitErr'].forEach(id => {
+    ['fTitleErr','fevendate_err','fTimeErr','fLocationErr','fMaleLimitErr'].forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.classList.add('hidden'); el.textContent = ''; }
     });
-    ['fTitle','fDate','fLocation'].forEach(id => {
+    ['fTitle','fevendate','fLocation'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.remove('border-red-400');
     });
@@ -1408,7 +1408,7 @@
     err.classList.add('hidden');
   }
   // Clear errors on input
-  ['fDate','fLocation'].forEach(id => {
+  ['fevendate','fLocation'].forEach(id => {
     const errId = id + 'Err';
     document.getElementById(id).addEventListener('input', () => clearFieldError(id, errId));
     document.getElementById(id).addEventListener('change', () => clearFieldError(id, errId));
@@ -1422,7 +1422,7 @@
 
   document.getElementById('submitCreateBtn').addEventListener('click', async () => {
     if (!currentUser) return;
-    const date = document.getElementById('fDate').value;
+    const date = document.getElementById('fevendate').value;
     const time = document.getElementById('fTime').value;
     const location = document.getElementById('fLocation').value.trim();
     const zh = getLang() === 'zh';
@@ -1430,7 +1430,7 @@
     const title = document.getElementById('fTitle').value.trim();
     // Clear previous errors
     clearFieldError('fTitle', 'fTitleErr');
-    clearFieldError('fDate', 'fDateErr');
+    clearFieldError('fevendate', 'fevendate_err');
     clearFieldError('fTime', 'fTimeErr');
     clearFieldError('fLocation', 'fLocationErr');
     const maleLimitErrEl = document.getElementById('fMaleLimitErr');
@@ -1447,13 +1447,13 @@
       if (!firstErrorEl) firstErrorEl = document.getElementById('fTitle');
     }
     if (!date) {
-      setFieldError('fDate', 'fDateErr', zh ? '請選擇日期' : 'Please select a date');
-      if (!firstErrorEl) firstErrorEl = document.getElementById('fDate');
+      setFieldError('fevendate', 'fevendate_err', zh ? '請選擇日期' : 'Please select a date');
+      if (!firstErrorEl) firstErrorEl = document.getElementById('fevendate');
     } else {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       if (new Date(date) < today) {
-        setFieldError('fDate', 'fDateErr', zh ? '❌ 活動日期不能是過去' : '❌ Session date cannot be in the past');
-        if (!firstErrorEl) firstErrorEl = document.getElementById('fDate');
+        setFieldError('fevendate', 'fevendate_err', zh ? '❌ 活動日期不能是過去' : '❌ Session date cannot be in the past');
+        if (!firstErrorEl) firstErrorEl = document.getElementById('fevendate');
       }
     }
     if (!time) {
@@ -1466,7 +1466,7 @@
     }
     // Mixed limit validation: maleLimit + femaleLimit must equal total limit
     if (type === 'mixed' && limit > 0 && (maleLimit > 0 || femaleLimit > 0) && maleLimit + femaleLimit !== limit) {
-      const errEl = document.getElementById('fDateErr'); // reuse area or show near limits
+      const errEl = document.getElementById('fevendate_err'); // reuse area or show near limits
       // Show error near limits area
       const mlErr = document.getElementById('fMaleLimitErr');
       if (mlErr) {

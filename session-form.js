@@ -188,7 +188,7 @@ export const FORM_IDS_INDEX = {
   lNote: 'lNote', noteHint: 'lNoteHint',
   // inputs
   title: 'fTitle', titleErr: 'fTitleErr',
-  date: 'fDate', dateErr: 'fDateErr',
+  date: 'fevendate', dateErr: 'fevendate_err',
   time: 'fTime', timeErr: 'fTimeErr',
   location: 'fLocation', locationErr: 'fLocationErr', locationHint: 'fLocationHint', mapSug: 'mapSuggestions',
   venue: 'fVenue',
@@ -218,7 +218,7 @@ export const FORM_IDS_MYSESSIONS = {
   lNote: 'sl9', noteHint: 'sf_noteHint',
   // inputs
   title: 'sf_title', titleErr: 'sf_titleErr',
-  date: 'sf_date', dateErr: 'sf_dateErr',
+  date: 'sf_evendate', dateErr: 'sf_evendate_err',
   time: 'sf_time', timeErr: 'sf_timeErr',
   location: 'sf_location', locationErr: 'sf_locationErr', locationHint: 'sf_locationHint', mapSug: 'mapSuggestions2',
   venue: 'sf_venue',
