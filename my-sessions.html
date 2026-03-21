@@ -1078,7 +1078,7 @@
     const zh = getLang() === 'zh';
     const renderItem = (s, isWait, posLabel) => {
       const tags = [];
-      if (s.isLate) tags.push(s.lateTime ? `${zh?'晚到':'Late'} ${s.lateTime}` : (zh?'晚到':'Late'));
+      if (s.isLate) { const u=zh?'分鐘':'mins'; tags.push(s.lateTime ? `${zh?'晚到':'Late'} +${s.lateTime}${u}` : (zh?'晚到':'Late')); }
       if (s.forFriend) tags.push(`${zh?'代':'For'}:${escHtml(s.forFriend)}`);
       if (s.pairWith) tags.push(`${zh?'搭':'Pair'}:${escHtml(s.pairWith)}`);
       if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(trEquip(e))}`.substring(0,8)));
@@ -1291,7 +1291,7 @@
     const fmtItem = (item, i, isWait) => {
       const prefix = isWait ? (zh ? `候${i+1}.` : `W${i+1}.`) : `${i+1}.`;
       let line = `${prefix} ${item.name}`;
-      if (item.isLate) line += item.lateTime ? (zh ? `（晚到${item.lateTime}）` : ` (Late ${item.lateTime})`) : (zh ? '（晚到）' : ' (Late)');
+      if (item.isLate) { const u=zh?'分鐘':'mins'; line += item.lateTime ? (zh ? `（晚到+${item.lateTime}${u}）` : ` (Late +${item.lateTime}${u})`) : (zh ? '（晚到）' : ' (Late)'); }
       if (item.forFriend) line += zh ? `（代報：${item.forFriend}）` : ` (For: ${item.forFriend})`;
       if (item.pairWith) line += zh ? `（搭檔：${item.pairWith}）` : ` (Pair: ${item.pairWith})`;
       return line;
@@ -2318,6 +2318,7 @@
     document.getElementById('caGenderFemale').textContent = zh ? '♀ 女生' : '♀ Female';
     document.getElementById('caGenderError').textContent = zh ? '請選擇性別' : 'Please select gender';
     document.getElementById('caLateLabel').textContent = zh ? '會晚到' : 'Will be late';
+    document.getElementById('caLateUnit').textContent = zh ? '分鐘' : 'mins';
     document.getElementById('caPairLabel').textContent = zh ? '希望跟誰搭檔？（選填）' : 'Preferred partner? (optional)';
     // Gender row only for mixed
     document.getElementById('caGenderRow').classList.toggle('hidden', session.type !== 'mixed');
@@ -2561,25 +2562,11 @@
         <label id="caLateLabel" for="caLate" class="text-sm text-gray-600">會晚到</label>
       </div>
       <div id="caLateRow" class="hidden ml-6">
-        <select id="caLateTime" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-indigo-300">
-          <option value=""></option>
-          <option value="30分">30 分</option>
-          <option value="60分">60 分</option>
-          <option value="90分">90 分</option>
-          <option value="120分">120 分</option>
-          <option value="150分">150 分</option>
-          <option value="180分">180 分</option>
-          <option value="210分">210 分</option>
-          <option value="240分">240 分</option>
-          <option value="270分">270 分</option>
-          <option value="300分">300 分</option>
-          <option value="330分">330 分</option>
-          <option value="360分">360 分</option>
-          <option value="390分">390 分</option>
-          <option value="420分">420 分</option>
-          <option value="450分">450 分</option>
-          <option value="480分">480 分</option>
-        </select>
+        <div class="flex items-center gap-2">
+          <input id="caLateTime" type="number" min="1" max="480"
+            class="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-300" />
+          <span id="caLateUnit" class="text-sm text-gray-500">分鐘</span>
+        </div>
       </div>
       <!-- Pair with -->
       <div>

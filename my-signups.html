@@ -492,7 +492,7 @@
     }
 
     const tags = [];
-    if (s.isLate) tags.push(`<span class="tag">${zh?'晚到':'Late'}${s.lateTime?' '+s.lateTime:''}</span>`);
+    if (s.isLate) { const u=zh?'分鐘':'mins'; tags.push(`<span class="tag">${zh?'晚到':'Late'}${s.lateTime?' +'+s.lateTime+u:''}</span>`); }
     if (s.pairWith) tags.push(`<span class="tag">${zh?'搭檔':'Pair'}:${escHtml(s.pairWith)}</span>`);
     if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`<span class="tag tag-green">🎒 ${escHtml(trEquip(e))}</span>`));
 

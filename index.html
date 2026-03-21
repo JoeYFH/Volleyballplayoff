@@ -338,32 +338,6 @@
         <p id="modalNameError" class="hidden mt-1 text-xs text-red-500"></p>
       </div>
 
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="modalLate" class="w-4 h-4" />
-        <label id="lModalLate" for="modalLate" class="text-sm text-gray-600">我會晚到</label>
-      </div>
-      <div id="modalLateSection" class="hidden ml-6">
-        <select id="modalLateTime" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:border-indigo-300">
-          <option value=""></option>
-          <option value="30分">30 分</option>
-          <option value="60分">60 分</option>
-          <option value="90分">90 分</option>
-          <option value="120分">120 分</option>
-          <option value="150分">150 分</option>
-          <option value="180分">180 分</option>
-          <option value="210分">210 分</option>
-          <option value="240分">240 分</option>
-          <option value="270分">270 分</option>
-          <option value="300分">300 分</option>
-          <option value="330分">330 分</option>
-          <option value="360分">360 分</option>
-          <option value="390分">390 分</option>
-          <option value="420分">420 分</option>
-          <option value="450分">450 分</option>
-          <option value="480分">480 分</option>
-        </select>
-      </div>
-
       <!-- 自己的性別（混排場次用）/ own gender for mixed sessions -->
       <div id="modalGenderRow" class="hidden">
         <label id="lModalGender" class="block text-sm font-medium text-gray-600 mb-2">性別 <span class="text-red-400">*</span></label>
@@ -383,6 +357,7 @@
       <div id="modalFriendSection" class="hidden ml-6 space-y-2">
         <input id="modalFriendName" type="text" maxlength="20"
           class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        <p id="modalFriendNameError" class="hidden mt-1 text-xs text-red-500">請輸入朋友的名字</p>
         <!-- 代報名性別（混排才顯示）/ gender for proxy (mixed sessions only) -->
         <div id="modalFriendGenderRow" class="hidden">
           <div class="flex gap-2">
@@ -392,6 +367,18 @@
               class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
           </div>
           <p id="modalFriendGenderError" class="hidden mt-1 text-xs text-red-500">請選擇性別</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="modalLate" class="w-4 h-4" />
+        <label id="lModalLate" for="modalLate" class="text-sm text-gray-600">我會晚到</label>
+      </div>
+      <div id="modalLateSection" class="hidden ml-6">
+        <div class="flex items-center gap-2">
+          <input id="modalLateTime" type="number" min="1" max="480"
+            class="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-300" />
+          <span id="lModalLateUnit" class="text-sm text-gray-500">分鐘</span>
         </div>
       </div>
 
@@ -615,8 +602,10 @@
     document.getElementById('lModalName').innerHTML = tr('nameLabel') + ' <span class="text-red-400">*</span>';
     document.getElementById('modalName').placeholder = tr('namePh');
     document.getElementById('lModalLate').textContent = tr('willBeLate');
+    document.getElementById('lModalLateUnit').textContent = getLang() === 'zh' ? '分鐘' : 'mins';
     document.getElementById('lModalFriend').textContent = tr('forFriend');
     document.getElementById('modalFriendName').placeholder = tr('friendPh');
+    document.getElementById('modalFriendNameError').textContent = getLang() === 'zh' ? '請輸入朋友的名字' : "Please enter your friend's name";
     document.getElementById('lModalPair').textContent = tr('pairLabel');
     const pairSel = document.getElementById('modalPair');
     if (pairSel.options[0] && pairSel.options[0].value === '') {
@@ -1101,7 +1090,10 @@
       const posColor = s.position===1&&!isWait?'bg-yellow-400 text-white':s.position===2&&!isWait?'bg-gray-300 text-gray-700':s.position===3&&!isWait?'bg-amber-600 text-white':isWait?'bg-gray-200 text-gray-400':'bg-indigo-100 text-indigo-600';
       const posLabel = posLabelOverride || (isWait ? tr('waitPrefix')+(waitOffset > 0 ? s.position-waitOffset : (s.genderPosition || s.position)) : '#'+s.position);
       const tags = [];
-      if (s.isLate) tags.push(`<span class="tag">${tr('lateTag')}${s.lateTime?' '+s.lateTime:''}</span>`);
+      if (s.isLate) {
+        const lateUnit = getLang() === 'zh' ? '分鐘' : 'mins';
+        tags.push(`<span class="tag">${tr('lateTag')}${s.lateTime?' +'+s.lateTime+lateUnit:''}</span>`);
+      }
       if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
       if (s.pairWith) tags.push(`<span class="tag">${tr('pairTag')}:${escHtml(s.pairWith)}</span>`);
       if (s.bringEquip && s.bringEquip.length) {
@@ -1856,8 +1848,10 @@
     document.getElementById('modalLateSection').classList.add('hidden');
     document.getElementById('modalLateTime').value = '';
     document.getElementById('modalFriend').checked = false;
+    document.getElementById('modalFriend').disabled = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
     document.getElementById('modalFriendName').value = '';
+    document.getElementById('modalFriendNameError').classList.add('hidden');
     document.getElementById('lModalLate').textContent = tr('willBeLate');
     selectedBringEquip.clear();
     if (currentUser) document.getElementById('modalProfilePreview').classList.remove('hidden');
@@ -1909,9 +1903,11 @@
     document.getElementById('modalLateSection').classList.toggle('hidden', !signup.isLate);
     document.getElementById('modalLateTime').value = signup.lateTime || '';
     document.getElementById('modalFriend').checked = !!signup.forFriend;
+    document.getElementById('modalFriend').disabled = !!signup.forFriend; // 代報名時鎖定，不可改為自己
     document.getElementById('modalFriendSection').classList.toggle('hidden', !signup.forFriend);
     if (currentUser) document.getElementById('modalProfilePreview').classList.toggle('hidden', !!signup.forFriend);
     document.getElementById('modalFriendName').value = signup.forFriend || '';
+    document.getElementById('modalFriendNameError').classList.add('hidden');
     // 混排場次：恢復性別顯示狀態
     selectedSelfGender = '';
     selectedFriendGender = '';
@@ -2027,8 +2023,17 @@
     nameInput.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
     document.getElementById('modalNameError').classList.add('hidden');
 
-    // 混排場次：性別為必選 / gender required for mixed sessions
+    // 幫朋友報名時朋友名字為必填 / friend name required when signing up for a friend
     const forFriendNameCheck = document.getElementById('modalFriendName').value.trim();
+    if (document.getElementById('modalFriend').checked && !forFriendNameCheck) {
+      const errEl = document.getElementById('modalFriendNameError');
+      errEl.classList.remove('hidden');
+      document.getElementById('modalFriendName').focus();
+      return;
+    }
+    document.getElementById('modalFriendNameError').classList.add('hidden');
+
+    // 混排場次：性別為必選 / gender required for mixed sessions
     if (activeSessionData.type === 'mixed') {
       const needsSelfGender = !forFriendNameCheck && !selectedSelfGender;
       const needsFriendGender = !!forFriendNameCheck && !selectedFriendGender;
