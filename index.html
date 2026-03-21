@@ -356,7 +356,7 @@
           <button type="button" id="gSelfFemale" data-gender="female"
             class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
         </div>
-        <p id="modalGenderError" class="hidden mt-1 text-xs text-red-500">請選擇性別</p>
+        <p id="modalGenderError" class="hidden mt-1 text-xs text-red-500"></p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -366,7 +366,7 @@
       <div id="modalFriendSection" class="hidden ml-6 space-y-2">
         <input id="modalFriendName" type="text" maxlength="100"
           class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <p id="modalFriendNameError" class="hidden mt-1 text-xs text-red-500">請輸入朋友的名字</p>
+        <p id="modalFriendNameError" class="hidden mt-1 text-xs text-red-500"></p>
         <!-- 代報名性別（混排才顯示）/ gender for proxy (mixed sessions only) -->
         <div id="modalFriendGenderRow" class="hidden">
           <div class="flex gap-2">
@@ -375,7 +375,7 @@
             <button type="button" id="gFriendFemale" data-gender="female"
               class="flex-1 text-xs py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:border-pink-300 hover:text-pink-600 transition">♀ 女生</button>
           </div>
-          <p id="modalFriendGenderError" class="hidden mt-1 text-xs text-red-500">請選擇性別</p>
+          <p id="modalFriendGenderError" class="hidden mt-1 text-xs text-red-500"></p>
         </div>
       </div>
 
@@ -1137,7 +1137,7 @@
       }
       if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
       if (s.pairWith) {
-        const pairedPerson = items.find(p => (p.forFriend || p.name) === s.pairWith || p.name === s.pairWith);
+        const pairedPerson = items.find(p => (p.forFriend ? p.forFriend : p.name) === s.pairWith);
         const pairDisplayName = pairedPerson ? (pairedPerson.forFriend || pairedPerson.name) : s.pairWith;
         tags.push(`<span class="tag">${tr('pairTag')}:${escHtml(pairDisplayName)}</span>`);
       }
@@ -1539,6 +1539,22 @@
       }
       if (!firstErrorEl) firstErrorEl = document.getElementById('fMaleLimit');
     }
+    // Offset validation (openOffset / closeOffset)
+    const validateOffset = (inputId, errId) => {
+      const row = document.getElementById(inputId)?.closest('[id$="OffsetRow"]') || document.getElementById(inputId)?.parentElement?.parentElement;
+      const rowEl = inputId === 'fOpenOffset' ? document.getElementById('fOpenOffsetRow') : document.getElementById('fCloseOffsetRow');
+      if (!rowEl || rowEl.classList.contains('hidden')) return;
+      const val = document.getElementById(inputId)?.value?.trim();
+      const errEl = document.getElementById(errId);
+      if (!val || !/^\d+$/.test(val) || parseInt(val, 10) < 1) {
+        if (errEl) { errEl.textContent = zh ? '請輸入正整數' : 'Please enter a positive integer'; errEl.classList.remove('hidden'); }
+        if (!firstErrorEl) firstErrorEl = document.getElementById(inputId);
+      } else {
+        if (errEl) errEl.classList.add('hidden');
+      }
+    };
+    validateOffset('fOpenOffset', 'fOpenOffset_err');
+    validateOffset('fCloseOffset', 'fCloseOffset_err');
     if (firstErrorEl) {
       firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       firstErrorEl.focus();
@@ -1996,7 +2012,10 @@
     const allSignups = signupsCache[sessionId] || [];
     pairSel.innerHTML = `<option value="">${noPreference}</option>` +
       allSignups.filter(s => s.id !== signupId).map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; }).join('');
-    pairSel.value = signup.pairWith || '';
+    // Match stored pairWith against forFriend or name (handles old data stored without forFriend)
+    const matchedPair = allSignups.filter(s => s.id !== signupId).find(s =>
+      (s.forFriend ? s.forFriend : s.name) === signup.pairWith);
+    pairSel.value = matchedPair ? (matchedPair.forFriend || matchedPair.name) : (signup.pairWith || '');
     document.getElementById('hConfirmBtn').textContent = getLang() === 'zh' ? '💾 更新報名' : '💾 Update';
     // Populate bring-equipment chips with preselected
     populateBringChips(sessionId, signup.bringEquip || []);
@@ -2128,12 +2147,16 @@
       const needsSelfGender = !forFriendNameCheck && !selectedSelfGender;
       const needsFriendGender = !!forFriendNameCheck && !selectedFriendGender;
       if (needsSelfGender) {
-        document.getElementById('modalGenderError').classList.remove('hidden');
+        const gErr = document.getElementById('modalGenderError');
+        gErr.textContent = getLang() === 'zh' ? '請選擇性別' : 'Please select gender';
+        gErr.classList.remove('hidden');
         document.getElementById('modalGenderRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       if (needsFriendGender) {
-        document.getElementById('modalFriendGenderError').classList.remove('hidden');
+        const fgErr = document.getElementById('modalFriendGenderError');
+        fgErr.textContent = getLang() === 'zh' ? '請選擇性別' : 'Please select gender';
+        fgErr.classList.remove('hidden');
         document.getElementById('modalFriendGenderRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }

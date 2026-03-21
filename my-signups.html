@@ -504,8 +504,8 @@
     const isProxy = !!(s.forFriend);
     let registrantHtml = '';
     if (isProxy) {
-      registrantHtml = `<div class="flex items-center gap-1.5 mt-1 mb-2">
-        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">👥 ${zh?'代報':'Proxy'}</span>
+      registrantHtml = `<div class="flex items-start gap-1.5 mt-1 mb-2">
+        <span class="shrink-0 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">👥 ${zh?'代報':'Proxy'}</span>
         <span class="text-sm font-semibold text-purple-800">${escHtml(s.forFriend)}</span>
         ${s.name ? `<span class="text-xs text-gray-400">(${zh?'由':'by'} ${escHtml(s.name)})</span>` : ''}
       </div>`;

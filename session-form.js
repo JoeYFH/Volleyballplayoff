@@ -132,10 +132,13 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
         <option id="${I.oOpenDays}" value="days">開賽前 N 天</option>
         <option id="${I.oOpenCustom}" value="custom">指定時間</option>
       </select>
-      <div id="${I.openOffsetRow}" class="hidden flex items-center gap-2">
-        <input id="${I.openOffset}" type="number" min="1" max="999" value="1"
-          class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <span id="${I.openOffsetUnit}" class="text-sm text-gray-500">小時前</span>
+      <div id="${I.openOffsetRow}" class="hidden">
+        <div class="flex items-center gap-2">
+          <input id="${I.openOffset}" type="text" inputmode="numeric" pattern="[0-9]*" value="1"
+            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <span id="${I.openOffsetUnit}" class="text-sm text-gray-500">小時前</span>
+        </div>
+        <p id="${I.openOffset}_err" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
       <div id="${I.openAtRow}" class="hidden">
         <input id="${I.openAt}" type="text" readonly
@@ -154,10 +157,13 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
         <option id="${I.oCloseDays}" value="days">開賽前 N 天</option>
         <option id="${I.oCloseCustom}" value="custom">指定時間</option>
       </select>
-      <div id="${I.closeOffsetRow}" class="hidden mt-2 flex items-center gap-2">
-        <input id="${I.closeOffset}" type="number" min="1" max="999" value="1"
-          class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-        <span id="${I.closeOffsetUnit}" class="text-sm text-gray-500">小時前</span>
+      <div id="${I.closeOffsetRow}" class="hidden mt-2">
+        <div class="flex items-center gap-2">
+          <input id="${I.closeOffset}" type="text" inputmode="numeric" pattern="[0-9]*" value="1"
+            class="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+          <span id="${I.closeOffsetUnit}" class="text-sm text-gray-500">小時前</span>
+        </div>
+        <p id="${I.closeOffset}_err" class="hidden text-xs text-red-500 mt-1"></p>
       </div>
       <div id="${I.closeAtRow}" class="hidden mt-2">
         <input id="${I.closeAt}" type="text" readonly
