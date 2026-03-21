@@ -385,10 +385,11 @@
       </div>
       <div id="modalLateSection" class="hidden ml-6">
         <div class="flex items-center gap-2">
-          <input id="modalLateTime" type="number" min="1" max="480" step="1" inputmode="numeric"
+          <input id="modalLateTime" type="text" inputmode="numeric" pattern="[0-9]*"
             class="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-300" />
           <span id="lModalLateUnit" class="text-sm text-gray-500">分鐘</span>
         </div>
+        <p id="modalLateTimeError" class="hidden mt-1 text-xs text-red-500"></p>
       </div>
 
       <div>
@@ -692,7 +693,7 @@
       // Re-subscribe signups to update "signed" badges for logged-in user
       Object.keys(signupUnsubs).forEach(id => { signupUnsubs[id](); delete signupUnsubs[id]; });
       const allSessions = Object.values(sessionsData);
-      if (allSessions.length) allSessions.forEach(s => subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0));
+      if (allSessions.length) allSessions.forEach(s => subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0, s.type || ''));
     } else {
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('hidden');
@@ -873,7 +874,7 @@
       }
       card.className = 'bg-white rounded-2xl shadow-sm border border-indigo-50 overflow-hidden fade-in';
       card.innerHTML = buildSessionCard(s);
-      subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0);
+      subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0, s.type || '');
     });
   }
 
@@ -908,11 +909,12 @@
       </div>` : '';
     const signedBadge = `<span id="signed-badge-${s.id}" class="hidden text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full shrink-0">✅ ${getLang()==='zh'?'已報名':'Signed up'}</span>`;
     const hasMixedLimits = s.type === 'mixed' && (s.maleLimit > 0 || s.femaleLimit > 0);
-    const progressBar = s.limit ? (hasMixedLimits ? `
+    const effectiveTotalLimit = s.limit || (hasMixedLimits ? (s.maleLimit + s.femaleLimit) : 0);
+    const progressBar = effectiveTotalLimit ? (hasMixedLimits ? `
       <div id="progress-wrap-${s.id}" class="mt-3 space-y-1.5">
         <div class="flex justify-between text-xs text-gray-400 mb-0.5">
           <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
-          <span id="prog-text-${s.id}">0 / ${s.limit}</span>
+          <span id="prog-text-${s.id}">0 / ${effectiveTotalLimit}</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="text-xs text-blue-400 w-6 shrink-0">♂</span>
@@ -932,7 +934,7 @@
       <div id="progress-wrap-${s.id}" class="mt-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
           <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
-          <span id="prog-text-${s.id}">0 / ${s.limit}</span>
+          <span id="prog-text-${s.id}">0 / ${effectiveTotalLimit}</span>
         </div>
         <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden">
           <div id="prog-bar-${s.id}" class="h-2.5 rounded-full transition-all duration-500 bg-indigo-400" style="width:0%"></div>
@@ -1007,12 +1009,12 @@
       </div>`;
   }
 
-  function subscribeSignups(sessionId, limit, maleLimit = 0, femaleLimit = 0) {
+  function subscribeSignups(sessionId, limit, maleLimit = 0, femaleLimit = 0, type = '') {
     if (signupUnsubs[sessionId]) signupUnsubs[sessionId]();
     const q2 = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
     signupUnsubs[sessionId] = onSnapshot(q2, (snap) => {
       const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i + 1 }));
-      renderSignupList(sessionId, items, limit, maleLimit, femaleLimit);
+      renderSignupList(sessionId, items, limit, maleLimit, femaleLimit, type);
     });
     // start countdown if needed
     const card = document.getElementById('card-' + sessionId);
@@ -1020,7 +1022,7 @@
     if (cdEl) startCountdown(cdEl);
   }
 
-  function renderSignupList(sessionId, items, limit, maleLimit = 0, femaleLimit = 0) {
+  function renderSignupList(sessionId, items, limit, maleLimit = 0, femaleLimit = 0, type = '') {
     const listEl = document.getElementById('list-' + sessionId);
     const emptyEl = document.getElementById('empty-' + sessionId);
     const cntEl = document.getElementById('cnt-' + sessionId);
@@ -1028,10 +1030,11 @@
     cntEl && (cntEl.textContent = tr('signupCount', items.length));
 
     // Update progress bar
-    if (limit > 0) {
-      const filled = Math.min(items.length, limit);
+    const effectiveLimit = limit > 0 ? limit : (maleLimit + femaleLimit);
+    if (effectiveLimit > 0) {
+      const filled = Math.min(items.length, effectiveLimit);
       const textEl = document.getElementById('prog-text-' + sessionId);
-      if (textEl) textEl.textContent = `${filled} / ${limit}`;
+      if (textEl) textEl.textContent = `${filled} / ${effectiveLimit}`;
 
       const hasMixedBars = !!(document.getElementById('prog-bar-male-' + sessionId));
       if (hasMixedBars) {
@@ -1049,7 +1052,7 @@
         if (maleText) maleText.textContent = `${maleCount}/${maleLimit||'?'}`;
         if (femaleText) femaleText.textContent = `${femaleCount}/${femaleLimit||'?'}`;
       } else {
-        const pct = Math.round((filled / limit) * 100);
+        const pct = Math.round((filled / effectiveLimit) * 100);
         const barEl = document.getElementById('prog-bar-' + sessionId);
         if (barEl) {
           barEl.style.width = pct + '%';
@@ -1144,7 +1147,7 @@
         </div>`;
     };
 
-    if (maleLimit > 0 || femaleLimit > 0) {
+    if (type === 'mixed') {
       // Show gender-separated sections
       const males = items.filter(s => s.gender === 'male');
       const females = items.filter(s => s.gender === 'female');
@@ -1870,6 +1873,7 @@
     document.getElementById('modalLate').checked = false;
     document.getElementById('modalLateSection').classList.add('hidden');
     document.getElementById('modalLateTime').value = '';
+    document.getElementById('modalLateTimeError').classList.add('hidden');
     document.getElementById('modalFriend').checked = false;
     document.getElementById('modalFriend').disabled = false;
     document.getElementById('modalFriendSection').classList.add('hidden');
@@ -1921,11 +1925,14 @@
     const signup = signups.find(s => s.id === signupId);
     if (!signup) return;
     activeSessionId = sessionId;
+    activeSessionData = sessionsData[sessionId] || {};
     editingSignupId = signupId;
+    lockBodyScroll();
     document.getElementById('signupModal').classList.remove('hidden');
     document.getElementById('modalLate').checked = !!signup.isLate;
     document.getElementById('modalLateSection').classList.toggle('hidden', !signup.isLate);
     document.getElementById('modalLateTime').value = signup.lateTime || '';
+    document.getElementById('modalLateTimeError').classList.add('hidden');
     document.getElementById('modalFriend').checked = !!signup.forFriend;
     document.getElementById('modalFriend').disabled = !!signup.forFriend; // 代報名時鎖定，不可改為自己
     document.getElementById('modalFriendSection').classList.toggle('hidden', !signup.forFriend);
@@ -1958,11 +1965,11 @@
 
   document.getElementById('modalLate').addEventListener('change', e => {
     document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked);
-    if (!e.target.checked) document.getElementById('modalLateTime').value = '';
+    if (!e.target.checked) { document.getElementById('modalLateTime').value = ''; document.getElementById('modalLateTimeError').classList.add('hidden'); }
   });
   document.getElementById('modalLateTime').addEventListener('input', e => {
-    const v = parseInt(e.target.value, 10);
-    e.target.value = isNaN(v) || v < 1 ? '' : v;
+    const errEl = document.getElementById('modalLateTimeError');
+    if (errEl) errEl.classList.add('hidden');
   });
   document.getElementById('modalFriend').addEventListener('change', e => {
     const checked = e.target.checked;
@@ -2062,6 +2069,20 @@
       return;
     }
     document.getElementById('modalFriendNameError').classList.add('hidden');
+
+    // 遲到時間：檢查數字格式 / validate late time is a positive integer
+    if (document.getElementById('modalLate').checked) {
+      const lateTimeVal = document.getElementById('modalLateTime').value.trim();
+      const lateTimeErrEl = document.getElementById('modalLateTimeError');
+      const zh = getLang() === 'zh';
+      if (lateTimeVal !== '' && (!/^\d+$/.test(lateTimeVal) || parseInt(lateTimeVal, 10) < 1)) {
+        lateTimeErrEl.textContent = zh ? '請輸入正整數（分鐘）' : 'Please enter a positive number (minutes)';
+        lateTimeErrEl.classList.remove('hidden');
+        document.getElementById('modalLateTime').focus();
+        return;
+      }
+      lateTimeErrEl.classList.add('hidden');
+    }
 
     // 混排場次：性別為必選 / gender required for mixed sessions
     if (activeSessionData.type === 'mixed') {

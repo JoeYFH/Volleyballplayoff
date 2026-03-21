@@ -1000,10 +1000,10 @@
               <span id="mgmt-cnt-${s.id}" class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">0</span>
             </div>
           </div>
-          ${s.limit ? (s.type === 'mixed' ? `<div class="mb-2 space-y-1">
+          ${(() => { const hasMxL = s.type === 'mixed' && (s.maleLimit > 0 || s.femaleLimit > 0); const effLim = s.limit || (hasMxL ? s.maleLimit + s.femaleLimit : 0); return effLim ? (s.type === 'mixed' ? `<div class="mb-2 space-y-1">
             <div class="flex justify-between text-xs text-gray-400 mb-0.5">
               <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
-              <span id="mgmt-prog-text-${s.id}">0 / ${s.limit}</span>
+              <span id="mgmt-prog-text-${s.id}">0 / ${effLim}</span>
             </div>
             <div class="flex items-center gap-1.5">
               <span class="text-xs text-blue-400 w-5 shrink-0">♂</span>
@@ -1022,12 +1022,12 @@
           </div>` : `<div class="mb-2">
             <div class="flex justify-between text-xs text-gray-400 mb-1">
               <span>${getLang()==='zh'?'報名進度':'Progress'}</span>
-              <span id="mgmt-prog-text-${s.id}">0 / ${s.limit}</span>
+              <span id="mgmt-prog-text-${s.id}">0 / ${effLim}</span>
             </div>
             <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
               <div id="mgmt-prog-bar-${s.id}" class="h-2 rounded-full transition-all duration-500 bg-indigo-400" style="width:0%"></div>
             </div>
-          </div>`) : ''}
+          </div>`) : ''; })()}
           <div id="mgmt-list-${s.id}" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
           <div id="mgmt-empty-${s.id}" class="text-center py-3 text-gray-400 text-xs">${getLang()==='zh'?'還沒有報名':'No signups yet'}</div>
         </div>
@@ -1067,10 +1067,11 @@
     }
 
     // Update progress bar
-    if (limit > 0) {
+    const effectiveLimit = limit > 0 ? limit : (maleLimit + femaleLimit);
+    if (effectiveLimit > 0) {
       const textEl = document.getElementById('mgmt-prog-text-' + sessionId);
-      const filled = Math.min(items.length, limit);
-      if (textEl) textEl.textContent = `${filled} / ${limit}`;
+      const filled = Math.min(items.length, effectiveLimit);
+      if (textEl) textEl.textContent = `${filled} / ${effectiveLimit}`;
 
       const hasMixedBars = !!(document.getElementById('mgmt-prog-bar-male-' + sessionId));
       if (hasMixedBars) {
@@ -1087,7 +1088,7 @@
         if (maleText) maleText.textContent = maleLimit > 0 ? `${maleCount}/${maleLimit}` : `${maleCount}`;
         if (femaleText) femaleText.textContent = femaleLimit > 0 ? `${femaleCount}/${femaleLimit}` : `${femaleCount}`;
       } else {
-        const pct = Math.round((filled / limit) * 100);
+        const pct = Math.round((filled / effectiveLimit) * 100);
         const barEl = document.getElementById('mgmt-prog-bar-' + sessionId);
         if (barEl) { barEl.style.width = pct + '%'; barEl.className = `h-2 rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-indigo-400'}`; }
       }
@@ -1119,7 +1120,7 @@
       </div>`;
     };
 
-    if (hasMixedLimits) {
+    if (type === 'mixed') {
       const males = items.filter(s => s.gender === 'male');
       const females = items.filter(s => s.gender === 'female');
       const others = items.filter(s => s.gender !== 'male' && s.gender !== 'female');
