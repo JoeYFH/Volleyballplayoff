@@ -422,7 +422,7 @@
   import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
   import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
   import { tr, getLang, setLang, t } from './i18n.js';
-  import { sessionFormHTML, FORM_IDS_INDEX, FORM_FNS_INDEX, initFormPickers, fpSet } from './session-form.js';
+  import { sessionFormHTML, FORM_IDS_INDEX, FORM_FNS_INDEX, initFormPickers, fpSet, updateVisStyle } from './session-form.js';
 
   // Inject shared form fields before any DOM setup
   const _formInputLang = (localStorage.getItem('lang') || 'zh') === 'zh' ? 'zh-TW' : 'en-GB';
@@ -811,8 +811,12 @@
   function applyFilter() {
     const today = new Date().toISOString().split('T')[0];
     const now = Date.now();
+    const urlSessionId = new URLSearchParams(window.location.search).get('session');
+    const isAdminUser = currentUser && (ADMIN_EMAILS || []).includes(currentUser.email);
     const filtered = allSessionsCache.filter(s => {
       if (s.cancelled) return false;
+      // Hide private sessions from listing (unless admin, creator, or it's the linked session)
+      if (s.isPrivate && !isAdminUser && !(currentUser && s.createdBy === currentUser.uid) && s.id !== urlSessionId) return false;
       const isPast = (s.date || '') < today;
       const closeAtMs = s.closeAt ? s.closeAt.toMillis() : null;
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
@@ -893,6 +897,9 @@
       badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-600">${tr('notYet')}</span>`;
     } else {
       badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-500">${tr('closed')}</span>`;
+    }
+    if (s.isPrivate) {
+      badgeHtml += `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 ml-1">${tr('privateBadge')}</span>`;
     }
 
     const equipHtml = s.equipment?.length ? `<div class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🎒</span><span>${tr('needsBring')}${s.equipment.map(e => escHtml(trEquip(e))).join(getLang()==='zh'?'、':', ')}</span></div><div id="equip-unclaimed-${s.id}" class="hidden text-xs text-amber-600 col-span-2"></div>` : '';
@@ -1382,6 +1389,7 @@
     document.getElementById('fCloseAtRow').classList.add('hidden');
     onTypeChange();
     onOpenWhenChange();
+    onVisChange('public');
     // Clear errors (clearFieldError handles flatpickr altInput visibility)
     [['fTitle','fTitleErr'],['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([inputId, errId]) => clearFieldError(inputId, errId));
     ['fTimeErr','fMaleLimitErr'].forEach(id => { const el = document.getElementById(id); if (el) { el.classList.add('hidden'); el.textContent = ''; } });
@@ -1590,6 +1598,7 @@
     }
 
     try {
+      const isPrivate = document.getElementById('fVisPrivate')?.checked || false;
       const newRef = await addDoc(collection(db, 'sessions'), {
         title,
         date, time, location,
@@ -1601,6 +1610,7 @@
         equipment,
         note: document.getElementById('fNote').value.trim(),
         isOpen,
+        isPrivate,
         openAt,
         closeAt: (() => {
           const closeWhen = document.getElementById('fCloseWhen').value;
@@ -1697,6 +1707,9 @@
   function syncCloseAtDefault() {
   }
   document.getElementById('fTitle').addEventListener('input', () => clearFieldError('fTitle', 'fTitleErr'));
+
+  // ── Visibility Toggle ──
+  window.onVisChange = (value) => { updateVisStyle(value, FORM_IDS_INDEX); };
 
   // ── Type Change Toggle ──
   window.onTypeChange = () => {

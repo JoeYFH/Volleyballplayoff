@@ -172,6 +172,27 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
       </div>
     </div>
 
+    <!-- Visibility -->
+    <div>
+      <label id="${I.lVisibility}" class="block text-sm font-medium text-gray-600 mb-2">${zh ? '公開設定' : 'Visibility'} <span class="text-red-400">*</span></label>
+      <div class="grid grid-cols-2 gap-2">
+        <label for="${I.visPublic}" id="${I.visPublicLabel}"
+          class="flex flex-col gap-1 p-3 rounded-xl border-2 border-indigo-400 bg-indigo-50 cursor-pointer transition select-none">
+          <input type="radio" name="${I.visibilityName}" id="${I.visPublic}" value="public" checked
+            onchange="${F.visChange}('public')" class="sr-only" />
+          <span class="text-sm font-semibold text-indigo-700">🌐 ${zh ? '公開' : 'Public'}</span>
+          <span class="text-xs text-gray-500">${zh ? '在主頁看得到，所有人都可以報名' : 'Visible on homepage, anyone can sign up'}</span>
+        </label>
+        <label for="${I.visPrivate}" id="${I.visPrivateLabel}"
+          class="flex flex-col gap-1 p-3 rounded-xl border-2 border-gray-200 cursor-pointer transition select-none">
+          <input type="radio" name="${I.visibilityName}" id="${I.visPrivate}" value="private"
+            onchange="${F.visChange}('private')" class="sr-only" />
+          <span class="text-sm font-semibold text-gray-600">🔒 ${zh ? '私人' : 'Private'}</span>
+          <span class="text-xs text-gray-500">${zh ? '只有知道報名連結的人可以報名' : 'Only people with the link can sign up'}</span>
+        </label>
+      </div>
+    </div>
+
     <!-- Note -->
     <div>
       <label id="${I.lNote}" class="block text-sm font-medium text-gray-600 mb-1">備註（選填）</label>
@@ -212,6 +233,9 @@ export const FORM_IDS_INDEX = {
   oCloseDays: 'oCloseDays', oCloseCustom: 'oCloseCustom',
   closeOffsetRow: 'fCloseOffsetRow', closeOffset: 'fCloseOffset', closeOffsetUnit: 'fCloseOffsetUnit',
   closeAtRow: 'fCloseAtRow', closeAt: 'fCloseAt', closeAtHint: 'hCloseAtHint',
+  lVisibility: 'fLVisibility', visibilityName: 'fVisibility',
+  visPublic: 'fVisPublic', visPrivate: 'fVisPrivate',
+  visPublicLabel: 'fVisPublicLabel', visPrivateLabel: 'fVisPrivateLabel',
   note: 'fNote',
 };
 
@@ -242,6 +266,9 @@ export const FORM_IDS_MYSESSIONS = {
   oCloseDays: 'sfCloseDays', oCloseCustom: 'sfCloseCustom',
   closeOffsetRow: 'sf_closeOffsetRow', closeOffset: 'sf_closeOffset', closeOffsetUnit: 'sf_closeOffsetUnit',
   closeAtRow: 'sf_closeAtRow', closeAt: 'sf_closeAt', closeAtHint: 'sf_closeAtHint',
+  lVisibility: 'sf_lVisibility', visibilityName: 'sf_visibility',
+  visPublic: 'sf_visPublic', visPrivate: 'sf_visPrivate',
+  visPublicLabel: 'sf_visPublicLabel', visPrivateLabel: 'sf_visPrivateLabel',
   note: 'sf_note',
 };
 
@@ -250,6 +277,7 @@ export const FORM_FNS_INDEX = {
   openWhenChange: 'onOpenWhenChange()',
   closeWhenChange: 'onCloseWhenChange()',
   addEquip: 'addCustomEquipItem()',
+  visChange: 'onVisChange',
 };
 
 export const FORM_FNS_MYSESSIONS = {
@@ -257,6 +285,7 @@ export const FORM_FNS_MYSESSIONS = {
   openWhenChange: 'onSfOpenWhenChange()',
   closeWhenChange: 'onSfCloseWhenChange()',
   addEquip: 'sfAddCustomEquip()',
+  visChange: 'sfOnVisChange',
 };
 
 /**
@@ -323,6 +352,38 @@ export function initFormPickers(ids, lang) {
 
   _init(ids.openAt,  dtOpts);
   _init(ids.closeAt, { ...dtOpts });
+}
+
+/**
+ * Update the visual state of the visibility toggle labels.
+ * @param {string} value - 'public' or 'private'
+ * @param {Object} ids   - FORM_IDS map
+ */
+export function updateVisStyle(value, ids) {
+  const pubLabel  = document.getElementById(ids.visPublicLabel);
+  const privLabel = document.getElementById(ids.visPrivateLabel);
+  const pubRadio  = document.getElementById(ids.visPublic);
+  const privRadio = document.getElementById(ids.visPrivate);
+  if (!pubLabel || !privLabel) return;
+  const activeClass = 'flex flex-col gap-1 p-3 rounded-xl border-2 border-indigo-400 bg-indigo-50 cursor-pointer transition select-none';
+  const idleClass   = 'flex flex-col gap-1 p-3 rounded-xl border-2 border-gray-200 cursor-pointer transition select-none';
+  if (value === 'public') {
+    pubLabel.className  = activeClass;
+    privLabel.className = idleClass;
+    if (pubRadio)  pubRadio.checked  = true;
+    const pubSpan = pubLabel.querySelector('span:first-of-type');
+    const privSpan = privLabel.querySelector('span:first-of-type');
+    if (pubSpan)  pubSpan.className  = 'text-sm font-semibold text-indigo-700';
+    if (privSpan) privSpan.className = 'text-sm font-semibold text-gray-600';
+  } else {
+    pubLabel.className  = idleClass;
+    privLabel.className = activeClass;
+    if (privRadio) privRadio.checked = true;
+    const pubSpan = pubLabel.querySelector('span:first-of-type');
+    const privSpan = privLabel.querySelector('span:first-of-type');
+    if (pubSpan)  pubSpan.className  = 'text-sm font-semibold text-gray-600';
+    if (privSpan) privSpan.className = 'text-sm font-semibold text-indigo-700';
+  }
 }
 
 /**

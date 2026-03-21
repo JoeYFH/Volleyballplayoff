@@ -75,6 +75,10 @@ const t = {
     // admin
     adminBadge: '管理員',
     signedIn: '已登入',
+    // visibility
+    visPublic: '公開', visPrivate: '私人',
+    makePublic: '🌐 設為公開', makePrivate: '🔒 設為私人',
+    privateBadge: '🔒 私人',
   },
   en: {
     appTitle: 'Volleyball Pickup',
@@ -142,6 +146,10 @@ const t = {
     noResults: 'No results found',
     adminBadge: 'Admin',
     signedIn: 'Signed in',
+    // visibility
+    visPublic: 'Public', visPrivate: 'Private',
+    makePublic: '🌐 Make Public', makePrivate: '🔒 Make Private',
+    privateBadge: '🔒 Private',
   }
 };
 
