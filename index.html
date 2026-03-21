@@ -340,6 +340,20 @@
         </div>
       </div>
 
+      <!-- Google login prompt (shown when not logged in) -->
+      <div id="modalLoginRow">
+        <button type="button" onclick="signIn()" id="modalGoogleLoginBtn"
+          class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition-all shadow-sm">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
+          <span id="hModalGoogleLogin">使用 Google 帳號登入報名</span>
+        </button>
+        <div class="flex items-center gap-3 my-2">
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <span id="hModalOr" class="text-xs text-gray-400">或直接填寫</span>
+          <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+      </div>
+
       <div id="modalNameRow">
         <label id="lModalName" class="block text-sm font-medium text-gray-600 mb-1">姓名 / 暱稱 <span class="text-red-400">*</span></label>
         <input id="modalName" type="text" maxlength="100"
@@ -628,6 +642,8 @@
     initFormPickers(FORM_IDS_INDEX, getLang());
     document.getElementById('modalFormTitle').textContent = tr('formTitle');
     document.getElementById('hGoogleProfile').textContent = tr('googleProfile');
+    document.getElementById('hModalGoogleLogin').textContent = tr('modalGoogleLogin');
+    document.getElementById('hModalOr').textContent = tr('modalOr');
     document.getElementById('lModalName').innerHTML = tr('nameLabel') + ' <span class="text-red-400">*</span>';
     document.getElementById('modalName').placeholder = tr('namePh');
     document.getElementById('lModalLate').textContent = tr('willBeLate');
@@ -686,6 +702,7 @@
       document.getElementById('modalProfilePreview').classList.remove('hidden');
       document.getElementById('modalPhoto').src = user.photoURL || '';
       document.getElementById('modalDisplayName').textContent = user.displayName || user.email;
+      document.getElementById('modalLoginRow').classList.add('hidden');
       document.getElementById('modalNameRow').classList.add('hidden');
       const isAdminUser = (ADMIN_EMAILS || []).includes(user.email);
       const adminBadgeMain = document.getElementById('adminBadgeMain');
@@ -704,6 +721,7 @@
       document.getElementById('mySessionsBtn').classList.add('hidden');
       document.getElementById('mySignupsBtn').classList.add('hidden');
       document.getElementById('modalProfilePreview').classList.add('hidden');
+      document.getElementById('modalLoginRow').classList.remove('hidden');
       document.getElementById('modalNameRow').classList.remove('hidden');
     }
   });
