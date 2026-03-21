@@ -1087,6 +1087,12 @@
 
     signupsCache[sessionId] = items;
 
+    // If the signup modal is open for this session, refresh the bring-equipment chips
+    // (handles the case where the modal opened before the first signups snapshot arrived)
+    if (activeSessionId === sessionId && !document.getElementById('signupModal').classList.contains('hidden')) {
+      populateBringChips(sessionId, [...selectedBringEquip]);
+    }
+
     if (!items.length) { listEl.innerHTML = ''; emptyEl?.classList.remove('hidden'); return; }
     emptyEl?.classList.add('hidden');
 
