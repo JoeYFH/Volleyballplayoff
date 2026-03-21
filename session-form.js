@@ -76,8 +76,8 @@ export function sessionFormHTML(ids, fns, inputLang = 'zh-TW') {
     <!-- Venue -->
     <div>
       <label id="${I.lVenue}" class="block text-sm font-medium text-gray-600 mb-1">場地詳細（選填）</label>
-      <input id="${I.venue}" type="text" maxlength="50"
-        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      <textarea id="${I.venue}" maxlength="300" rows="3"
+        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"></textarea>
     </div>
 
     <!-- Limit + Type -->
