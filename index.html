@@ -2089,17 +2089,14 @@
 
   document.getElementById('modalSubmitBtn').addEventListener('click', async () => {
     // Duplicate signup check (only for new self-signups, not edits or proxy signups)
-    if (!editingSignupId && currentUser) {
-      const forFriendName = document.getElementById('modalFriendName').value.trim();
-      if (!forFriendName) {
-        const existing = (signupsCache[activeSessionId] || []).find(
-          s => s.uid === currentUser.uid && !s.forFriend
-        );
-        if (existing) {
-          const zh = getLang() === 'zh';
-          showModalMsg(zh ? '⚠️ 您已經報名過這個活動了！' : '⚠️ You have already signed up for this session!', 'error');
-          return;
-        }
+    if (!editingSignupId && currentUser && !document.getElementById('modalFriend').checked) {
+      const existing = (signupsCache[activeSessionId] || []).find(
+        s => s.uid === currentUser.uid && !s.forFriend
+      );
+      if (existing) {
+        const zh = getLang() === 'zh';
+        showModalMsg(zh ? '⚠️ 您已經報名過這個活動了！' : '⚠️ You have already signed up for this session!', 'error');
+        return;
       }
     }
 
