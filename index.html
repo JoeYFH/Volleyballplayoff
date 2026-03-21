@@ -1084,8 +1084,18 @@
       });
     }
 
-    const isFull = limit > 0 && items.length > limit;
     const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
+    let isFull;
+    if (hasMixedLimits) {
+      const confirmedMale = items.filter(s => s.gender === 'male' && !s.genderWait).length;
+      const confirmedFemale = items.filter(s => s.gender === 'female' && !s.genderWait).length;
+      const maleHasRoom = maleLimit === 0 || confirmedMale < maleLimit;
+      const femaleHasRoom = femaleLimit === 0 || confirmedFemale < femaleLimit;
+      isFull = !maleHasRoom && !femaleHasRoom;
+      if (!isFull && limit > 0) isFull = items.length > limit;
+    } else {
+      isFull = limit > 0 && items.length > limit;
+    }
     // Unified waitlist check — matches the isWaitFn used during rendering
     const isWaitlisted = s => (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
     const ownIsWaitlisted = currentUser && items.some(s => s.uid === currentUser.uid && isWaitlisted(s));
@@ -1925,7 +1935,7 @@
     const signups = signupsCache[sessionId] || [];
     pairSel.innerHTML = `<option value="">${noPreference}</option>` +
       signups
-        .filter(s => !currentUser || s.uid !== currentUser.uid)
+        .filter(s => !currentUser || s.uid !== currentUser.uid || !!s.forFriend)
         .map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; })
         .join('');
     // Populate bring-equipment chips
