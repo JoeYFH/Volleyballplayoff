@@ -501,6 +501,7 @@
 
     const isPast = date && date < new Date().toISOString().split('T')[0];
     const isOpen = sess?.isOpen;
+    const isPrivate = sess?.isPrivate;
 
     let statusBadge;
     if (isCancelled) {
@@ -618,7 +619,11 @@
               <p class="text-xs text-gray-400">${getLang()==='zh'?'舉辦人':'By'}: ${escHtml(sess.creatorName)}</p>
             </div>` : ''}
           </div>
-          <div class="flex flex-col items-end gap-1">${statusBadge}${waitlistBadge}</div>
+          <div class="flex flex-col items-end gap-1">
+            ${statusBadge}
+            ${waitlistBadge}
+            ${isPrivate ? `<span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">🔒 ${zh?'私人':'Private'}</span>` : `<span class="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-400">🌐 ${zh?'公開':'Public'}</span>`}
+          </div>
         </div>
         ${registrantHtml}
         ${tags.length ? `<div class="flex flex-wrap gap-1.5 mb-3">${tags.join('')}</div>` : ''}
