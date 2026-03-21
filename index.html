@@ -1475,6 +1475,14 @@
       if (errEl) errEl.classList.add('hidden');
     });
   });
+  // Auto-sum: when maleLimit or femaleLimit changes, update total limit
+  ['fMaleLimit','fFemaleLimit'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      const m = parseInt(document.getElementById('fMaleLimit').value) || 0;
+      const f = parseInt(document.getElementById('fFemaleLimit').value) || 0;
+      if (m > 0 || f > 0) document.getElementById('fLimit').value = m + f;
+    });
+  });
 
   document.getElementById('submitCreateBtn').addEventListener('click', async () => {
     if (!currentUser) return;
