@@ -347,6 +347,7 @@
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" />
           <span id="hModalGoogleLogin">使用 Google 帳號登入報名</span>
         </button>
+        <p id="hModalGoogleHint" class="text-xs text-gray-400 text-center mt-1.5">登入後未來可查詢報名紀錄</p>
         <div class="flex items-center gap-3 my-2">
           <div class="flex-1 h-px bg-gray-200"></div>
           <span id="hModalOr" class="text-xs text-gray-400">或直接填寫</span>
@@ -644,6 +645,7 @@
     document.getElementById('modalFormTitle').textContent = tr('formTitle');
     document.getElementById('hGoogleProfile').textContent = tr('googleProfile');
     document.getElementById('hModalGoogleLogin').textContent = tr('modalGoogleLogin');
+    document.getElementById('hModalGoogleHint').textContent = tr('modalGoogleHint');
     document.getElementById('hModalOr').textContent = tr('modalOr');
     document.getElementById('lModalName').innerHTML = tr('nameLabel') + ' <span class="text-red-400">*</span>';
     document.getElementById('modalName').placeholder = tr('namePh');
