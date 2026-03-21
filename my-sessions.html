@@ -1102,7 +1102,11 @@
       const tags = [];
       if (s.isLate) { const u=zh?'分鐘':'mins'; tags.push(s.lateTime ? `${zh?'晚到':'Late'} +${s.lateTime}${u}` : (zh?'晚到':'Late')); }
       if (s.forFriend) tags.push(`${zh?'代':'For'}:${escHtml(s.forFriend)}`);
-      if (s.pairWith) tags.push(`${zh?'搭':'Pair'}:${escHtml(s.pairWith)}`);
+      if (s.pairWith) {
+        const pairedPerson = items.find(p => (p.forFriend || p.name) === s.pairWith || p.name === s.pairWith);
+        const pairDisplayName = pairedPerson ? (pairedPerson.forFriend || pairedPerson.name) : s.pairWith;
+        tags.push(`${zh?'搭':'Pair'}:${escHtml(pairDisplayName)}`);
+      }
       if (s.bringEquip?.length) s.bringEquip.forEach(e => tags.push(`🎒${escHtml(trEquip(e))}`.substring(0,8)));
       const photo = s.photoURL ? `<img src="${s.photoURL}" class="w-6 h-6 rounded-full" alt="" onerror="this.style.display='none'" />` : '';
       const genderBorder = s.gender === 'male' ? 'border-l-2 border-l-blue-300' : s.gender === 'female' ? 'border-l-2 border-l-pink-300' : '';

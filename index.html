@@ -1136,7 +1136,11 @@
         tags.push(`<span class="tag">${tr('lateTag')}${s.lateTime?' +'+s.lateTime+lateUnit:''}</span>`);
       }
       if (s.forFriend) tags.push(`<span class="tag">${tr('proxyTag')}:${escHtml(s.forFriend)}</span>`);
-      if (s.pairWith) tags.push(`<span class="tag">${tr('pairTag')}:${escHtml(s.pairWith)}</span>`);
+      if (s.pairWith) {
+        const pairedPerson = items.find(p => (p.forFriend || p.name) === s.pairWith || p.name === s.pairWith);
+        const pairDisplayName = pairedPerson ? (pairedPerson.forFriend || pairedPerson.name) : s.pairWith;
+        tags.push(`<span class="tag">${tr('pairTag')}:${escHtml(pairDisplayName)}</span>`);
+      }
       if (s.bringEquip && s.bringEquip.length) {
         s.bringEquip.forEach(e => tags.push(`<span class="tag" style="background:#d1fae5;color:#065f46">🎒${escHtml(trEquip(e))}</span>`));
       }
