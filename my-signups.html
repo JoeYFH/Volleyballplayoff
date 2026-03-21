@@ -303,6 +303,7 @@
           // Determine waitlist status and position
           let isWaitlisted = !signupData.forceConfirmed && !!signupData.forceWaitlisted;
           let waitlistPosition = 0;
+          let waitlistGender = null; // 'male' or 'female' if waitlisted due to gender sub-limit
           if (!signupData.forceConfirmed && !signupData.forceWaitlisted && signupId) {
             const totalLimit = sess?.limit || 0;
             const maleLimit = sess?.maleLimit || 0;
@@ -331,6 +332,7 @@
                       if (gPos > 0 && gPos > gLimit) {
                         isWaitlisted = true;
                         waitlistPosition = gPos - gLimit;
+                        waitlistGender = thisGender;
                       }
                     }
                   }
@@ -346,6 +348,7 @@
             session: sess,
             isWaitlisted,
             waitlistPosition,
+            waitlistGender,
           };
         } catch(e) {
           return { id: m.signupId || m.mirrorId, sessionId: m.sessionId, signedAt: m.signedAt, session: null, isWaitlisted: false };
@@ -534,9 +537,28 @@
     }
 
     // Waitlist badge
-    const waitlistBadge = s.isWaitlisted
-      ? `<span class="text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-500 font-medium">⏳ ${s.waitlistPosition > 0 ? (zh ? `備取第 ${s.waitlistPosition} 個` : `Waitlist #${s.waitlistPosition}`) : (zh ? '候補中' : 'Waitlisted')}</span>`
-      : '';
+    const waitlistBadge = (() => {
+      if (!s.isWaitlisted) return '';
+      let label;
+      if (s.waitlistPosition > 0) {
+        if (s.waitlistGender === 'male') {
+          label = zh ? `男生備取第 ${s.waitlistPosition} 個` : `Male Waitlist #${s.waitlistPosition}`;
+        } else if (s.waitlistGender === 'female') {
+          label = zh ? `女生備取第 ${s.waitlistPosition} 個` : `Female Waitlist #${s.waitlistPosition}`;
+        } else {
+          label = zh ? `備取第 ${s.waitlistPosition} 個` : `Waitlist #${s.waitlistPosition}`;
+        }
+      } else {
+        if (s.waitlistGender === 'male') {
+          label = zh ? '男生候補中' : 'Male Waitlisted';
+        } else if (s.waitlistGender === 'female') {
+          label = zh ? '女生候補中' : 'Female Waitlisted';
+        } else {
+          label = zh ? '候補中' : 'Waitlisted';
+        }
+      }
+      return `<span class="text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-500 font-medium">⏳ ${label}</span>`;
+    })();
 
     // Share signup link button (only when session is open and not past)
     const shareBtn = (!isCancelled && !isPast && isOpen)
