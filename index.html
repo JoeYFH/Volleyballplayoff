@@ -2188,8 +2188,20 @@
       };
 
       if (editingSignupId) {
+        // Get old forFriend for cascade pairWith update
+        const oldSignup = (signupsCache[activeSessionId] || []).find(s => s.id === editingSignupId);
+        const oldForFriend = oldSignup?.forFriend || '';
         // Update existing signup
         await updateDoc(doc(db, 'sessions', activeSessionId, 'signups', editingSignupId), signupPayload);
+        // Cascade: if forFriend name changed, update all signups pairWith-ing the old name
+        if (oldForFriend && forFriendName !== oldForFriend) {
+          const affected = (signupsCache[activeSessionId] || []).filter(
+            s => s.id !== editingSignupId && s.pairWith === oldForFriend
+          );
+          await Promise.all(affected.map(s =>
+            updateDoc(doc(db, 'sessions', activeSessionId, 'signups', s.id), { pairWith: forFriendName })
+          ));
+        }
         showModalMsg(getLang()==='zh' ? '✅ 已更新！' : '✅ Updated!', 'success');
       } else {
         // Create new signup
