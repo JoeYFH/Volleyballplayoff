@@ -1187,6 +1187,23 @@
     }
     listEl.innerHTML = html;
 
+    // Refresh pair dropdown if signup modal is open for this session
+    const signupModal = document.getElementById('signupModal');
+    if (signupModal && !signupModal.classList.contains('hidden') && activeSessionId === sessionId) {
+      const pairSel = document.getElementById('modalPair');
+      const currentVal = pairSel ? pairSel.value : '';
+      const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
+      const excludeId = editingSignupId;
+      if (pairSel) {
+        pairSel.innerHTML = `<option value="">${noPreference}</option>` +
+          items
+            .filter(s => excludeId ? s.id !== excludeId : (!currentUser || s.uid !== currentUser.uid))
+            .map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; })
+            .join('');
+        pairSel.value = currentVal;
+      }
+    }
+
     // Update signup button label based on full status
     const signupBtn = document.getElementById('signup-btn-' + sessionId);
     if (signupBtn) {
@@ -1909,7 +1926,7 @@
     pairSel.innerHTML = `<option value="">${noPreference}</option>` +
       signups
         .filter(s => !currentUser || s.uid !== currentUser.uid)
-        .map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`)
+        .map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; })
         .join('');
     // Populate bring-equipment chips
     populateBringChips(sessionId);
@@ -1956,7 +1973,7 @@
     const noPreference = getLang() === 'zh' ? '— 不指定 —' : '— No preference —';
     const allSignups = signupsCache[sessionId] || [];
     pairSel.innerHTML = `<option value="">${noPreference}</option>` +
-      allSignups.filter(s => s.id !== signupId).map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
+      allSignups.filter(s => s.id !== signupId).map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; }).join('');
     pairSel.value = signup.pairWith || '';
     document.getElementById('hConfirmBtn').textContent = getLang() === 'zh' ? '💾 更新報名' : '💾 Update';
     // Populate bring-equipment chips with preselected
