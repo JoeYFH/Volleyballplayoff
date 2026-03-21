@@ -37,6 +37,10 @@
     #mapSuggestions li:hover, .form-map-sug li:hover { background:#f1f5f9; }
     #toastEl { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1e1b4b; color:#fff; padding:12px 24px; border-radius:14px; font-size:0.9rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s, transform 0.25s; pointer-events:none; z-index:9999; white-space:nowrap; }
     #toastEl.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    /* iOS scroll lock when modal open */
+    body.modal-open { overflow: hidden; position: fixed; top: var(--body-scroll-y,0px); width: 100%; }
+    /* Hide number input spinner on mobile */
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { opacity: 1; }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
@@ -44,7 +48,7 @@
     .flatpickr-input.form-datetime { display: none !important; }
     .flatpickr-input[readonly] { cursor: pointer; }
     .flatpickr-calendar { font-family: system-ui, -apple-system, sans-serif; }
-    .flatpickr-alt-input { width: 100% !important; box-sizing: border-box; }
+    .flatpickr-alt-input { width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
     /* Mobile: prevent calendar from overflowing page width */
     @media (max-width: 480px) {
       .flatpickr-calendar { max-width: calc(100vw - 2rem) !important; left: 1rem !important; }
@@ -170,11 +174,12 @@
 <!-- Feedback Modal -->
 <div id="feedbackModal" class="fixed inset-0 z-50 hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeFeedbackModal()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl px-5 py-6 space-y-4">
-    <div class="flex items-center justify-between mb-2">
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl flex flex-col" style="max-height:min(85vh,85dvh)">
+    <div class="flex-none px-5 py-4 flex items-center justify-between border-b border-gray-100">
       <h2 id="hFeedbackTitle" class="font-bold text-gray-800">💬 意見回饋</h2>
       <button onclick="closeFeedbackModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
+    <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4" style="overscroll-behavior-y:contain">
     <div>
       <label id="lFeedbackEmail" class="block text-sm font-medium text-gray-600 mb-1">Email（選填）</label>
       <input id="fbEmail" type="email" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
@@ -206,16 +211,18 @@
     </button>
     <p id="fbMsg" class="text-center text-sm hidden"></p>
   </div>
+  </div>
 </div>
 
 <!-- Create Session Sheet -->
 <div id="createSheet" class="fixed inset-0 z-40 hidden">
   <div id="sheetOverlay" class="absolute inset-0 bg-black/40" onclick="closeCreateSheet()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-h-[92vh] overflow-y-auto overflow-x-hidden bg-white rounded-t-2xl shadow-xl">
-    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl flex flex-col" style="max-height:min(92vh,92dvh)">
+    <div class="flex-none px-5 py-4 flex items-center justify-between border-b border-gray-100 bg-white">
       <h2 id="hCreateTitle" class="font-bold text-gray-800">建立新場次</h2>
       <button onclick="closeCreateSheet()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
+    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden" style="overscroll-behavior-y:contain">
     <div class="px-5 py-4 space-y-4 overflow-x-hidden">
 
       <!-- Template Dropdown -->
@@ -255,6 +262,7 @@
         </button>
       </div>
       <p id="createMsg" class="text-center text-sm hidden"></p>
+    </div>
     </div>
   </div>
 </div>
@@ -316,11 +324,12 @@
 <!-- Signup Modal -->
 <div id="signupModal" class="fixed inset-0 z-40 hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeSignupModal()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
-    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl flex flex-col" style="max-height:min(85vh,85dvh)">
+    <div class="flex-none px-5 py-4 flex items-center justify-between border-b border-gray-100 bg-white">
       <h2 id="modalFormTitle" class="font-bold text-gray-800">✍️ 填寫報名資料</h2>
       <button onclick="closeSignupModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
+    <div id="signupModalScroll" class="flex-1 min-h-0 overflow-y-auto" style="overscroll-behavior-y:contain">
     <div class="px-5 py-4 space-y-3">
 
       <div id="modalProfilePreview" class="hidden flex items-center gap-3 bg-indigo-50 rounded-xl px-4 py-3">
@@ -376,7 +385,7 @@
       </div>
       <div id="modalLateSection" class="hidden ml-6">
         <div class="flex items-center gap-2">
-          <input id="modalLateTime" type="number" min="1" max="480"
+          <input id="modalLateTime" type="number" min="1" max="480" step="1" inputmode="numeric"
             class="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-300" />
           <span id="lModalLateUnit" class="text-sm text-gray-500">分鐘</span>
         </div>
@@ -402,6 +411,7 @@
       </button>
       <p id="modalMsg" class="text-center text-sm hidden"></p>
     </div>
+    </div>
   </div>
 </div>
 
@@ -419,6 +429,24 @@
   // Init flatpickr after injection (flatpickr script loaded before </body>)
   // Use a short defer so flatpickr global is ready after module evaluation
   setTimeout(() => initFormPickers(FORM_IDS_INDEX, getLang()), 0);
+
+  // ── Body scroll lock (iOS fix) ──
+  let _scrollLockY = 0, _scrollLockCount = 0;
+  function lockBodyScroll() {
+    if (!_scrollLockCount) {
+      _scrollLockY = window.scrollY;
+      document.documentElement.style.setProperty('--body-scroll-y', `-${_scrollLockY}px`);
+      document.body.classList.add('modal-open');
+    }
+    _scrollLockCount++;
+  }
+  function unlockBodyScroll() {
+    if (_scrollLockCount > 0) _scrollLockCount--;
+    if (!_scrollLockCount) {
+      document.body.classList.remove('modal-open');
+      window.scrollTo(0, _scrollLockY);
+    }
+  }
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -1324,9 +1352,11 @@
     [['fTitle','fTitleErr'],['fevendate','fevendate_err'],['fLocation','fLocationErr']].forEach(([inputId, errId]) => clearFieldError(inputId, errId));
     ['fTimeErr','fMaleLimitErr'].forEach(id => { const el = document.getElementById(id); if (el) { el.classList.add('hidden'); el.textContent = ''; } });
     document.getElementById('createSheet').classList.remove('hidden');
+    lockBodyScroll();
   };
   window.closeCreateSheet = () => {
     document.getElementById('createSheet').classList.add('hidden');
+    unlockBodyScroll();
   };
   window.onCloseWhenChange = () => {
     const val = document.getElementById('fCloseWhen').value;
@@ -1825,15 +1855,7 @@
     localStorage.setItem('recentFriendNames', JSON.stringify(names.slice(0, 10)));
   }
   function updateFriendNameDatalist() {
-    let dl = document.getElementById('friendNameDatalist');
-    if (!dl) {
-      dl = document.createElement('datalist');
-      dl.id = 'friendNameDatalist';
-      document.body.appendChild(dl);
-      document.getElementById('modalFriendName').setAttribute('list', 'friendNameDatalist');
-    }
-    const names = getRecentFriendNames();
-    dl.innerHTML = names.map(n => `<option value="${escHtml(n)}">`).join('');
+    // datalist 已移除（iOS 上會顯示多餘的下拉箭頭）
   }
 
   window.openSignupModal = (sessionId, limit) => {
@@ -1841,6 +1863,7 @@
     activeSessionLimit = limit;
     activeSessionData = sessionsData[sessionId] || {};
     document.getElementById('signupModal').classList.remove('hidden');
+    lockBodyScroll();
     document.getElementById('modalName').value = '';
     document.getElementById('modalName').classList.remove('border-red-400', 'ring-2', 'ring-red-200');
     document.getElementById('modalNameError').classList.add('hidden');
@@ -1890,6 +1913,7 @@
   window.closeSignupModal = () => {
     document.getElementById('signupModal').classList.add('hidden');
     editingSignupId = null;
+    unlockBodyScroll();
   };
 
   window.openEditSignupModal = (sessionId, signupId) => {
@@ -1935,6 +1959,10 @@
   document.getElementById('modalLate').addEventListener('change', e => {
     document.getElementById('modalLateSection').classList.toggle('hidden', !e.target.checked);
     if (!e.target.checked) document.getElementById('modalLateTime').value = '';
+  });
+  document.getElementById('modalLateTime').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    e.target.value = isNaN(v) || v < 1 ? '' : v;
   });
   document.getElementById('modalFriend').addEventListener('change', e => {
     const checked = e.target.checked;
@@ -2017,6 +2045,7 @@
       const errEl = document.getElementById('modalNameError');
       errEl.textContent = tr('enterName');
       errEl.classList.remove('hidden');
+      nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       nameInput.focus();
       return;
     }
@@ -2028,6 +2057,7 @@
     if (document.getElementById('modalFriend').checked && !forFriendNameCheck) {
       const errEl = document.getElementById('modalFriendNameError');
       errEl.classList.remove('hidden');
+      document.getElementById('modalFriendName').scrollIntoView({ behavior: 'smooth', block: 'center' });
       document.getElementById('modalFriendName').focus();
       return;
     }
@@ -2164,6 +2194,7 @@
   // ── Feedback ──
   window.openFeedbackModal = () => {
     document.getElementById('feedbackModal').classList.remove('hidden');
+    lockBodyScroll();
     document.getElementById('fbDesc').value = '';
     document.getElementById('fbMsg').classList.add('hidden');
     // Pre-fill email if logged in
@@ -2171,6 +2202,7 @@
   };
   window.closeFeedbackModal = () => {
     document.getElementById('feedbackModal').classList.add('hidden');
+    unlockBodyScroll();
   };
 
   document.getElementById('fbSubmitBtn').addEventListener('click', async () => {

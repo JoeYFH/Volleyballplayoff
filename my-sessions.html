@@ -20,12 +20,13 @@
     #mapSuggestions2 li:hover, .form-map-sug li:hover { background:#f1f5f9; }
     #toastEl { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1e1b4b; color:#fff; padding:12px 24px; border-radius:14px; font-size:0.9rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s, transform 0.25s; pointer-events:none; z-index:9999; white-space:nowrap; }
     #toastEl.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    body.modal-open { overflow: hidden; position: fixed; top: var(--body-scroll-y,0px); width: 100%; }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
     .flatpickr-input[readonly] { cursor: pointer; }
     .flatpickr-calendar { font-family: system-ui, -apple-system, sans-serif; }
-    .flatpickr-alt-input { width: 100% !important; box-sizing: border-box; }
+    .flatpickr-alt-input { width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
     /* Mobile: prevent calendar from overflowing page width */
     @media (max-width: 480px) {
       .flatpickr-calendar { max-width: calc(100vw - 2rem) !important; left: 1rem !important; }
@@ -279,11 +280,12 @@
 <!-- Create/Edit Session Sheet -->
 <div id="sessionSheet" class="fixed inset-0 z-40 hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeSessionSheet()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-h-[92vh] overflow-y-auto overflow-x-hidden bg-white rounded-t-2xl shadow-xl">
-    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl flex flex-col" style="max-height:min(92vh,92dvh)">
+    <div class="flex-none px-5 py-4 flex items-center justify-between border-b border-gray-100 bg-white">
       <h2 id="sheetTitle" class="font-bold text-gray-800">建立新場次</h2>
       <button onclick="closeSessionSheet()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
+    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden" style="overscroll-behavior-y:contain">
     <div class="px-5 py-4 space-y-4 overflow-x-hidden">
 
       <!-- Template Dropdown -->
@@ -319,6 +321,7 @@
         </button>
       </div>
       <p id="sfMsg" class="text-center text-sm hidden"></p>
+    </div>
     </div>
   </div>
 </div>
@@ -410,6 +413,24 @@
   const _formInputLang = (localStorage.getItem('lang') || 'zh') === 'zh' ? 'zh-TW' : 'en-GB';
   document.getElementById('sfFormFieldsContainer').innerHTML = sessionFormHTML(FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS, _formInputLang);
   setTimeout(() => initFormPickers(FORM_IDS_MYSESSIONS, getLang()), 0);
+
+  // ── Body scroll lock (iOS fix) ──
+  let _scrollLockY = 0, _scrollLockCount = 0;
+  function lockBodyScroll() {
+    if (!_scrollLockCount) {
+      _scrollLockY = window.scrollY;
+      document.documentElement.style.setProperty('--body-scroll-y', `-${_scrollLockY}px`);
+      document.body.classList.add('modal-open');
+    }
+    _scrollLockCount++;
+  }
+  function unlockBodyScroll() {
+    if (_scrollLockCount > 0) _scrollLockCount--;
+    if (!_scrollLockCount) {
+      document.body.classList.remove('modal-open');
+      window.scrollTo(0, _scrollLockY);
+    }
+  }
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -1468,11 +1489,13 @@
     document.getElementById('sf_equipCustom').value = '';
     renderSfCustomTags();
     document.getElementById('sessionSheet').classList.remove('hidden');
+    lockBodyScroll();
   }
 
   window.closeSessionSheet = () => {
     document.getElementById('sessionSheet').classList.add('hidden');
     editingSessionId = null;
+    unlockBodyScroll();
   };
 
   async function populateTemplateDropdown() {
@@ -2282,6 +2305,10 @@
   document.getElementById('caLate').addEventListener('change', e => {
     if (!e.target.checked) document.getElementById('caLateTime').value = '';
   });
+  document.getElementById('caLateTime').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    e.target.value = isNaN(v) || v < 1 ? '' : v;
+  });
 
   // ── Creator Add Signup ──
   let creatorAddSessionId = null;
@@ -2376,11 +2403,13 @@
     }
     caSetMode('self');
     document.getElementById('creatorAddModal').classList.remove('hidden');
+    lockBodyScroll();
   };
 
   window.closeCreatorAddModal = () => {
     document.getElementById('creatorAddModal').classList.add('hidden');
     creatorAddSessionId = null;
+    unlockBodyScroll();
   };
 
   window.caSetMode = (mode) => {
@@ -2517,11 +2546,12 @@
 <!-- Creator Add Signup Modal -->
 <div id="creatorAddModal" class="fixed inset-0 z-50 hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeCreatorAddModal()"></div>
-  <div class="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-white rounded-t-2xl shadow-xl">
-    <div class="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+  <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl flex flex-col" style="max-height:min(85vh,85dvh)">
+    <div class="flex-none px-5 py-4 flex items-center justify-between border-b border-gray-100 bg-white">
       <h2 id="caModalTitle" class="font-bold text-gray-800">➕ 新增報名</h2>
       <button onclick="closeCreatorAddModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
+    <div class="flex-1 min-h-0 overflow-y-auto" style="overscroll-behavior-y:contain">
     <div class="px-5 py-4 space-y-3">
       <!-- Self / Friend mode -->
       <div class="flex gap-2">
@@ -2563,7 +2593,7 @@
       </div>
       <div id="caLateRow" class="hidden ml-6">
         <div class="flex items-center gap-2">
-          <input id="caLateTime" type="number" min="1" max="480"
+          <input id="caLateTime" type="number" min="1" max="480" step="1" inputmode="numeric"
             class="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-300" />
           <span id="caLateUnit" class="text-sm text-gray-500">分鐘</span>
         </div>
@@ -2586,6 +2616,7 @@
         <span id="hCaSubmit">➕ 新增報名</span>
       </button>
       <p id="caMsg" class="text-center text-sm hidden"></p>
+    </div>
     </div>
   </div>
 </div>
