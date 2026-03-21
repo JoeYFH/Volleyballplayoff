@@ -313,16 +313,8 @@
               try {
                 const allSnap = await getDocs(query(collection(db, 'sessions', m.sessionId, 'signups'), orderBy('signedAt', 'asc')));
                 const allDocs = allSnap.docs;
-                // Check total limit
-                if (totalLimit > 0) {
-                  const pos = allDocs.findIndex(d => d.id === signupId) + 1;
-                  if (pos > 0 && pos > totalLimit) {
-                    isWaitlisted = true;
-                    waitlistPosition = pos - totalLimit;
-                  }
-                }
-                // Check gender sub-limits
-                if (!isWaitlisted && hasMixedLimits) {
+                if (hasMixedLimits) {
+                  // Mixed session: check gender sub-limit first (matches index.html rendering)
                   const thisGender = signupData.gender;
                   if (thisGender === 'male' || thisGender === 'female') {
                     const gLimit = thisGender === 'male' ? maleLimit : femaleLimit;
@@ -334,6 +326,23 @@
                         waitlistPosition = gPos - gLimit;
                         waitlistGender = thisGender;
                       }
+                    }
+                  }
+                  // Fallback: total limit (only if not already waitlisted by gender)
+                  if (!isWaitlisted && totalLimit > 0) {
+                    const pos = allDocs.findIndex(d => d.id === signupId) + 1;
+                    if (pos > 0 && pos > totalLimit) {
+                      isWaitlisted = true;
+                      waitlistPosition = pos - totalLimit;
+                    }
+                  }
+                } else {
+                  // No gender sub-limits: check total limit only
+                  if (totalLimit > 0) {
+                    const pos = allDocs.findIndex(d => d.id === signupId) + 1;
+                    if (pos > 0 && pos > totalLimit) {
+                      isWaitlisted = true;
+                      waitlistPosition = pos - totalLimit;
                     }
                   }
                 }
