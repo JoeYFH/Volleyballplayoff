@@ -151,20 +151,20 @@
   </button>
   <!-- Speed dial menu (collapsed by default) -->
   <div id="fabMenu" class="hidden flex-col items-end gap-2 mb-1">
+    <button id="createBtn"
+      class="bg-indigo-600 text-white rounded-xl px-5 py-3 text-sm font-semibold shadow-lg hover:bg-indigo-700 active:scale-95 transition">
+      <span id="hCreate">+ 建立場次</span>
+    </button>
     <button id="mySessionsBtn"
       class="hidden bg-white border border-indigo-200 text-indigo-600 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-95 transition">
       📋 <span id="hMySessionsBtn">我的開場</span>
     </button>
   </div>
-  <!-- Main FAB row -->
+  <!-- Main FAB row: only toggle button -->
   <div class="flex items-center gap-2">
     <button id="fabToggle"
       class="hidden w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 text-xl shadow-md hover:bg-gray-50 active:scale-95 transition flex items-center justify-center"
       title="選單">≡</button>
-    <button id="createBtn"
-      class="hidden bg-indigo-600 text-white rounded-xl px-5 py-3 text-sm font-semibold shadow-lg hover:bg-indigo-700 active:scale-95 transition">
-      <span id="hCreate">+ 建立場次</span>
-    </button>
   </div>
 </div>
 <!-- Feedback FAB -->
@@ -731,7 +731,6 @@
       document.getElementById('userInfo').classList.add('flex');
       document.getElementById('userPhoto').src = photoURL || '';
       document.getElementById('userName').textContent = displayName;
-      document.getElementById('createBtn').classList.remove('hidden');
       document.getElementById('fabToggle').classList.remove('hidden');
       document.getElementById('mySessionsBtn').classList.remove('hidden');
       document.getElementById('mySignupsBtn').classList.remove('hidden');
@@ -751,7 +750,6 @@
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('hidden');
       document.getElementById('userInfo').classList.remove('flex');
-      document.getElementById('createBtn').classList.add('hidden');
       document.getElementById('fabToggle').classList.add('hidden');
       document.getElementById('fabMenu').classList.add('hidden');
       document.getElementById('mySessionsBtn').classList.add('hidden');
@@ -1798,6 +1796,10 @@
   document.getElementById('templateSelect').addEventListener('change', () => applySelectedTemplate());
 
   document.getElementById('createBtn').addEventListener('click', () => {
+    const menu = document.getElementById('fabMenu');
+    menu.classList.add('hidden');
+    menu.classList.remove('flex');
+    document.getElementById('fabToggle').textContent = '≡';
     openCreateSheet();
     loadTemplatesForDropdown();
   });
