@@ -46,112 +46,74 @@
     </div>
 
     <!-- Admin content -->
-    <div v-else class="max-w-2xl mx-auto px-4 py-4">
+    <div v-else class="max-w-2xl mx-auto px-4 py-4 pb-16">
 
-      <!-- Top action buttons -->
-      <div class="flex flex-wrap gap-2 mb-4">
-        <button @click="activeFilter = 'all'; activePanel = 'sessions'"
-          :class="['text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm',
-            activePanel === 'sessions' && activeFilter === 'all'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
-          📋 {{ isZh ? '所有開場' : 'All Sessions' }}
-        </button>
-        <button @click="handleFixCreatorInfo"
-          class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-purple-200 text-purple-600 hover:bg-purple-50">
-          👤 {{ isZh ? '補全建立者資料' : 'Fix Creator Info' }}
-        </button>
-        <button @click="handleCreateTestSession"
-          class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-teal-200 text-teal-600 hover:bg-teal-50">
-          🧪 {{ isZh ? '建立測試場次' : 'Test Session' }}
-        </button>
-        <button @click="handleClearGarbage"
-          class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-red-200 text-red-500 hover:bg-red-50">
-          🗑️ {{ isZh ? '清除垃圾資料' : 'Clear Junk' }}
-        </button>
-        <button @click="toggleFeedbackPanel"
-          :class="['text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm',
-            activePanel === 'feedback'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
-          💬 {{ isZh ? '意見回應' : 'Feedback' }}
-          <span v-if="feedbackList.length" class="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{{ feedbackList.length }}</span>
-        </button>
-      </div>
-
-      <!-- Stats row -->
-      <div class="flex items-center gap-2 mb-4">
-        <span class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-3 py-1 rounded-full">
-          {{ isZh ? `共 ${sessions.length} 場` : `${sessions.length} sessions` }}
-        </span>
-        <span v-if="sessionsLoading" class="text-xs text-gray-400 animate-pulse">{{ isZh ? '載入中…' : 'Loading…' }}</span>
-        <button v-if="!sessionsLoading" @click="fetchSessions" class="text-xs text-gray-400 hover:text-indigo-500 transition">↻</button>
+      <!-- ── 所有開場 ── -->
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-bold text-gray-700">📋 {{ isZh ? '所有開場' : 'All Sessions' }}</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2.5 py-1 rounded-full">{{ sessions.length }}</span>
+          <button @click="fetchSessions" class="text-xs text-gray-400 hover:text-indigo-500 transition" title="Refresh">↻</button>
+          <button @click="handleClearGarbage" class="text-xs text-red-400 hover:text-red-600 transition">🗑️</button>
+        </div>
       </div>
       <div v-if="fetchError" class="mb-3 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs">⚠️ {{ fetchError }}</div>
 
-      <!-- Feedback panel -->
-      <div v-if="activePanel === 'feedback'" class="mb-4">
-        <div v-if="feedbackLoading" class="text-center py-8 text-gray-400 text-sm animate-pulse">
-          {{ isZh ? '載入中…' : 'Loading…' }}
-        </div>
-        <div v-else-if="!feedbackList.length" class="text-center py-10 text-gray-400">
-          <div class="text-3xl mb-2">📭</div>
-          <p class="text-sm">{{ isZh ? '還沒有意見回饋' : 'No feedback yet' }}</p>
-        </div>
-        <div v-else class="space-y-3">
-          <div v-for="fb in feedbackList" :key="fb.id"
-            class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <div class="flex items-start justify-between gap-2 mb-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', typeClass(fb.type)]">{{ typeLabel(fb.type) }}</span>
-                <span :class="['text-xs px-2 py-0.5 rounded-full', urgencyClass(fb.urgency)]">{{ urgencyLabel(fb.urgency) }}</span>
-              </div>
-              <span class="text-xs text-gray-300 shrink-0">{{ fmtFbDate(fb.created_at) }}</span>
-            </div>
-            <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{{ fb.description }}</p>
-            <p v-if="fb.email" class="text-xs text-indigo-500 mt-1.5">📧 {{ fb.email }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filter bar -->
-      <div v-if="activePanel === 'sessions'" class="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-hide">
-        <button v-for="f in filters" :key="f.key"
-          @click="activeFilter = f.key"
+      <!-- Filter tabs -->
+      <div class="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+        <button v-for="f in filters" :key="f.key" @click="activeFilter = f.key"
           :class="['text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap transition',
-            activeFilter === f.key
-              ? 'bg-indigo-600 text-white shadow'
-              : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50']">
+            activeFilter === f.key ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50']">
           {{ f.label }}
         </button>
       </div>
 
       <!-- Session cards -->
-      <template v-if="activePanel === 'sessions'">
-        <div v-if="sessionsLoading && !sessions.length" class="flex justify-center py-16">
-          <div class="text-4xl animate-bounce">🏐</div>
-        </div>
+      <div v-if="sessionsLoading && !sessions.length" class="flex justify-center py-16">
+        <div class="text-4xl animate-bounce">🏐</div>
+      </div>
+      <div v-else-if="!filteredSessions.length" class="text-center py-10 text-gray-400">
+        <div class="text-3xl mb-2">📭</div>
+        <p class="text-sm">{{ isZh ? '沒有符合條件的場次' : 'No sessions match this filter' }}</p>
+      </div>
+      <div v-else class="space-y-4 mb-8">
+        <MgmtSessionCard
+          v-for="s in filteredSessions"
+          :key="s.id"
+          :session="s"
+          :user="user"
+          :is-zh="isZh"
+          @toggle-open="handleToggleOpen"
+          @toggle-private="handleTogglePrivate"
+          @delete="handleDelete"
+          @share="handleShare"
+          @edit="handleEdit"
+        />
+      </div>
 
-        <div v-else-if="!filteredSessions.length" class="text-center py-12 text-gray-400">
-          <div class="text-3xl mb-3">📭</div>
-          <p class="text-sm">{{ isZh ? '沒有符合條件的場次' : 'No sessions match this filter' }}</p>
+      <!-- ── 意見回覆 ── -->
+      <div class="flex items-center justify-between mb-3 mt-4 border-t border-gray-100 pt-4">
+        <h2 class="font-bold text-gray-700">💬 {{ isZh ? '意見回覆' : 'Feedback' }}</h2>
+        <span v-if="feedbackList.length" class="text-xs bg-red-100 text-red-600 font-semibold px-2.5 py-1 rounded-full">{{ feedbackList.length }}</span>
+      </div>
+      <div v-if="feedbackLoading" class="text-center py-8 text-gray-400 text-sm animate-pulse">{{ isZh ? '載入中…' : 'Loading…' }}</div>
+      <div v-else-if="!feedbackList.length" class="text-center py-8 text-gray-400">
+        <div class="text-3xl mb-2">📭</div>
+        <p class="text-sm">{{ isZh ? '還沒有意見回饋' : 'No feedback yet' }}</p>
+      </div>
+      <div v-else class="space-y-3">
+        <div v-for="fb in feedbackList" :key="fb.id" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', typeClass(fb.type)]">{{ typeLabel(fb.type) }}</span>
+              <span :class="['text-xs px-2 py-0.5 rounded-full', urgencyClass(fb.urgency)]">{{ urgencyLabel(fb.urgency) }}</span>
+            </div>
+            <span class="text-xs text-gray-300 shrink-0">{{ fmtFbDate(fb.created_at) }}</span>
+          </div>
+          <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{{ fb.description }}</p>
+          <p v-if="fb.email" class="text-xs text-indigo-500 mt-1.5">📧 {{ fb.email }}</p>
         </div>
-
-        <div v-else class="space-y-4">
-          <MgmtSessionCard
-            v-for="s in filteredSessions"
-            :key="s.id"
-            :session="s"
-            :user="user"
-            :is-zh="isZh"
-            @toggle-open="handleToggleOpen"
-            @toggle-private="handleTogglePrivate"
-            @delete="handleDelete"
-            @share="handleShare"
-            @edit="handleEdit"
-          />
-        </div>
-      </template>
+      </div>
     </div>
 
     <!-- Edit session sheet -->
@@ -213,7 +175,6 @@ const sessions = ref([]);
 const sessionsLoading = ref(false);
 const fetchError = ref('');
 const activeFilter = ref('all');
-const activePanel = ref('sessions');
 const shareUrl = ref('');
 const copiedShare = ref(false);
 const feedbackList = ref([]);
@@ -317,18 +278,30 @@ async function handleFixCreatorInfo() {
   fetchSessions();
 }
 
+async function fetchFeedback() {
+  feedbackLoading.value = true;
+  try {
+    const { data } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
+    feedbackList.value = data || [];
+  } finally {
+    feedbackLoading.value = false;
+  }
+}
+
 // Use watchEffect for reliable reactive re-evaluation
 watchEffect(() => {
   if (!authLoading.value && user.value && isAdmin()) {
     fetchSessions();
+    fetchFeedback();
     if (!channel) subscribeRealtime();
   }
 });
 
-// Extra safety: also try on mount after a tick
+// Extra safety: also try on mount
 onMounted(() => {
   if (!authLoading.value && user.value && isAdmin()) {
     fetchSessions();
+    fetchFeedback();
     if (!channel) subscribeRealtime();
   }
 });
@@ -383,19 +356,6 @@ async function copyShareUrl() {
   }
 }
 
-// ── Feedback panel ─────────────────────────────────────────────────────────────
-async function toggleFeedbackPanel() {
-  activePanel.value = activePanel.value === 'feedback' ? 'sessions' : 'feedback';
-  if (activePanel.value === 'feedback' && !feedbackList.value.length) {
-    feedbackLoading.value = true;
-    try {
-      const { data } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
-      feedbackList.value = data || [];
-    } finally {
-      feedbackLoading.value = false;
-    }
-  }
-}
 
 function typeLabel(type) {
   if (!isZh.value) return type === 'bug' ? 'Bug' : type === 'idea' ? 'Idea' : 'Other';
