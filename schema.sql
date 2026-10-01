@@ -79,7 +79,10 @@ ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 -- Sessions: 所有人可讀，登入者可建立，建立者/管理員可修改
 CREATE POLICY "sessions_select" ON sessions FOR SELECT USING (true);
 CREATE POLICY "sessions_insert" ON sessions FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "sessions_update" ON sessions FOR UPDATE USING (auth.uid() = created_by);
+CREATE POLICY "sessions_update" ON sessions FOR UPDATE USING (
+  auth.uid() = created_by
+  OR auth.email() IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
+);
 CREATE POLICY "sessions_delete" ON sessions FOR DELETE USING (
   auth.uid() = created_by
   OR auth.email() IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
