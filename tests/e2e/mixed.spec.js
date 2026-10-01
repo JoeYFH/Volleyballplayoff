@@ -107,8 +107,8 @@ test.describe.serial('混排場次', () => {
     const listEl = page.locator(`#list-${sessionId}`);
     if (!(await listEl.count())) { test.skip(true, '找不到混排場次'); return; }
 
-    // 男女名額各 1，已分別有 2 名男生和 2 名女生報名，候補分隔線應出現
-    await expect(listEl).toContainText('候補', { timeout: 5000 });
+    // 男女名額各 1，已分別有 2 名男生和 2 名女生報名，候補分隔線應出現（中文「候補」或英文「Waitlist」）
+    await expect(listEl).toContainText(/候補|Waitlist/, { timeout: 5000 });
     // 超額的男生應在候補
     await expect(listEl).toContainText('代報男朋友C');
     // 超額的女生應在候補
