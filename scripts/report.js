@@ -102,19 +102,18 @@ lines.push(`\n> 執行時間：${startTime}　耗時：${runTime}`);
 // ── 場次自動建立說明 ──────────────────────────────────────────
 if (sessionTypes.length) {
   lines.push(`\n## 🏐 測試場次自動建立`);
-  lines.push(`本次測試自動建立了以下測試場次（\`beforeAll\`），測試結束後自動刪除（\`afterAll\`）：`);
-  lines.push('');
+  lines.push(`\n本次測試透過 \`beforeAll\` 自動建立場次，\`afterAll\` 自動刪除：\n`);
+  lines.push(`| 狀態 | 場次類型 | 測試結果 |`);
+  lines.push(`|------|----------|---------|`);
   for (const t of sessionTypes) {
     const suiteTests = tests.filter(x => getSessionSetupNote(x.suite) === t);
-    const ok  = suiteTests.filter(x => x.status === 'passed').length;
-    const err = suiteTests.filter(x => x.status === 'failed' || x.status === 'timedOut').length;
-    const skip= suiteTests.filter(x => x.status === 'skipped').length;
+    const ok   = suiteTests.filter(x => x.status === 'passed').length;
+    const err  = suiteTests.filter(x => x.status === 'failed' || x.status === 'timedOut').length;
+    const skip = suiteTests.filter(x => x.status === 'skipped').length;
     const icon = err > 0 ? '❌' : '✅';
-    lines.push(`| ${icon} | \`type: ${t}\` | ✅ ${ok} 通過　❌ ${err} 失敗　⏭️ ${skip} 跳過 |`);
+    lines.push(`| ${icon} | \`${t}\` | ✅ ${ok} 通過　❌ ${err} 失敗　⏭️ ${skip} 跳過 |`);
   }
-  if (sessionTypes.length) lines.splice(lines.indexOf('') + 1, 0, '| 狀態 | 場次類型 | 測試結果 |', '|------|---------|---------|');
-  lines.push('');
-  lines.push(`> 場次以明天日期建立，標題前綴 \`[測試場次]\`，測試結束後自動從 Supabase 刪除。`);
+  lines.push(`\n> 場次以明天日期建立，標題前綴 \`[測試場次]\`，含器材：球、氣瓶。測試結束後自動從 Supabase 刪除。`);
 }
 
 lines.push(`\n## 📊 摘要`);

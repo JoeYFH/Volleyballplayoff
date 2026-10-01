@@ -36,6 +36,7 @@ export async function createTestSession(type) {
     limit_total: type === 'mixed' ? 0 : 12,
     male_limit: type === 'mixed' ? 6 : 0,
     female_limit: type === 'mixed' ? 6 : 0,
+    equipment: ['球', '氣瓶'],
   };
 
   const { data, error } = await supabase
