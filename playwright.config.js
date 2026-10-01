@@ -8,7 +8,7 @@ const BASE_URL = process.env.TEST_BASE_URL || 'https://volleyballplayoff.web.app
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 40000,
-  retries: 1,
+  retries: 0,
   use: {
     baseURL: BASE_URL,
     headless: true,
@@ -20,10 +20,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
     },
   ],
   reporter: [

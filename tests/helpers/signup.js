@@ -85,7 +85,9 @@ export async function closeModal(page) {
  * 點首頁 FilterBar 的狀態 tab
  */
 export async function clickStatusFilter(page, label) {
-  await page.locator(`button:has-text("${label}")`).first().click();
+  const btn = page.locator(`button:has-text("${label}")`).first();
+  await btn.waitFor({ state: 'visible', timeout: 12000 });
+  await btn.click();
   await page.waitForTimeout(400);
 }
 
@@ -93,6 +95,8 @@ export async function clickStatusFilter(page, label) {
  * 點首頁 FilterBar 的性別 tab
  */
 export async function clickGenderFilter(page, label) {
-  await page.locator(`button:has-text("${label}")`).first().click();
+  const btn = page.locator(`button:has-text("${label}")`).first();
+  await btn.waitFor({ state: 'visible', timeout: 12000 });
+  await btn.click();
   await page.waitForTimeout(400);
 }

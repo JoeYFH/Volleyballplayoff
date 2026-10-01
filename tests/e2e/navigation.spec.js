@@ -89,8 +89,10 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // 切到「所有」確保場次可見
-    await page.locator('button:has-text("所有"), button:has-text("All")').first().click();
+    // 等 filter bar 載入後切到「所有」確保場次可見
+    const allBtn = page.locator('button:has-text("所有"), button:has-text("All")').first();
+    await allBtn.waitFor({ state: 'visible', timeout: 12000 });
+    await allBtn.click();
     await page.waitForTimeout(400);
 
     const card = page.locator(`#card-${sessionId}`);
@@ -107,7 +109,9 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('button:has-text("所有"), button:has-text("All")').first().click();
+    const allBtn = page.locator('button:has-text("所有"), button:has-text("All")').first();
+    await allBtn.waitFor({ state: 'visible', timeout: 12000 });
+    await allBtn.click();
     await page.waitForTimeout(400);
 
     const card = page.locator(`#card-${sessionId}`);
@@ -125,7 +129,9 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('button:has-text("所有"), button:has-text("All")').first().click();
+    const allBtn = page.locator('button:has-text("所有"), button:has-text("All")').first();
+    await allBtn.waitFor({ state: 'visible', timeout: 12000 });
+    await allBtn.click();
     await page.waitForTimeout(400);
 
     const card = page.locator(`#card-${sessionId}`);

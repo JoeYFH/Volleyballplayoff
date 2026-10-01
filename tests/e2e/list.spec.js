@@ -6,6 +6,10 @@ test.describe('首頁場次列表', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Wait for filter bar to confirm Vue app is loaded and data fetched
+    await page.locator('button:has-text("報名中"), button:has-text("Open")').first()
+      .waitFor({ state: 'visible', timeout: 12000 });
+
     const hasSessions = await page.locator('[id^="card-"]').count();
     const hasEmpty = await page.locator('text=/沒有即將舉行|No upcoming/').isVisible();
     expect(hasSessions > 0 || hasEmpty).toBeTruthy();
@@ -17,6 +21,7 @@ test.describe('首頁場次列表', () => {
 
     // 「報名中」按鈕應有 active class (bg-indigo-600)
     const openBtn = page.locator('button:has-text("報名中"), button:has-text("Open")').first();
+    await openBtn.waitFor({ state: 'visible', timeout: 12000 });
     await expect(openBtn).toHaveClass(/bg-indigo-600/, { timeout: 5000 });
   });
 
@@ -24,6 +29,8 @@ test.describe('首頁場次列表', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    const openBtn = page.locator('button:has-text("報名中"), button:has-text("Open")').first();
+    await openBtn.waitFor({ state: 'visible', timeout: 12000 });
     const openCount = await page.locator('[id^="card-"]').count();
 
     await page.locator('button:has-text("所有"), button:has-text("All")').first().click();
@@ -36,6 +43,9 @@ test.describe('首頁場次列表', () => {
   test('性別 filter「⚥ 混排」只顯示混排場次', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    const openBtn = page.locator('button:has-text("報名中"), button:has-text("Open")').first();
+    await openBtn.waitFor({ state: 'visible', timeout: 12000 });
 
     await page.locator('button:has-text("所有"), button:has-text("All")').first().click();
     await page.locator('button:has-text("⚥ 混排"), button:has-text("⚥ Mixed")').first().click();
