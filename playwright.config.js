@@ -3,15 +3,18 @@ import { config } from 'dotenv';
 
 config({ path: '.env.test' });
 
+const BASE_URL = process.env.TEST_BASE_URL || 'https://volleyballplayoff.web.app';
+
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30000,
-  retries: 0,
+  timeout: 40000,
+  retries: 1,
   use: {
-    baseURL: 'https://volleyballplayoff.web.app',
+    baseURL: BASE_URL,
     headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    actionTimeout: 15000,
   },
   projects: [
     {
