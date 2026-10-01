@@ -23,5 +23,9 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
   ],
-  reporter: [['html', { open: 'never' }], ['list']],
+  reporter: [
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['list'],
+  ],
 });

@@ -7,8 +7,10 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "report": "node scripts/report.js"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JoeYFH/volleyballplayoff.git"
