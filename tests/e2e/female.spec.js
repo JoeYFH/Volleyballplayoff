@@ -12,6 +12,18 @@ test.describe.serial('純女場次', () => {
     console.log(`\n🏐 純女測試場次建立：${sessionId}`);
   });
 
+  test('場次卡片顯示活動詳細說明與備注（純女）', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
+    await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
+    await page.click('#sg-female');
+    await page.waitForTimeout(300);
+
+    const card = page.locator(`#card-${sessionId}`);
+    await expect(card).toContainText('場館一樓大廳集合');
+    await expect(card).toContainText('這是測試用的備注');
+  });
+
   test('登入後報名純女場次', async ({ page }) => {
     await page.goto('/');
     await loginAsTestUser(page);
