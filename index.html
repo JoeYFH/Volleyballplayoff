@@ -432,10 +432,8 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import { getFirestore, doc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDocs, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAILS } from './supabase-config.js';
   import { tr, getLang, setLang, t } from './i18n.js';
   import { sessionFormHTML, FORM_IDS_INDEX, FORM_FNS_INDEX, initFormPickers, fpSet, updateVisStyle } from './session-form.js';
 
@@ -464,10 +462,51 @@
     }
   }
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function mapSession(row) {
+    return {
+      id: row.id, title: row.title, date: row.date, time: row.time,
+      location: row.location, venue: row.venue, type: row.type || '',
+      limit: row.limit_total || 0, maleLimit: row.male_limit || 0, femaleLimit: row.female_limit || 0,
+      equipment: row.equipment || [], note: row.note,
+      isOpen: row.is_open, isPrivate: row.is_private, cancelled: row.cancelled,
+      openAt: row.open_at, closeAt: row.close_at,
+      createdBy: row.created_by, creatorName: row.creator_name, creatorPhoto: row.creator_photo,
+      createdAt: row.created_at,
+    };
+  }
+  function mapSignup(row, position) {
+    return {
+      id: row.id, sessionId: row.session_id, uid: row.uid, name: row.name,
+      isLate: row.is_late, lateTime: row.late_minutes,
+      forFriend: row.friend_name || '', pairWith: row.pair, bringEquip: row.bring_equip || [],
+      gender: row.gender || '', friendGender: row.friend_gender || '',
+      forceConfirmed: row.force_confirmed, forceWaitlisted: row.force_waitlisted,
+      signedAt: row.signed_at, position: position,
+    };
+  }
+  function sessionToRow(data) {
+    return {
+      title: data.title, date: data.date, time: data.time, location: data.location,
+      venue: data.venue, type: data.type, limit_total: data.limit,
+      male_limit: data.maleLimit, female_limit: data.femaleLimit,
+      equipment: data.equipment, note: data.note, is_open: data.isOpen,
+      is_private: data.isPrivate, open_at: data.openAt, close_at: data.closeAt,
+      created_by: data.createdBy, creator_name: data.creatorName, creator_photo: data.creatorPhoto,
+    };
+  }
+  function signupToRow(data) {
+    return {
+      session_id: data.sessionId, uid: data.uid, name: data.name,
+      is_late: data.isLate || false, late_minutes: data.lateTime || null,
+      is_friend: data.forFriend ? true : false, friend_name: data.forFriend || null,
+      pair: data.pairWith || null, bring_equip: data.bringEquip || [],
+      gender: data.gender || '', friend_gender: data.friendGender || '',
+      force_confirmed: false, force_waitlisted: false,
+    };
+  }
+
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Detect in-app browsers that block Google OAuth (Messenger, LINE, Instagram, FB…)
@@ -521,17 +560,8 @@
     });
   }
 
-  // Handle redirect result (fallback path) / 處理 redirect 登入結果（備用路徑）
-  getRedirectResult(auth).catch(() => {});
-
   async function signIn() {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-        signInWithRedirect(auth, provider);
-      }
-    }
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   }
   window.signIn = signIn;
 
@@ -689,29 +719,31 @@
   }
 
   // ── Auth ──
-  onAuthStateChanged(auth, (user) => {
+  function handleAuthUser(user) {
     currentUser = user;
     if (user) {
-      if (user.photoURL) creatorPhotoCache[user.uid] = user.photoURL;
+      const photoURL = user.user_metadata?.avatar_url || null;
+      const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
+      if (photoURL) creatorPhotoCache[user.id] = photoURL;
       document.getElementById('loginBtn').classList.add('hidden');
       document.getElementById('userInfo').classList.remove('hidden');
       document.getElementById('userInfo').classList.add('flex');
-      document.getElementById('userPhoto').src = user.photoURL || '';
-      document.getElementById('userName').textContent = user.displayName || user.email;
+      document.getElementById('userPhoto').src = photoURL || '';
+      document.getElementById('userName').textContent = displayName;
       document.getElementById('createBtn').classList.remove('hidden');
       document.getElementById('fabToggle').classList.remove('hidden');
       document.getElementById('mySessionsBtn').classList.remove('hidden');
       document.getElementById('mySignupsBtn').classList.remove('hidden');
       document.getElementById('modalProfilePreview').classList.remove('hidden');
-      document.getElementById('modalPhoto').src = user.photoURL || '';
-      document.getElementById('modalDisplayName').textContent = user.displayName || user.email;
+      document.getElementById('modalPhoto').src = photoURL || '';
+      document.getElementById('modalDisplayName').textContent = displayName;
       document.getElementById('modalLoginRow').classList.add('hidden');
       document.getElementById('modalNameRow').classList.add('hidden');
       const isAdminUser = (ADMIN_EMAILS || []).includes(user.email);
       const adminBadgeMain = document.getElementById('adminBadgeMain');
       if (adminBadgeMain) adminBadgeMain.classList.toggle('hidden', !isAdminUser);
       // Re-subscribe signups to update "signed" badges for logged-in user
-      Object.keys(signupUnsubs).forEach(id => { signupUnsubs[id](); delete signupUnsubs[id]; });
+      Object.keys(signupChannels).forEach(id => { supabase.removeChannel(signupChannels[id]); delete signupChannels[id]; });
       const allSessions = Object.values(sessionsData);
       if (allSessions.length) allSessions.forEach(s => subscribeSignups(s.id, s.limit || 0, s.maleLimit || 0, s.femaleLimit || 0, s.type || ''));
     } else {
@@ -727,10 +759,16 @@
       document.getElementById('modalLoginRow').classList.remove('hidden');
       document.getElementById('modalNameRow').classList.remove('hidden');
     }
+  }
+  supabase.auth.onAuthStateChange((event, session) => {
+    handleAuthUser(session?.user || null);
+  });
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    handleAuthUser(session?.user || null);
   });
 
   document.getElementById('loginBtn').addEventListener('click', signIn);
-  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+  document.getElementById('logoutBtn').addEventListener('click', () => supabase.auth.signOut());
   document.getElementById('mySessionsBtn').addEventListener('click', () => { window.location.href = 'my-sessions.html'; });
   document.getElementById('mySignupsBtn').addEventListener('click', () => { window.location.href = 'my-signups.html'; });
 
@@ -760,13 +798,26 @@
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
   const dateFrom = sevenDaysAgo.toISOString().split('T')[0];
 
-  const q = query(collection(db, 'sessions'), where('date', '>=', dateFrom), orderBy('date', 'asc'));
-  const signupUnsubs = {};
+  const signupChannels = {};
+
+  async function fetchSessions() {
+    const { data } = await supabase.from('sessions').select('*').gte('date', dateFrom).order('date', { ascending: true });
+    return (data || []).map(mapSession);
+  }
+  supabase.channel('sessions-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
+      fetchSessions().then(sessions => {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+        allSessionsCache = sessions;
+        applyFilter();
+      });
+    })
+    .subscribe();
 
   let deepLinkHandled = false;
-  onSnapshot(q, (snap) => {
+  fetchSessions().then(sessions => {
     document.getElementById('loadingSpinner').classList.add('hidden');
-    allSessionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allSessionsCache = sessions;
     applyFilter();
     // 處理直接報名連結 / handle direct signup deep link
     if (!deepLinkHandled) {
@@ -778,8 +829,7 @@
           // 切換到正確的 filter，確保場次卡片顯示 / switch to correct filter so session card is visible
           const today = new Date().toISOString().split('T')[0];
           const now2 = Date.now();
-          const closeAt2 = target.closeAt ? target.closeAt.toMillis() : null;
-          const isPastClose2 = closeAt2 && closeAt2 < now2;
+          const closeAt2 = target.closeAt ? new Date(target.closeAt).getTime() : null;
           if ((target.date || '') < today) {
             setFilter('past');
           } else {
@@ -791,7 +841,7 @@
             if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             // If open, also show signup modal
             const now = Date.now();
-            const closeAt = target.closeAt ? target.closeAt.toMillis() : null;
+            const closeAt = target.closeAt ? new Date(target.closeAt).getTime() : null;
             const effectivelyOpen = target.isOpen && !(closeAt && closeAt < now);
             if (effectivelyOpen) window.openSignupModal(urlSessionId, target.limit || 0);
           }, 300);
@@ -838,7 +888,7 @@
       // Hide private sessions from main listing (everyone, except direct link access)
       if (s.isPrivate && s.id !== urlSessionId) return false;
       const isPast = (s.date || '') < today;
-      const closeAtMs = s.closeAt ? s.closeAt.toMillis() : null;
+      const closeAtMs = s.closeAt ? new Date(s.closeAt).getTime() : null;
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
       let passMain = false;
       if (currentFilter === 'all')  passMain = true;
@@ -854,8 +904,8 @@
     const desc = sortDir === 'desc';
     if (sortType === 'closeAt') {
       filtered.sort((a, b) => {
-        const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
-        const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
+        const aMs = a.closeAt ? new Date(a.closeAt).getTime() : Infinity;
+        const bMs = b.closeAt ? new Date(b.closeAt).getTime() : Infinity;
         return desc ? bMs - aMs : aMs - bMs;
       });
     } else {
@@ -884,7 +934,7 @@
     // Remove cards for sessions no longer in list
     const existingIds = new Set([...list.querySelectorAll('[data-session-id]')].map(el => el.dataset.sessionId));
     const newIds = new Set(sessions.map(s => s.id));
-    existingIds.forEach(id => { if (!newIds.has(id)) { document.getElementById('card-' + id)?.remove(); if (signupUnsubs[id]) { signupUnsubs[id](); delete signupUnsubs[id]; } } });
+    existingIds.forEach(id => { if (!newIds.has(id)) { document.getElementById('card-' + id)?.remove(); if (signupChannels[id]) { supabase.removeChannel(signupChannels[id]); delete signupChannels[id]; } } });
 
     sessions.forEach((s, idx) => {
       sessionsData[s.id] = s; // store for signup modal
@@ -906,8 +956,8 @@
     const tl = TYPE_LABEL();
     const typeLabel = tl[s.type] || '';
     const now = Date.now();
-    const openAt = s.openAt ? s.openAt.toMillis() : null;
-    const closeAt = s.closeAt ? s.closeAt.toMillis() : null;
+    const openAt = s.openAt ? new Date(s.openAt).getTime() : null;
+    const closeAt = s.closeAt ? new Date(s.closeAt).getTime() : null;
     const isPastClose = closeAt && closeAt < now;
     const effectivelyOpen = s.isOpen && !isPastClose;
     let badgeHtml = '';
@@ -968,7 +1018,7 @@
         </div>
       </div>`) : '';
 
-    const isOrganizer = currentUser && s.createdBy === currentUser.uid;
+    const isOrganizer = currentUser && s.createdBy === currentUser.id;
     const isAdminOnCard = currentUser && (ADMIN_EMAILS || []).includes(currentUser.email);
     const manageBtn = (isOrganizer || isAdminOnCard) ? `
       <a href="my-sessions.html?edit=${s.id}"
@@ -1036,15 +1086,21 @@
       </div>`;
   }
 
+  async function fetchSignupsForSession(sessionId) {
+    const { data } = await supabase.from('signups').select('*').eq('session_id', sessionId).order('signed_at', { ascending: true });
+    return (data || []).map((d, i) => mapSignup(d, i + 1));
+  }
+
   function subscribeSignups(sessionId, limit, maleLimit = 0, femaleLimit = 0, type = '') {
-    if (signupUnsubs[sessionId]) signupUnsubs[sessionId]();
-    const q2 = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
-    signupUnsubs[sessionId] = onSnapshot(q2, (snap) => {
-      const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i + 1 }));
-      renderSignupList(sessionId, items, limit, maleLimit, femaleLimit, type);
-    });
+    if (signupChannels[sessionId]) { supabase.removeChannel(signupChannels[sessionId]); delete signupChannels[sessionId]; }
+    const channel = supabase.channel('signups-' + sessionId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'signups', filter: `session_id=eq.${sessionId}` }, () => {
+        fetchSignupsForSession(sessionId).then(items => renderSignupList(sessionId, items, limit, maleLimit, femaleLimit, type));
+      })
+      .subscribe();
+    signupChannels[sessionId] = channel;
+    fetchSignupsForSession(sessionId).then(items => renderSignupList(sessionId, items, limit, maleLimit, femaleLimit, type));
     // start countdown if needed
-    const card = document.getElementById('card-' + sessionId);
     const cdEl = document.getElementById('cd-' + sessionId);
     if (cdEl) startCountdown(cdEl);
   }
@@ -1102,7 +1158,7 @@
     // Track user's own signup
     let foundOwnSignup = null;
     if (currentUser) {
-      const own = items.find(s => s.uid && s.uid === currentUser.uid);
+      const own = items.find(s => s.uid && s.uid === currentUser.id);
       if (own) foundOwnSignup = own.id;
     }
     userSignupMap[sessionId] = foundOwnSignup;
@@ -1131,7 +1187,7 @@
     }
     // Unified waitlist check — matches the isWaitFn used during rendering
     const isWaitlisted = s => (!s.forceConfirmed && (s.forceWaitlisted || (limit > 0 && s.position > limit))) || !!s.genderWait;
-    const ownIsWaitlisted = currentUser && items.some(s => s.uid === currentUser.uid && isWaitlisted(s));
+    const ownIsWaitlisted = currentUser && items.some(s => s.uid === currentUser.id && isWaitlisted(s));
 
     // Update signed badge — show with waitlist style when on waitlist
     const badge = document.getElementById('signed-badge-' + sessionId);
@@ -1178,7 +1234,7 @@
         s.bringEquip.forEach(e => tags.push(`<span class="tag" style="background:#d1fae5;color:#065f46">🎒${escHtml(trEquip(e))}</span>`));
       }
       const photoEl = s.photoURL ? `<img src="${s.photoURL}" class="w-7 h-7 rounded-full border border-white shadow-sm" alt="" onerror="this.style.display='none'" />` : '';
-      const isOwn = currentUser && s.uid && s.uid === currentUser.uid;
+      const isOwn = currentUser && s.uid && s.uid === currentUser.id;
       const ownBtns = isOwn ? `
         <button onclick="openEditSignupModal('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" title="${getLang()==='zh'?'編輯報名':'Edit signup'}">✏️</button>
         <button onclick="cancelSignup('${sessionId}','${s.id}')" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" title="${getLang()==='zh'?'取消報名':'Cancel signup'}">✕</button>` : '';
@@ -1244,7 +1300,7 @@
       if (pairSel) {
         pairSel.innerHTML = `<option value="">${noPreference}</option>` +
           items
-            .filter(s => excludeId ? s.id !== excludeId : (!currentUser || s.uid !== currentUser.uid))
+            .filter(s => excludeId ? s.id !== excludeId : (!currentUser || s.uid !== currentUser.id))
             .map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; })
             .join('');
         pairSel.value = currentVal;
@@ -1352,32 +1408,7 @@
   window.cancelSignup = async (sessionId, signupId) => {
     const msg = getLang()==='zh' ? '確定要取消報名？' : 'Cancel your signup?';
     if (!confirm(msg)) return;
-    // Save cancelled record before deleting
-    if (currentUser) {
-      const sess = sessionsData[sessionId] || {};
-      const signupItems = signupsCache[sessionId] || [];
-      const signupItem = signupItems.find(s => s.id === signupId) || {};
-      const cancelData = {
-        sessionId,
-        sessionTitle: sess.title || '',
-        sessionDate: sess.date || '',
-        sessionTime: sess.time || '',
-        sessionLocation: sess.location || '',
-        sessionVenue: sess.venue || '',
-        name: signupItem.name || currentUser.displayName || '',
-        forFriend: signupItem.forFriend || '',
-        signedAt: signupItem.signedAt || null,
-        cancelledAt: serverTimestamp(),
-      };
-      // 寫入用戶自己的取消記錄
-      await setDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId), cancelData);
-      // 在場次 subcollection 留參照（供場主刪場次時清理用）
-      await setDoc(doc(db, 'sessions', sessionId, 'cancelledSignups', signupId), { uid: currentUser.uid });
-    }
-    await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
-    if (currentUser) {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupId));
-    }
+    await supabase.from('signups').delete().eq('id', signupId);
   };
 
   // ── Countdown ──
@@ -1612,53 +1643,48 @@
       isOpen = true;
     } else if (openWhen === 'custom') {
       const v = document.getElementById('fOpenAt').value;
-      if (v) openAt = Timestamp.fromDate(new Date(v));
-      isOpen = openAt ? openAt.toMillis() <= Date.now() : false;
+      if (v) openAt = new Date(v).toISOString();
+      isOpen = openAt ? new Date(openAt).getTime() <= Date.now() : false;
     } else if (openWhen === 'hours' || openWhen === 'days') {
       const n = parseInt(document.getElementById('fOpenOffset').value) || 1;
       const gameDate = new Date(`${date}T${time}:00`);
       const ms = openWhen === 'hours' ? n * 3600000 : n * 86400000;
       const openDate = new Date(gameDate.getTime() - ms);
-      openAt = Timestamp.fromDate(openDate);
+      openAt = openDate.toISOString();
       isOpen = openDate <= new Date();
     }
 
     try {
       const isPrivate = document.getElementById('fVisPrivate')?.checked || false;
-      const newRef = await addDoc(collection(db, 'sessions'), {
-        title,
-        date, time, location,
+      const photoURL = currentUser.user_metadata?.avatar_url || null;
+      const displayName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email;
+      const closeAt = (() => {
+        const closeWhen = document.getElementById('fCloseWhen').value;
+        if (closeWhen === 'custom') {
+          const v = document.getElementById('fCloseAt').value;
+          if (v) return new Date(v).toISOString();
+        }
+        if (closeWhen === 'hours' || closeWhen === 'days') {
+          const offset = parseInt(document.getElementById('fCloseOffset').value) || 1;
+          const gameMs = new Date(`${date}T${time}:00`).getTime();
+          const ms = closeWhen === 'hours' ? offset * 3600000 : offset * 86400000;
+          return new Date(gameMs - ms).toISOString();
+        }
+        return new Date(`${date}T${time}:00`).toISOString();
+      })();
+      const { data: newRow, error: insertError } = await supabase.from('sessions').insert(sessionToRow({
+        title, date, time, location,
         venue: document.getElementById('fVenue').value.trim(),
-        limit,
-        type,
-        maleLimit,
-        femaleLimit,
-        equipment,
+        limit, type, maleLimit, femaleLimit, equipment,
         note: document.getElementById('fNote').value.trim(),
-        isOpen,
-        isPrivate,
-        openAt,
-        closeAt: (() => {
-          const closeWhen = document.getElementById('fCloseWhen').value;
-          if (closeWhen === 'custom') {
-            const v = document.getElementById('fCloseAt').value;
-            if (v) return Timestamp.fromDate(new Date(v));
-          }
-          if (closeWhen === 'hours' || closeWhen === 'days') {
-            const offset = parseInt(document.getElementById('fCloseOffset').value) || 1;
-            const gameMs = new Date(`${date}T${time}:00`).getTime();
-            const ms = closeWhen === 'hours' ? offset * 3600000 : offset * 86400000;
-            return Timestamp.fromDate(new Date(gameMs - ms));
-          }
-          return Timestamp.fromDate(new Date(`${date}T${time}:00`));
-        })(),
-        createdAt: serverTimestamp(),
-        createdBy: currentUser.uid,
-        creatorName: currentUser.displayName,
-        creatorPhoto: currentUser.photoURL || null,
-      });
+        isOpen, isPrivate, openAt, closeAt,
+        createdBy: currentUser.id,
+        creatorName: displayName,
+        creatorPhoto: photoURL,
+      })).select().single();
+      if (insertError) throw insertError;
       closeCreateSheet();
-      showSessionCreatedModal(newRef.id);
+      showSessionCreatedModal(newRow.id);
     } catch(e) {
       showCreateMsg('❌ ' + e.message, 'error');
     } finally {
@@ -1706,9 +1732,7 @@
       if (selectedId) {
         const tmpl = templatesData.find(t2 => t2.id === selectedId);
         if (tmpl) {
-          await setDoc(doc(db, 'users', currentUser.uid, 'templates', selectedId), {
-            ...tmplData, name: tmpl.name, createdAt: tmpl.createdAt,
-          });
+          await supabase.from('templates').update({ ...tmplData, name: tmpl.name }).eq('id', selectedId);
           showToast(zh ? '✅ 範本已更新！' : '✅ Template updated!');
           loadTemplatesForDropdown();
           return;
@@ -1722,9 +1746,7 @@
       showToast(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists');
       return;
     }
-    await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
-      ...tmplData, name, createdAt: Timestamp.now(),
-    });
+    await supabase.from('templates').insert({ user_id: currentUser.id, name, data: tmplData });
     showToast(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!');
     loadTemplatesForDropdown();
   };
@@ -1760,8 +1782,8 @@
 
   async function loadTemplatesForDropdown() {
     if (!currentUser) return;
-    const snap = await getDocs(query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc')));
-    templatesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const { data } = await supabase.from('templates').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    templatesData = (data || []).map(row => ({ id: row.id, name: row.name, ...(row.data || {}), created_at: row.created_at }));
     const sel = document.getElementById('templateSelect');
     sel.innerHTML = `<option value="">— ${getLang()==='zh'?'不套用':'No template'} —</option>` +
       templatesData.map(t2 => `<option value="${t2.id}">${escHtml(t2.name)}</option>`).join('');
@@ -2002,7 +2024,7 @@
     const signups = signupsCache[sessionId] || [];
     pairSel.innerHTML = `<option value="">${noPreference}</option>` +
       signups
-        .filter(s => !currentUser || s.uid !== currentUser.uid || !!s.forFriend)
+        .filter(s => !currentUser || s.uid !== currentUser.id || !!s.forFriend)
         .map(s => { const n = escHtml(s.forFriend || s.name); return `<option value="${n}">${n}</option>`; })
         .join('');
     // Populate bring-equipment chips
@@ -2130,7 +2152,7 @@
     // Duplicate signup check (only for new self-signups, not edits or proxy signups)
     if (!editingSignupId && currentUser && !document.getElementById('modalFriend').checked) {
       const existing = (signupsCache[activeSessionId] || []).find(
-        s => s.uid === currentUser.uid && !s.forFriend
+        s => s.uid === currentUser.id && !s.forFriend
       );
       if (existing) {
         const zh = getLang() === 'zh';
@@ -2140,7 +2162,7 @@
     }
 
     const nameInput = document.getElementById('modalName');
-    const name = currentUser ? currentUser.displayName : nameInput.value.trim();
+    const name = currentUser ? (currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email) : nameInput.value.trim();
     if (!name) {
       nameInput.classList.add('border-red-400', 'ring-2', 'ring-red-200');
       const errEl = document.getElementById('modalNameError');
@@ -2228,38 +2250,26 @@
         const oldSignup = (signupsCache[activeSessionId] || []).find(s => s.id === editingSignupId);
         const oldForFriend = oldSignup?.forFriend || '';
         // Update existing signup
-        await updateDoc(doc(db, 'sessions', activeSessionId, 'signups', editingSignupId), signupPayload);
+        await supabase.from('signups').update(signupToRow({ ...signupPayload, sessionId: activeSessionId, uid: currentUser?.id || null, name })).eq('id', editingSignupId);
         // Cascade: if forFriend name changed, update all signups pairWith-ing the old name
         if (oldForFriend && forFriendName !== oldForFriend) {
           const affected = (signupsCache[activeSessionId] || []).filter(
             s => s.id !== editingSignupId && s.pairWith === oldForFriend
           );
           await Promise.all(affected.map(s =>
-            updateDoc(doc(db, 'sessions', activeSessionId, 'signups', s.id), { pairWith: forFriendName })
+            supabase.from('signups').update({ pair: forFriendName }).eq('id', s.id)
           ));
         }
         showModalMsg(getLang()==='zh' ? '✅ 已更新！' : '✅ Updated!', 'success');
       } else {
         // Create new signup
-        const signupRef = await addDoc(collection(db, 'sessions', activeSessionId, 'signups'), {
+        const { error: signupError } = await supabase.from('signups').insert(signupToRow({
+          sessionId: activeSessionId,
+          uid: currentUser?.id || null,
           name,
-          photoURL: currentUser?.photoURL || null,
-          uid: currentUser?.uid || null,
-          signedAt: serverTimestamp(),
           ...signupPayload,
-        });
-        if (currentUser) {
-          await setDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupRef.id), {
-            sessionId: activeSessionId,
-            signupId: signupRef.id,
-            sessionTitle: activeSessionData.title || activeSessionData.date + ' 臨打',
-            sessionDate: activeSessionData.date || '',
-            sessionTime: activeSessionData.time || '',
-            sessionLocation: activeSessionData.location || '',
-            sessionVenue: activeSessionData.venue || '',
-            signedAt: Timestamp.now(),
-          });
-        }
+        }));
+        if (signupError) throw signupError;
         // Save friend name to localStorage if registering for a friend
         if (!editingSignupId && forFriendName) saveRecentFriendName(forFriendName);
         showModalMsg(tr('successMsg'), 'success');
@@ -2346,14 +2356,14 @@
     btn.disabled = true;
     document.getElementById('hFbSubmit').textContent = getLang()==='zh' ? '送出中...' : 'Submitting...';
     try {
-      await addDoc(collection(db, 'feedback'), {
+      await supabase.from('feedback').insert({
         email: document.getElementById('fbEmail').value.trim() || null,
         type: document.getElementById('fbType').value,
         urgency: document.getElementById('fbUrgency').value,
         description: desc,
-        uid: currentUser?.uid || null,
-        userName: currentUser?.displayName || null,
-        createdAt: serverTimestamp(),
+        uid: currentUser?.id || null,
+        user_name: currentUser ? (currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email) : null,
+        created_at: new Date().toISOString(),
         status: 'pending',
       });
       const el = document.getElementById('fbMsg');

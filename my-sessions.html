@@ -398,14 +398,8 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import {
-    getFirestore, doc, collection, query, where, orderBy,
-    onSnapshot, addDoc, updateDoc, deleteDoc, getDocs,
-    serverTimestamp, Timestamp, getDoc, setDoc, collectionGroup
-  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAILS } from './supabase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
   import { sessionFormHTML, FORM_IDS_MYSESSIONS, FORM_FNS_MYSESSIONS, initFormPickers, fpSet, updateVisStyle } from './session-form.js';
 
@@ -432,10 +426,41 @@
     }
   }
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function mapSession(row) {
+    return {
+      id: row.id, title: row.title, date: row.date, time: row.time,
+      location: row.location, venue: row.venue, type: row.type || '',
+      limit: row.limit_total || 0, maleLimit: row.male_limit || 0, femaleLimit: row.female_limit || 0,
+      equipment: row.equipment || [], note: row.note,
+      isOpen: row.is_open, isPrivate: row.is_private, cancelled: row.cancelled,
+      openAt: row.open_at, closeAt: row.close_at,
+      createdBy: row.created_by, creatorName: row.creator_name, creatorPhoto: row.creator_photo,
+      createdAt: row.created_at,
+    };
+  }
+  function mapSignup(row, position) {
+    return {
+      id: row.id, sessionId: row.session_id, uid: row.uid, name: row.name,
+      isLate: row.is_late, lateTime: row.late_minutes,
+      forFriend: row.friend_name || '', pairWith: row.pair, bringEquip: row.bring_equip || [],
+      gender: row.gender || '', friendGender: row.friend_gender || '',
+      forceConfirmed: row.force_confirmed, forceWaitlisted: row.force_waitlisted,
+      signedAt: row.signed_at, position: position,
+    };
+  }
+  function sessionToRow(data) {
+    return {
+      title: data.title, date: data.date, time: data.time, location: data.location,
+      venue: data.venue, type: data.type, limit_total: data.limit,
+      male_limit: data.maleLimit, female_limit: data.femaleLimit,
+      equipment: data.equipment, note: data.note, is_open: data.isOpen,
+      is_private: data.isPrivate, open_at: data.openAt, close_at: data.closeAt,
+      created_by: data.createdBy, creator_name: data.creatorName, creator_photo: data.creatorPhoto,
+    };
+  }
+
   const isMobile = /iPhone|iPad|IPod|Android/i.test(navigator.userAgent);
 
   // Detect in-app browsers that block Google OAuth
@@ -487,15 +512,8 @@
       renderIabOverlay();
     });
   }
-  getRedirectResult(auth).catch(() => {});
   async function signIn() {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-        signInWithRedirect(auth, provider);
-      }
-    }
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   }
 
   let currentUser = null;
@@ -504,7 +522,7 @@
   let sfSelectedEquip = new Set();
   let sfCustomEquip = [];
   let mapDebounce2 = null;
-  let signupUnsubs = {};
+  let signupChannels = {};
   let exportSignups = [];
   let mySessionsCache = [];
   let allSessionsCache = [];
@@ -660,18 +678,20 @@
 
   // ── Auth ──
   document.getElementById('googleLoginBtn').addEventListener('click', signIn);
-  document.getElementById('logoutBtn2').addEventListener('click', () => signOut(auth));
+  document.getElementById('logoutBtn2').addEventListener('click', () => supabase.auth.signOut());
 
-  onAuthStateChanged(auth, (user) => {
+  function handleAuthUser(user) {
     currentUser = user;
     document.getElementById('authLoading').classList.add('hidden');
     if (user) {
+      const photoURL = user.user_metadata?.avatar_url || null;
+      const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
       isAdmin = (ADMIN_EMAILS || []).includes(user.email);
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.remove('hidden');
       const photo = document.getElementById('adminPhoto');
-      if (user.photoURL) photo.src = user.photoURL;
-      document.getElementById('adminName').textContent = user.displayName || user.email;
+      if (photoURL) photo.src = photoURL;
+      document.getElementById('adminName').textContent = displayName;
       const uiMs = document.getElementById('userInfoMs');
       uiMs.classList.remove('hidden'); uiMs.classList.add('flex');
       if (isAdmin) {
@@ -682,7 +702,6 @@
       }
       loadMySessions();
       loadTemplates();
-      // Handle ?edit=sessionId from main page admin edit button
       const editId = new URLSearchParams(window.location.search).get('edit');
       if (editId) {
         history.replaceState(null, '', window.location.pathname);
@@ -692,6 +711,12 @@
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('mainApp').classList.add('hidden');
     }
+  }
+  supabase.auth.onAuthStateChange((event, session) => {
+    handleAuthUser(session?.user || null);
+  });
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    handleAuthUser(session?.user || null);
   });
 
   // ── Tabs ──
@@ -711,18 +736,21 @@
   };
 
   // ── My Sessions ──
-  function loadMySessions() {
-    // Use simple query without composite index requirement, sort client-side
-    const q = query(collection(db, 'sessions'), where('createdBy', '==', currentUser.uid));
-    onSnapshot(q, (snap) => {
-      const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      mySessionsCache = sessions;
-      applySessionFilter();
-    }, (err) => {
-      console.error('loadMySessions error:', err);
-      document.getElementById('noMySessions').classList.remove('hidden');
-    });
+  async function loadMySessions() {
+    const { data, error } = await supabase.from('sessions').select('*').eq('created_by', currentUser.id).order('date', { ascending: false });
+    if (error) { console.error('loadMySessions error:', error); document.getElementById('noMySessions').classList.remove('hidden'); return; }
+    mySessionsCache = (data || []).map(mapSession);
+    document.getElementById('mySessionsLoading').classList.add('hidden');
+    document.getElementById('mySessionsList').classList.remove('hidden');
+    applySessionFilter();
+    // Subscribe to changes
+    supabase.channel('my-sessions-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `created_by=eq.${currentUser.id}` }, async () => {
+        const { data: d2 } = await supabase.from('sessions').select('*').eq('created_by', currentUser.id).order('date', { ascending: false });
+        mySessionsCache = (d2 || []).map(mapSession);
+        applySessionFilter();
+      })
+      .subscribe();
   }
 
   window.setSessionFilter = (filter) => {
@@ -788,8 +816,8 @@
       // Status filter
       let passStatus = true;
       if (adminSessionFilter === 'upcoming') passStatus = (s.date || '') >= today;
-      else if (adminSessionFilter === 'open') passStatus = s.isOpen && (!s.closeAt || (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) > now);
-      else if (adminSessionFilter === 'closed') passStatus = !s.isOpen || (s.closeAt && (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) <= now);
+      else if (adminSessionFilter === 'open') passStatus = s.isOpen && (!s.closeAt || new Date(s.closeAt).getTime() > now);
+      else if (adminSessionFilter === 'closed') passStatus = !s.isOpen || (s.closeAt && new Date(s.closeAt).getTime() <= now);
       else if (adminSessionFilter === 'past') passStatus = (s.date || '') < today;
       // Gender filter
       const passGender = adminGenderFilter === 'all' || (s.type || 'mixed') === adminGenderFilter;
@@ -839,13 +867,13 @@
     if (sort === 'date_asc')       arr.sort((a, b) => (a.date||'').localeCompare(b.date||''));
     else if (sort === 'date_desc') arr.sort((a, b) => (b.date||'').localeCompare(a.date||''));
     else if (sort === 'closeAt_asc') arr.sort((a, b) => {
-      const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
-      const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
+      const aMs = a.closeAt ? new Date(a.closeAt).getTime() : Infinity;
+      const bMs = b.closeAt ? new Date(b.closeAt).getTime() : Infinity;
       return aMs - bMs;
     });
     else if (sort === 'createdAt_desc') arr.sort((a, b) => {
-      const aTs = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : +a.createdAt) : 0;
-      const bTs = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : +b.createdAt) : 0;
+      const aTs = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTs = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTs - aTs;
     });
     else if (sort === 'signup_desc') arr.sort((a, b) => (signupCountCache[b.id]||0) - (signupCountCache[a.id]||0));
@@ -859,8 +887,8 @@
     const now = Date.now();
     const filtered = mySessionsCache.filter(s => {
       const isPast = s.date < today;
-      const openAtMs = s.openAt ? (s.openAt.toMillis ? s.openAt.toMillis() : +s.openAt) : null;
-      const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
+      const openAtMs = s.openAt ? new Date(s.openAt).getTime() : null;
+      const closeAtMs = s.closeAt ? new Date(s.closeAt).getTime() : null;
       const notStarted = !!(openAtMs && openAtMs > now);
       const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
       // Status filter
@@ -883,8 +911,8 @@
         : (a.date || '').localeCompare(b.date || ''));
     } else if (sortType === 'closeAt') {
       filtered.sort((a, b) => {
-        const aMs = a.closeAt ? (a.closeAt.toMillis ? a.closeAt.toMillis() : +a.closeAt) : Infinity;
-        const bMs = b.closeAt ? (b.closeAt.toMillis ? b.closeAt.toMillis() : +b.closeAt) : Infinity;
+        const aMs = a.closeAt ? new Date(a.closeAt).getTime() : Infinity;
+        const bMs = b.closeAt ? new Date(b.closeAt).getTime() : Infinity;
         return desc ? bMs - aMs : aMs - bMs;
       });
     } else if (sortType === 'signup') {
@@ -894,8 +922,8 @@
     } else {
       // createdAt (default)
       filtered.sort((a, b) => {
-        const aTs = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : +a.createdAt) : 0;
-        const bTs = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : +b.createdAt) : 0;
+        const aTs = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTs = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return desc ? bTs - aTs : aTs - bTs;
       });
     }
@@ -903,12 +931,17 @@
     renderSessionMgmtList('mySessionsList', filtered, true);
   }
 
-  function loadAllSessions() {
-    const q = query(collection(db, 'sessions'));
-    onSnapshot(q, (snap) => {
-      allSessionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderAdminSessionsList();
-    });
+  async function loadAllSessions() {
+    const { data } = await supabase.from('sessions').select('*').order('date', { ascending: false });
+    allSessionsCache = (data || []).map(mapSession);
+    renderAdminSessionsList();
+    supabase.channel('all-sessions-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, async () => {
+        const { data: d2 } = await supabase.from('sessions').select('*').order('date', { ascending: false });
+        allSessionsCache = (d2 || []).map(mapSession);
+        renderAdminSessionsList();
+      })
+      .subscribe();
   }
 
   function renderSessionMgmtList(containerId, sessions, canEdit) {
@@ -930,10 +963,10 @@
     const badgeText = isPast ? (zh?'已結束':'Past') : isOpen ? (zh?'報名中':'Open') : (zh?'已關閉':'Closed');
     const privateBadge = isPrivate ? `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 shrink-0">🔒 ${zh?'私人':'Private'}</span>` : '';
     const fmtTs = ms => { const d = new Date(ms); const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; if (getLang()==='en') return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + hhmm; return `${d.getMonth()+1}/${d.getDate()} ${hhmm}`; };
-    const fmtCreatedAt = ts => { if (!ts) return ''; const ms = ts.toMillis ? ts.toMillis() : +ts; const d = new Date(ms); const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; if (getLang()==='en') return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' + hhmm; return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${hhmm}`; };
+    const fmtCreatedAt = ts => { if (!ts) return ''; const ms = new Date(ts).getTime(); const d = new Date(ms); const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; if (getLang()==='en') return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' + hhmm; return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${hhmm}`; };
     const createdAtHtml = s.createdAt ? `<div class="text-xs text-gray-400 mt-0.5">🕐 ${zh?'建立':'Created'}: ${fmtCreatedAt(s.createdAt)}</div>` : '';
-    const openAtMs = s.openAt ? (s.openAt.toMillis ? s.openAt.toMillis() : +s.openAt) : null;
-    const closeAtMs = s.closeAt ? (s.closeAt.toMillis ? s.closeAt.toMillis() : +s.closeAt) : null;
+    const openAtMs = s.openAt ? new Date(s.openAt).getTime() : null;
+    const closeAtMs = s.closeAt ? new Date(s.closeAt).getTime() : null;
     const signupTimeHtml = (() => {
       const zh = getLang() === 'zh';
       if (openAtMs && closeAtMs) return `<div>📋 ${zh?'報名時間':'Signup'}: ${fmtTs(openAtMs)} ~ ${fmtTs(closeAtMs)}</div>`;
@@ -969,7 +1002,7 @@
             ${s.type ? `<div>🏷️ ${TYPE_LABEL[s.type]||s.type}</div>` : ''}
             ${signupTimeHtml}
             ${s.venue ? `<div>🏟️ ${escHtml(s.venue)}</div>` : ''}
-            ${s.note && currentUser && s.createdBy === currentUser.uid ? `<div class="mt-1 px-2 py-1 bg-amber-50 text-amber-800 rounded-lg text-xs">📝 ${zh?'備註':'Note'}: ${escHtml(s.note)}</div>` : ''}
+            ${s.note && currentUser && s.createdBy === currentUser.id ? `<div class="mt-1 px-2 py-1 bg-amber-50 text-amber-800 rounded-lg text-xs">📝 ${zh?'備註':'Note'}: ${escHtml(s.note)}</div>` : ''}
           </div>
           ${(() => { const hasMxL = s.type === 'mixed' && (s.maleLimit > 0 || s.femaleLimit > 0); const effLim = s.limit || (hasMxL ? s.maleLimit + s.femaleLimit : 0); return effLim ? (hasMxL ? `<div class="mb-3 space-y-1.5">
             <div class="flex justify-between text-xs text-gray-400 mb-0.5">
@@ -1043,16 +1076,20 @@
       </div>`;
   }
 
+  async function fetchSignupsMgmt(sessionId) {
+    const { data } = await supabase.from('signups').select('*').eq('session_id', sessionId).order('signed_at', { ascending: true });
+    return (data || []).map((d, i) => mapSignup(d, i + 1));
+  }
+
   function subscribeSignupsMgmt(sessionId, limit, maleLimit = 0, femaleLimit = 0, type = '') {
-    if (signupUnsubs[sessionId]) {
-      signupUnsubs[sessionId]();
-      delete signupUnsubs[sessionId];
-    }
-    const q = query(collection(db, 'sessions', sessionId, 'signups'), orderBy('signedAt', 'asc'));
-    signupUnsubs[sessionId] = onSnapshot(q, (snap) => {
-      const items = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i+1 }));
-      renderMgmtSignups(sessionId, items, limit, maleLimit, femaleLimit, type);
-    });
+    if (signupChannels[sessionId]) { supabase.removeChannel(signupChannels[sessionId]); delete signupChannels[sessionId]; }
+    const channel = supabase.channel('signups-mgmt-' + sessionId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'signups', filter: `session_id=eq.${sessionId}` }, () => {
+        fetchSignupsMgmt(sessionId).then(items => renderMgmtSignups(sessionId, items, limit, maleLimit, femaleLimit, type));
+      })
+      .subscribe();
+    signupChannels[sessionId] = channel;
+    fetchSignupsMgmt(sessionId).then(items => renderMgmtSignups(sessionId, items, limit, maleLimit, femaleLimit, type));
   }
 
   function renderMgmtSignups(sessionId, items, limit, maleLimit = 0, femaleLimit = 0, type = '') {
@@ -1227,48 +1264,23 @@
 
   // ── Session Actions ──
   window.togglePrivate = async (id, currentPrivate) => {
-    await updateDoc(doc(db, 'sessions', id), { isPrivate: !currentPrivate });
+    await supabase.from('sessions').update({ is_private: !currentPrivate }).eq('id', id);
   };
 
   window.toggleOpen = async (id, currentOpen) => {
-    await updateDoc(doc(db, 'sessions', id), { isOpen: !currentOpen });
+    await supabase.from('sessions').update({ is_open: !currentOpen }).eq('id', id);
   };
 
   window.deleteSession = async (id) => {
     if (!confirm(getLang()==='zh'?'確定要刪除此場次嗎？':'Delete this session?')) return;
-    // 刪除所有報名者的 mySignups 記錄，再刪除 signups subcollection，最後刪除場次
-    const signupsSnap = await getDocs(collection(db, 'sessions', id, 'signups'));
-    await Promise.all(signupsSnap.docs.map(async (signupDoc) => {
-      const uid = signupDoc.data().uid;
-      if (uid) {
-        await deleteDoc(doc(db, 'users', uid, 'mySignups', signupDoc.id));
-      }
-      await deleteDoc(signupDoc.ref);
-    }));
-    // 方法一：透過場次 subcollection（場主即可；需 Firestore rules 已部署）
-    const cancelledSnap = await getDocs(collection(db, 'sessions', id, 'cancelledSignups'));
-    await Promise.all(cancelledSnap.docs.map(async (cd) => {
-      const uid = cd.data().uid;
-      if (uid) await deleteDoc(doc(db, 'users', uid, 'cancelledSignups', cd.id));
-      await deleteDoc(cd.ref);
-    }));
-    // 方法二：管理員 collectionGroup 全掃（涵蓋未建立 subcollection 參照的舊資料）
-    try {
-      const cgSnap = await getDocs(query(collectionGroup(db, 'cancelledSignups'), where('sessionId', '==', id)));
-      await Promise.all(cgSnap.docs.map(d => deleteDoc(d.ref)));
-    } catch(_) {}
-    await deleteDoc(doc(db, 'sessions', id));
+    await supabase.from('signups').delete().eq('session_id', id);
+    await supabase.from('sessions').delete().eq('id', id);
   };
 
 
   window.removeSignup = async (sessionId, signupId) => {
     if (!confirm(getLang()==='zh'?'確定移除此報名？':'Remove this signup?')) return;
-    const signupRef = doc(db, 'sessions', sessionId, 'signups', signupId);
-    const signupSnap = await getDoc(signupRef);
-    if (signupSnap.exists() && signupSnap.data().uid) {
-      await deleteDoc(doc(db, 'users', signupSnap.data().uid, 'mySignups', signupId));
-    }
-    await deleteDoc(signupRef);
+    await supabase.from('signups').delete().eq('id', signupId);
   };
 
   // 場主強制將候補加入正取（無視性別及人數限制）
@@ -1280,7 +1292,7 @@
       : '⚠️ This will force-add this person to the confirmed list, bypassing gender and count restrictions.\n\nContinue?';
     if (!confirm(msg)) return;
     try {
-      await updateDoc(doc(db, 'sessions', sessionId, 'signups', signupId), { forceConfirmed: true, forceWaitlisted: false });
+      await supabase.from('signups').update({ force_confirmed: true, force_waitlisted: false }).eq('id', signupId);
     } catch(e) {
       alert((zh ? '操作失敗：' : 'Failed: ') + e.message);
     }
@@ -1293,17 +1305,17 @@
       : '⚠️ This will force-move this person to the waitlist.\n\nContinue?';
     if (!confirm(msg)) return;
     try {
-      await updateDoc(doc(db, 'sessions', sessionId, 'signups', signupId), { forceWaitlisted: true, forceConfirmed: false });
+      await supabase.from('signups').update({ force_waitlisted: true, force_confirmed: false }).eq('id', signupId);
     } catch(e) {
       alert((zh ? '操作失敗：' : 'Failed: ') + e.message);
     }
   };
 
   window.exportSession = async (id) => {
-    const snap = await getDocs(query(collection(db, 'sessions', id, 'signups'), orderBy('signedAt', 'asc')));
-    const items = snap.docs.map((d, i) => ({ ...d.data(), id: d.id, position: i+1 }));
-    const sessSnap = await getDoc(doc(db, 'sessions', id));
-    const s = sessSnap.data();
+    const { data: signupsData } = await supabase.from('signups').select('*').eq('session_id', id).order('signed_at', { ascending: true });
+    const items = (signupsData || []).map((d, i) => mapSignup(d, i + 1));
+    const { data: sessData } = await supabase.from('sessions').select('*').eq('id', id).single();
+    const s = sessData ? mapSession(sessData) : null;
     const limit = s?.limit || 0;
     const maleLimit = s?.maleLimit || 0;
     const femaleLimit = s?.femaleLimit || 0;
@@ -1425,9 +1437,9 @@
   });
 
   window.openEditSession = async (id) => {
-    const snap = await getDoc(doc(db, 'sessions', id));
-    if (!snap.exists()) return;
-    openSessionSheet(id, snap.data());
+    const { data: snap } = await supabase.from('sessions').select('*').eq('id', id).single();
+    if (!snap) return;
+    openSessionSheet(id, mapSession(snap));
   };
 
   function openSessionSheet(id = null, data = null) {
@@ -1478,7 +1490,7 @@
     // closeWhen: check if stored closeAt matches game start time
     const closeWhenEl = document.getElementById('sf_closeWhen');
     if (data?.closeAt) {
-      const closeMs = data.closeAt.toMillis ? data.closeAt.toMillis() : +data.closeAt;
+      const closeMs = new Date(data.closeAt).getTime();
       const gameStr = data.date && data.time ? `${data.date}T${data.time}:00` : null;
       const gameMs = gameStr ? new Date(gameStr).getTime() : null;
       if (gameMs && Math.abs(closeMs - gameMs) < 60000) {
@@ -1521,8 +1533,8 @@
   async function populateTemplateDropdown() {
     if (!currentUser) return;
     try {
-      const snap = await getDocs(query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc')));
-      const tmpls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const { data: snap } = await supabase.from('templates').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+      const tmpls = (snap || []).map(t => ({ id: t.id, name: t.name, created_at: t.created_at, ...(t.data || {}) }));
       const sel = document.getElementById('sf_templateSelect');
       const zh = getLang() === 'zh';
       sel.innerHTML = `<option value="">— ${zh?'不套用':'No template'} —</option>` +
@@ -1759,13 +1771,13 @@
       isOpen = true;
     } else if (openWhen === 'custom') {
       const v = document.getElementById('sf_openAt').value;
-      if (v) { openAt = Timestamp.fromDate(new Date(v)); isOpen = new Date(v) <= new Date(); }
+      if (v) { openAt = new Date(v).toISOString(); isOpen = new Date(v) <= new Date(); }
     } else {
       const n = parseInt(document.getElementById('sf_offset').value) || 1;
       const gameDate = new Date(`${date}T${time}:00`);
       const ms = openWhen === 'hours' ? n*3600000 : n*86400000;
       const openDate = new Date(gameDate.getTime() - ms);
-      openAt = Timestamp.fromDate(openDate);
+      openAt = openDate.toISOString();
       isOpen = openDate <= new Date();
     }
 
@@ -1782,7 +1794,7 @@
     } else {
       closeAtDate = new Date(`${date}T${time}:00`);
     }
-    const closeAt = Timestamp.fromDate(closeAtDate);
+    const closeAt = closeAtDate.toISOString();
     // 如果結束報名時間已過，直接關閉報名
     if (closeAtDate < new Date()) isOpen = false;
 
@@ -1826,27 +1838,29 @@
         const oldEquip = oldSession?.equipment || [];
         const removedEquip = oldEquip.filter(e => !equipment.includes(e));
         if (removedEquip.length) {
-          const signupsSnap = await getDocs(collection(db, 'sessions', editingSessionId, 'signups'));
+          const { data: signupsSnap } = await supabase.from('signups').select('*').eq('session_id', editingSessionId);
           const cleanupOps = [];
-          signupsSnap.docs.forEach(d => {
-            const bringEquip = d.data().bringEquip || [];
+          (signupsSnap || []).forEach(d => {
+            const bringEquip = d.bring_equip || [];
             const newBringEquip = bringEquip.filter(e => !removedEquip.includes(e));
             if (newBringEquip.length !== bringEquip.length) {
-              cleanupOps.push(updateDoc(d.ref, { bringEquip: newBringEquip }));
+              cleanupOps.push(supabase.from('signups').update({ bring_equip: newBringEquip }).eq('id', d.id));
             }
           });
           if (cleanupOps.length) await Promise.all(cleanupOps);
         }
-        await updateDoc(doc(db, 'sessions', editingSessionId), data);
+        await supabase.from('sessions').update(sessionToRow(data)).eq('id', editingSessionId);
         showSfMsg('✅ 已更新！', 'success');
         setTimeout(closeSessionSheet, 1000);
       } else {
-        const newRef = await addDoc(collection(db, 'sessions'), {
-          ...data, createdAt: serverTimestamp(), createdBy: currentUser.uid, creatorName: currentUser.displayName,
-          creatorPhoto: currentUser.photoURL || null,
-        });
+        const { data: newRow } = await supabase.from('sessions').insert(sessionToRow({
+          ...data,
+          createdBy: currentUser.id,
+          creatorName: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email,
+          creatorPhoto: currentUser.user_metadata?.avatar_url || null,
+        })).select().single();
         closeSessionSheet();
-        sfShowSessionCreatedModal(newRef.id);
+        sfShowSessionCreatedModal(newRow.id);
       }
     } catch(e) {
       showSfMsg('❌ ' + e.message, 'error');
@@ -1874,9 +1888,7 @@
         const tmpls = sel._templatesData || [];
         const tmpl = tmpls.find(t => t.id === selectedId);
         if (tmpl) {
-          await setDoc(doc(db, 'users', currentUser.uid, 'templates', selectedId), {
-            ...tmplData, name: tmpl.name, createdAt: tmpl.createdAt,
-          });
+          await supabase.from('templates').update({ name: tmpl.name, data: tmplData }).eq('id', selectedId);
           showToast(zh ? '✅ 範本已更新！' : '✅ Template updated!');
           loadTemplates();
           return;
@@ -1890,9 +1902,7 @@
       showToast(zh ? '❌ 已有同名範本，請使用不同名稱' : '❌ Template name already exists');
       return;
     }
-    await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
-      ...tmplData, name, createdAt: Timestamp.now(),
-    });
+    await supabase.from('templates').insert({ user_id: currentUser.id, name, data: tmplData });
     showToast(zh ? '✅ 已儲存為範本！' : '✅ Saved as template!');
     loadTemplates();
   };
@@ -1935,13 +1945,11 @@
   // ── Templates ──
   let templatesData = [];
 
-  function loadTemplates() {
+  async function loadTemplates() {
     if (!currentUser) return;
-    const q = query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc'));
-    onSnapshot(q, (snap) => {
-      templatesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderTemplates();
-    });
+    const { data } = await supabase.from('templates').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    templatesData = (data || []).map(t => ({ id: t.id, name: t.name, created_at: t.created_at, ...(t.data || {}) }));
+    renderTemplates();
   }
 
   function renderTemplates() {
@@ -1989,17 +1997,18 @@
     document.getElementById('sfSubmitBtn').textContent = getLang()==='zh' ? '💾 更新範本' : '💾 Update Template';
     document.getElementById('sfSubmitBtn').onclick = async () => {
       const name = document.getElementById('sf_title').value.trim() || tmpl.name;
-      await setDoc(doc(db, 'users', currentUser.uid, 'templates', id), {
+      await supabase.from('templates').update({
         name,
-        time: document.getElementById('sf_time').value,
-        location: document.getElementById('sf_location').value.trim(),
-        venue: document.getElementById('sf_venue').value.trim(),
-        limit: parseInt(document.getElementById('sf_limit').value) || 0,
-        type: document.getElementById('sf_type').value,
-        equipment: [...sfSelectedEquip, ...sfCustomEquip],
-        note: document.getElementById('sf_note').value.trim(),
-        createdAt: tmpl.createdAt,
-      });
+        data: {
+          time: document.getElementById('sf_time').value,
+          location: document.getElementById('sf_location').value.trim(),
+          venue: document.getElementById('sf_venue').value.trim(),
+          limit: parseInt(document.getElementById('sf_limit').value) || 0,
+          type: document.getElementById('sf_type').value,
+          equipment: [...sfSelectedEquip, ...sfCustomEquip],
+          note: document.getElementById('sf_note').value.trim(),
+        },
+      }).eq('id', id);
       showToast(getLang()==='zh' ? '✅ 範本已更新！' : '✅ Template updated!');
       setTimeout(closeSessionSheet, 1000);
     };
@@ -2008,7 +2017,7 @@
 
   window.deleteTemplate = async (id) => {
     if (!confirm(getLang()==='zh'?'確定刪除此範本？':'Delete template?')) return;
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'templates', id));
+    await supabase.from('templates').delete().eq('id', id);
   };
 
   // ── Map Search ──
@@ -2076,17 +2085,17 @@
     const urgencyOrder = { high: 0, medium: 1, low: 2 };
     const statusOrder = { pending: 0, processing: 1, resolved: 2 };
 
-    let items = feedbackDocs.filter(d => feedbackFilter === 'all' || (d.data().status || 'pending') === feedbackFilter);
+    let items = feedbackDocs.filter(d => feedbackFilter === 'all' || (d.status || 'pending') === feedbackFilter);
 
     items.sort((a, b) => {
-      const fa = a.data(), fb = b.data();
-      if (sort === 'time_asc') return (fa.createdAt?.seconds || 0) - (fb.createdAt?.seconds || 0);
+      const fa = a, fb = b;
+      if (sort === 'time_asc') return (new Date(fa.created_at || 0).getTime() / 1000) - (new Date(fb.created_at || 0).getTime() / 1000);
       if (sort === 'urgency_desc') return (urgencyOrder[fa.urgency] ?? 2) - (urgencyOrder[fb.urgency] ?? 2);
       if (sort === 'status') {
         const sd = (statusOrder[fa.status||'pending'] ?? 0) - (statusOrder[fb.status||'pending'] ?? 0);
-        return sd !== 0 ? sd : (fb.createdAt?.seconds || 0) - (fa.createdAt?.seconds || 0);
+        return sd !== 0 ? sd : (new Date(fb.created_at || 0).getTime() / 1000) - (new Date(fa.created_at || 0).getTime() / 1000);
       }
-      return (fb.createdAt?.seconds || 0) - (fa.createdAt?.seconds || 0); // time_desc default
+      return (new Date(fb.created_at || 0).getTime() / 1000) - (new Date(fa.created_at || 0).getTime() / 1000); // time_desc default
     });
 
     if (items.length === 0) {
@@ -2109,8 +2118,8 @@
       : { pending: { label: '🔴 Pending',  cls: 'bg-red-50 text-red-600' }, processing: { label: '🟡 In Progress', cls: 'bg-amber-50 text-amber-600' }, resolved: { label: '🟢 Resolved', cls: 'bg-green-50 text-green-700' } };
 
     listEl.innerHTML = items.map(d => {
-      const f = d.data();
-      const ts = f.createdAt?.toDate ? f.createdAt.toDate() : new Date();
+      const f = d;
+      const ts = new Date(f.created_at || Date.now());
       const dateStr = `${ts.getFullYear()}/${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
       const urgency = f.urgency || 'low';
       const status = f.status || 'pending';
@@ -2142,13 +2151,9 @@
 
   window.setFbStatus = async (id, status) => {
     try {
-      await updateDoc(doc(db, 'feedback', id), { status });
+      await supabase.from('feedback').update({ status }).eq('id', id);
       const docIdx = feedbackDocs.findIndex(d => d.id === id);
-      if (docIdx >= 0) {
-        // Update local cache
-        const data = { ...feedbackDocs[docIdx].data(), status };
-        feedbackDocs[docIdx] = { id, data: () => data };
-      }
+      if (docIdx >= 0) feedbackDocs[docIdx] = { ...feedbackDocs[docIdx], status };
       renderFeedbackList();
     } catch(e) { alert('更新失敗：' + e.message); }
   };
@@ -2156,7 +2161,7 @@
   window.deleteFeedback = async (id) => {
     if (!confirm('確定刪除？')) return;
     try {
-      await deleteDoc(doc(db, 'feedback', id));
+      await supabase.from('feedback').delete().eq('id', id);
       feedbackDocs = feedbackDocs.filter(d => d.id !== id);
       renderFeedbackList();
     } catch(e) { alert('刪除失敗：' + e.message); }
@@ -2220,113 +2225,21 @@
   }
 
   window.scanOrphanedData = async () => {
-    const statusEl  = document.getElementById('orphanScanStatus');
-    const resultEl  = document.getElementById('orphanResult');
-    const listEl    = document.getElementById('orphanList');
-    const emptyEl   = document.getElementById('orphanEmpty');
-    const deleteBtn = document.getElementById('orphanDeleteBtn');
-    const zh = getLang() === 'zh';
-
-    statusEl.textContent = zh ? '⏳ 掃描中，請稍候...' : '⏳ Scanning...';
-    resultEl.classList.add('hidden');
-    listEl.innerHTML = '';
-    emptyEl.classList.add('hidden');
-    deleteBtn.classList.add('hidden');
-    orphanedDocs = [];
-
-    try {
-      const sessionsSnap = await getDocs(collection(db, 'sessions'));
-      const validIds = new Set(sessionsSnap.docs.map(d => d.id));
-
-      const [mySnap, cancelSnap, signupsSnap] = await Promise.all([
-        getDocs(collectionGroup(db, 'mySignups')),
-        getDocs(collectionGroup(db, 'cancelledSignups')),
-        getDocs(collectionGroup(db, 'signups')),
-      ]);
-
-      const process = (docs, type) => {
-        docs.forEach(d => {
-          const data = d.data();
-          if (data.sessionId && !validIds.has(data.sessionId)) {
-            orphanedDocs.push({ ref: d.ref, data, type, uid: d.ref.path.split('/')[1] });
-          }
-        });
-      };
-      process(mySnap.docs, 'mySignups');
-      process(cancelSnap.docs, 'cancelledSignups');
-
-      // Also scan sessions/{sessionId}/signups directly for orphaned signup docs
-      signupsSnap.docs.forEach(d => {
-        const parts = d.ref.path.split('/'); // ['sessions', sessionId, 'signups', signupId]
-        const sessionId = parts[1];
-        if (!validIds.has(sessionId)) {
-          const data = d.data();
-          orphanedDocs.push({ ref: d.ref, data: { ...data, sessionId }, type: 'sessions/signups', uid: data.uid || null });
-        }
-      });
-
-      resultEl.classList.remove('hidden');
-      if (orphanedDocs.length === 0) {
-        emptyEl.textContent = zh ? '✅ 沒有孤兒資料，資料庫很乾淨！' : '✅ No orphaned data found!';
-        emptyEl.classList.remove('hidden');
-        statusEl.textContent = zh ? `✅ 掃描完成，共 ${validIds.size} 個場次，無孤兒資料` : `✅ Done. ${validIds.size} sessions checked, all clean.`;
-      } else {
-        renderOrphanList();
-      }
-    } catch(e) {
-      statusEl.textContent = (zh ? '❌ 掃描失敗：' : '❌ Scan failed: ') + e.message;
-    }
-  };
-
-  window.deleteOrphanDoc = async (idx) => {
-    const o = orphanedDocs[idx];
-    if (!o) return;
-    const card = document.getElementById(`orphan-card-${idx}`);
-    if (card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
-    try {
-      await deleteDoc(o.ref);
-      if (o.type === 'mySignups' && o.data.sessionId) {
-        // Also clean the actual signup doc in sessions subcollection
-        try { await deleteDoc(doc(db, 'sessions', o.data.sessionId, 'signups', o.ref.id)); } catch(_) {}
-      } else if (o.type === 'sessions/signups' && o.uid) {
-        // Also clean the user's mySignups mirror if uid exists
-        try { await deleteDoc(doc(db, 'users', o.uid, 'mySignups', o.ref.id)); } catch(_) {}
-      }
-      orphanedDocs.splice(idx, 1);
-      renderOrphanList();
-    } catch(e) {
-      if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
-      alert('刪除失敗：' + e.message);
-    }
-  };
-
-  window.deleteOrphanedData = async () => {
-    if (!orphanedDocs.length) return;
-    const zh = getLang() === 'zh';
-    const msg = zh
-      ? `確定要刪除以上 ${orphanedDocs.length} 筆孤兒資料？此操作無法復原。`
-      : `Delete ${orphanedDocs.length} orphaned record(s)? This cannot be undone.`;
-    if (!confirm(msg)) return;
     const statusEl = document.getElementById('orphanScanStatus');
+    const resultEl = document.getElementById('orphanResult');
+    const emptyEl = document.getElementById('orphanEmpty');
     const deleteBtn = document.getElementById('orphanDeleteBtn');
-    deleteBtn.disabled = true;
-    statusEl.textContent = zh ? '⏳ 刪除中...' : '⏳ Deleting...';
-    try {
-      await Promise.all(orphanedDocs.map(async o => {
-        await deleteDoc(o.ref);
-        if (o.type === 'mySignups' && o.data.sessionId) {
-          try { await deleteDoc(doc(db, 'sessions', o.data.sessionId, 'signups', o.ref.id)); } catch(_) {}
-        } else if (o.type === 'sessions/signups' && o.uid) {
-          try { await deleteDoc(doc(db, 'users', o.uid, 'mySignups', o.ref.id)); } catch(_) {}
-        }
-      }));
-      orphanedDocs = [];
-      renderOrphanList();
-    } catch(e) {
-      statusEl.textContent = (zh ? '❌ 刪除失敗：' : '❌ Failed: ') + e.message;
-      deleteBtn.disabled = false;
-    }
+    const zh = getLang() === 'zh';
+    statusEl.textContent = zh ? '✅ 此功能在 Supabase 版本不適用（資料只存在 signups 資料表中）' : '✅ Not applicable for Supabase (data is in signups table only)';
+    resultEl.classList.remove('hidden');
+    if (emptyEl) { emptyEl.textContent = zh ? '✅ Supabase 版本不需要此維護功能' : '✅ Not needed for Supabase'; emptyEl.classList.remove('hidden'); }
+    if (deleteBtn) deleteBtn.classList.add('hidden');
+    orphanedDocs = [];
   };
+
+  window.deleteOrphanDoc = async (idx) => {};
+
+  window.deleteOrphanedData = async () => {};
 
 
 
@@ -2337,9 +2250,9 @@
     loadingEl?.classList.remove('hidden');
     listEl.innerHTML = '';
     try {
-      const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
+      const { data: rows } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
       loadingEl?.classList.add('hidden');
-      feedbackDocs = snap.docs;
+      feedbackDocs = rows || [];
       renderFeedbackList();
     } catch(e) {
       loadingEl?.classList.add('hidden');
@@ -2370,7 +2283,7 @@
     const session = [...mySessionsCache, ...allSessionsCache].find(s => s.id === sessionId) || {};
     const zh = getLang() === 'zh';
     // Reset form
-    document.getElementById('caName').value = currentUser?.displayName || '';
+    document.getElementById('caName').value = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email || '';
     document.getElementById('caFriendName').value = '';
     document.getElementById('caLate').checked = false;
     document.getElementById('caLateRow').classList.add('hidden');
@@ -2512,7 +2425,7 @@
     const existingItems = signupItemsCache[creatorAddSessionId] || [];
     const msgElDup = document.getElementById('caMsg');
     if (!isFriend) {
-      if (existingItems.some(s => s.uid === currentUser.uid && !s.forFriend)) {
+      if (existingItems.some(s => s.uid === currentUser.id && !s.forFriend)) {
         msgElDup.textContent = zh ? '⚠️ 你已報名此場次' : '⚠️ You have already signed up';
         msgElDup.className = 'text-center text-sm text-orange-500';
         msgElDup.classList.remove('hidden');
@@ -2542,35 +2455,23 @@
         ).length;
         shouldForceConfirm = confirmedCount < sessLimit;
       }
-      const organizerName = !isFriend ? (document.getElementById('caName').value.trim() || currentUser.displayName || '') : (currentUser.displayName || '');
+      const organizerName = !isFriend ? (document.getElementById('caName').value.trim() || currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '') : (currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '');
       const docData = {
         name: isFriend ? organizerName : nameVal,
-        forFriend: isFriend ? nameVal : '',
-        photoURL: currentUser.photoURL || null,
-        uid: currentUser.uid,
-        signedAt: serverTimestamp(),
-        isLate: document.getElementById('caLate').checked,
-        lateTime: document.getElementById('caLateTime').value.trim(),
-        pairWith: document.getElementById('caPair').value.trim(),
+        friend_name: isFriend ? nameVal : '',
+        photo_url: currentUser.user_metadata?.avatar_url || null,
+        uid: currentUser.id,
+        signed_at: new Date().toISOString(),
+        is_late: document.getElementById('caLate').checked,
+        late_minutes: parseInt(document.getElementById('caLateTime').value.trim()) || 0,
+        pair: document.getElementById('caPair').value.trim(),
         gender: signupGender,
-        addedByOrganizer: true,
-        bringEquip: [...creatorAddBringEquip],
+        added_by_organizer: true,
+        bring_equip: [...creatorAddBringEquip],
+        session_id: creatorAddSessionId,
       };
-      if (shouldForceConfirm) docData.forceConfirmed = true;
-      const signupRef = await addDoc(collection(db, 'sessions', creatorAddSessionId, 'signups'), docData);
-      // Create mySignups mirror so the signup appears in the user's "我的報名"
-      if (docData.uid) {
-        await setDoc(doc(db, 'users', docData.uid, 'mySignups', signupRef.id), {
-          sessionId: creatorAddSessionId,
-          signupId: signupRef.id,
-          sessionTitle: session.title || '',
-          sessionDate: session.date || '',
-          sessionTime: session.time || '',
-          sessionLocation: session.location || '',
-          sessionVenue: session.venue || '',
-          signedAt: Timestamp.now(),
-        });
-      }
+      if (shouldForceConfirm) docData.force_confirmed = true;
+      await supabase.from('signups').insert(docData);
       const msgEl = document.getElementById('caMsg');
       msgEl.textContent = zh ? '✅ 已新增！' : '✅ Added!';
       msgEl.className = 'text-center text-sm text-green-600';

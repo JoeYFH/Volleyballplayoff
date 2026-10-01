@@ -183,30 +183,42 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import {
-    getFirestore, doc, collection, query, orderBy,
-    onSnapshot, deleteDoc, getDoc, getDocs, setDoc, serverTimestamp
-  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAILS } from './supabase-config.js';
   import { tr, getLang, setLang } from './i18n.js';
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  getRedirectResult(auth).catch(() => {});
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function mapSession(row) {
+    return {
+      id: row.id, title: row.title, date: row.date, time: row.time,
+      location: row.location, venue: row.venue, type: row.type || '',
+      limit: row.limit_total || 0, maleLimit: row.male_limit || 0, femaleLimit: row.female_limit || 0,
+      equipment: row.equipment || [], note: row.note,
+      isOpen: row.is_open, isPrivate: row.is_private, cancelled: row.cancelled,
+      openAt: row.open_at, closeAt: row.close_at,
+      createdBy: row.created_by, creatorName: row.creator_name, creatorPhoto: row.creator_photo,
+      createdAt: row.created_at,
+    };
+  }
+  function mapSignup(row, position) {
+    return {
+      id: row.id, sessionId: row.session_id, uid: row.uid, name: row.name,
+      isLate: row.is_late, lateTime: row.late_minutes,
+      forFriend: row.friend_name || '', pairWith: row.pair, bringEquip: row.bring_equip || [],
+      gender: row.gender || '', friendGender: row.friend_gender || '',
+      forceConfirmed: row.force_confirmed, forceWaitlisted: row.force_waitlisted,
+      signedAt: row.signed_at, position: position,
+    };
+  }
 
   function signIn() {
-    if (isMobile) signInWithRedirect(auth, provider);
-    else signInWithPopup(auth, provider);
+    supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   }
 
   let currentUser = null;
-  let currentSignups = [];    // from mySignups (active)
-  let cancelledSignups = [];  // from cancelledSignups
+  let currentSignups = [];    // active signups from signups table
+  let cancelledSignups = [];  // not stored in Supabase; always empty
   let mainTab = 'self';       // 'self' | 'proxy'
   let subTab = 'confirmed';   // 'confirmed' | 'past' | 'cancelled'
   let signupsSort = 'date_asc'; // sort state
@@ -256,17 +268,20 @@
 
   // ── Auth ──
   document.getElementById('googleLoginBtn').addEventListener('click', signIn);
-  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+  document.getElementById('logoutBtn').addEventListener('click', () => supabase.auth.signOut());
 
-  onAuthStateChanged(auth, (user) => {
+  let signupsChannel = null;
+
+  function handleAuthUser(user) {
     currentUser = user;
     document.getElementById('authLoading').classList.add('hidden');
     if (user) {
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.remove('hidden');
       const photo = document.getElementById('userPhoto');
-      if (user.photoURL) photo.src = user.photoURL;
-      document.getElementById('userName').textContent = user.displayName || user.email;
+      const photoUrl = user.user_metadata?.avatar_url || null;
+      if (photoUrl) photo.src = photoUrl;
+      document.getElementById('userName').textContent = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
       const uiSu = document.getElementById('userInfoSu');
       uiSu.classList.remove('hidden'); uiSu.classList.add('flex');
       const adminBadge = document.getElementById('adminBadgeSignups');
@@ -275,52 +290,67 @@
     } else {
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('mainApp').classList.add('hidden');
+      if (signupsChannel) { supabase.removeChannel(signupsChannel); signupsChannel = null; }
     }
-  });
+  }
+  supabase.auth.onAuthStateChange((event, session) => { handleAuthUser(session?.user || null); });
+  supabase.auth.getSession().then(({ data: { session } }) => { handleAuthUser(session?.user || null); });
 
   // ── Load ──
   function loadMySignups() {
-    // Active signups
-    const q = query(collection(db, 'users', currentUser.uid, 'mySignups'), orderBy('signedAt', 'desc'));
-    onSnapshot(q, async (snap) => {
+    fetchMySignups();
+    if (signupsChannel) supabase.removeChannel(signupsChannel);
+    signupsChannel = supabase.channel('user-signups-' + currentUser.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'signups', filter: `uid=eq.${currentUser.id}` }, () => fetchMySignups())
+      .subscribe();
+  }
+
+  async function fetchMySignups() {
+    try {
+      const { data: signupsRaw, error: suErr } = await supabase
+        .from('signups').select('*').eq('uid', currentUser.id).order('signed_at', { ascending: false });
+      if (suErr) throw suErr;
+
       document.getElementById('loadingSkeletons').classList.add('hidden');
-      if (snap.empty) {
+
+      if (!signupsRaw?.length) {
         currentSignups = [];
         dataLoaded = true;
         renderSignups();
         return;
       }
-      const raw = snap.docs.map(d => ({ mirrorId: d.id, ...d.data() }));
-      const enriched = await Promise.all(raw.map(async (m) => {
-        try {
-          const signupId = m.signupId || m.mirrorId;
-          const [sessionSnap, signupSnap] = await Promise.all([
-            getDoc(doc(db, 'sessions', m.sessionId)),
-            signupId ? getDoc(doc(db, 'sessions', m.sessionId, 'signups', signupId)) : null,
-          ]);
-          const signupData = signupSnap?.exists() ? signupSnap.data() : {};
-          const sess = sessionSnap.exists() ? sessionSnap.data() : null;
-          // Determine waitlist status and position
-          let isWaitlisted = !signupData.forceConfirmed && !!signupData.forceWaitlisted;
-          let waitlistPosition = 0;
-          let waitlistGender = null; // 'male' or 'female' if waitlisted due to gender sub-limit
-          if (!signupData.forceConfirmed && !signupData.forceWaitlisted && signupId) {
-            const totalLimit = sess?.limit || 0;
-            const maleLimit = sess?.maleLimit || 0;
-            const femaleLimit = sess?.femaleLimit || 0;
-            const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
-            if (totalLimit > 0 || hasMixedLimits) {
-              try {
-                const allSnap = await getDocs(query(collection(db, 'sessions', m.sessionId, 'signups'), orderBy('signedAt', 'asc')));
-                const allDocs = allSnap.docs;
+
+      // Fetch all sessions for these signups in one query
+      const sessionIds = [...new Set(signupsRaw.map(s => s.session_id))];
+      const { data: sessionsRaw } = await supabase.from('sessions').select('*').in('id', sessionIds);
+      const sessionsMap = Object.fromEntries((sessionsRaw || []).map(s => [s.id, mapSession(s)]));
+
+      // Enrich each signup with session data and compute waitlist status
+      const enriched = await Promise.all(signupsRaw.map(async (row) => {
+        const signup = mapSignup(row, 0);
+        const sess = sessionsMap[row.session_id] || null;
+
+        let isWaitlisted = !row.force_confirmed && !!row.force_waitlisted;
+        let waitlistPosition = 0;
+        let waitlistGender = null;
+
+        if (!row.force_confirmed && !row.force_waitlisted && sess) {
+          const totalLimit = sess.limit || 0;
+          const maleLimit = sess.maleLimit || 0;
+          const femaleLimit = sess.femaleLimit || 0;
+          const hasMixedLimits = maleLimit > 0 || femaleLimit > 0;
+          if (totalLimit > 0 || hasMixedLimits) {
+            try {
+              const { data: allSignups } = await supabase
+                .from('signups').select('*').eq('session_id', row.session_id).order('signed_at', { ascending: true });
+              if (allSignups) {
                 if (hasMixedLimits) {
-                  // Mixed session: check gender sub-limit first (matches index.html rendering)
-                  const thisGender = signupData.gender;
+                  const thisGender = row.gender;
                   if (thisGender === 'male' || thisGender === 'female') {
                     const gLimit = thisGender === 'male' ? maleLimit : femaleLimit;
                     if (gLimit > 0) {
-                      const genderDocs = allDocs.filter(d => d.data().gender === thisGender);
-                      const gPos = genderDocs.findIndex(d => d.id === signupId) + 1;
+                      const genderSignups = allSignups.filter(s => s.gender === thisGender);
+                      const gPos = genderSignups.findIndex(s => s.id === row.id) + 1;
                       if (gPos > 0 && gPos > gLimit) {
                         isWaitlisted = true;
                         waitlistPosition = gPos - gLimit;
@@ -328,57 +358,31 @@
                       }
                     }
                   }
-                  // Fallback: total limit (only if not already waitlisted by gender)
                   if (!isWaitlisted && totalLimit > 0) {
-                    const pos = allDocs.findIndex(d => d.id === signupId) + 1;
-                    if (pos > 0 && pos > totalLimit) {
-                      isWaitlisted = true;
-                      waitlistPosition = pos - totalLimit;
-                    }
+                    const pos = allSignups.findIndex(s => s.id === row.id) + 1;
+                    if (pos > 0 && pos > totalLimit) { isWaitlisted = true; waitlistPosition = pos - totalLimit; }
                   }
-                } else {
-                  // No gender sub-limits: check total limit only
-                  if (totalLimit > 0) {
-                    const pos = allDocs.findIndex(d => d.id === signupId) + 1;
-                    if (pos > 0 && pos > totalLimit) {
-                      isWaitlisted = true;
-                      waitlistPosition = pos - totalLimit;
-                    }
-                  }
+                } else if (totalLimit > 0) {
+                  const pos = allSignups.findIndex(s => s.id === row.id) + 1;
+                  if (pos > 0 && pos > totalLimit) { isWaitlisted = true; waitlistPosition = pos - totalLimit; }
                 }
-              } catch(e) {}
-            }
+              }
+            } catch(e) {}
           }
-          return {
-            id: signupId,
-            sessionId: m.sessionId,
-            signedAt: m.signedAt,
-            ...signupData,
-            session: sess,
-            isWaitlisted,
-            waitlistPosition,
-            waitlistGender,
-          };
-        } catch(e) {
-          return { id: m.signupId || m.mirrorId, sessionId: m.sessionId, signedAt: m.signedAt, session: null, isWaitlisted: false };
         }
+
+        return { ...signup, session: sess, isWaitlisted, waitlistPosition, waitlistGender };
       }));
+
       currentSignups = enriched;
       dataLoaded = true;
       renderSignups();
-    }, (err) => {
-      console.error('loadMySignups error:', err);
+    } catch(err) {
+      console.error('fetchMySignups error:', err);
       document.getElementById('loadingSkeletons').classList.add('hidden');
       dataLoaded = true;
       renderSignups();
-    });
-
-    // Cancelled signups
-    const qC = query(collection(db, 'users', currentUser.uid, 'cancelledSignups'), orderBy('cancelledAt', 'desc'));
-    onSnapshot(qC, (snap) => {
-      cancelledSignups = snap.docs.map(d => ({ id: d.id, cancelled: true, ...d.data() }));
-      if (subTab === 'cancelled') renderSignups();
-    }, () => {});
+    }
   }
 
   // ── Tab switching ──
@@ -450,8 +454,8 @@
     const desc = sortDir === 'desc';
     if (sortType === 'signedAt') {
       items.sort((a, b) => {
-        const aMs = a.signedAt?.toMillis ? a.signedAt.toMillis() : (a.signedAt?.seconds ? a.signedAt.seconds * 1000 : 0);
-        const bMs = b.signedAt?.toMillis ? b.signedAt.toMillis() : (b.signedAt?.seconds ? b.signedAt.seconds * 1000 : 0);
+        const aMs = a.signedAt ? new Date(a.signedAt).getTime() : 0;
+        const bMs = b.signedAt ? new Date(b.signedAt).getTime() : 0;
         return desc ? bMs - aMs : aMs - bMs;
       });
     } else {
@@ -539,7 +543,7 @@
     let signedAtStr = '';
     if (s.signedAt) {
       try {
-        const dt = s.signedAt.toDate ? s.signedAt.toDate() : new Date(s.signedAt.seconds * 1000);
+        const dt = new Date(s.signedAt);
         signedAtStr = zh
           ? `${dt.getMonth()+1}/${dt.getDate()} ${pad(dt.getHours())}:${pad(dt.getMinutes())} 報名`
           : `Signed ${dt.getMonth()+1}/${dt.getDate()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
@@ -585,7 +589,7 @@
       let cancelStr = zh ? '已取消' : 'Cancelled';
       if (s.cancelledAt) {
         try {
-          const dt = s.cancelledAt.toDate ? s.cancelledAt.toDate() : new Date(s.cancelledAt.seconds * 1000);
+          const dt = new Date(s.cancelledAt);
           cancelStr = zh ? `${dt.getMonth()+1}/${dt.getDate()} 取消` : `Cancelled ${dt.getMonth()+1}/${dt.getDate()}`;
         } catch(e) {}
       }
@@ -694,41 +698,16 @@
   window.cancelMySignup = async (sessionId, signupId) => {
     const zh = getLang() === 'zh';
     if (!confirm(zh ? '確定要取消報名？' : 'Cancel your signup?')) return;
-    const info = signupDataMap[signupId] || {};
     try {
-      // Save cancelled record
-      await setDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId), {
-        sessionId: sessionId,
-        sessionTitle: info.title || '',
-        sessionDate: info.date || '',
-        sessionTime: info.time || '',
-        sessionLocation: info.location || '',
-        sessionVenue: info.venue || '',
-        name: info.name || '',
-        forFriend: info.forFriend || '',
-        cancelledAt: serverTimestamp(),
-      });
-      // 在場次 subcollection 留參照（供場主刪場次時清理用）
-      try { await setDoc(doc(db, 'sessions', sessionId, 'cancelledSignups', signupId), { uid: currentUser.uid }); } catch(e) {}
-      // Delete from sessions collection
-      await deleteDoc(doc(db, 'sessions', sessionId, 'signups', signupId));
-      // Clean up mirror
-      try { await deleteDoc(doc(db, 'users', currentUser.uid, 'mySignups', signupId)); } catch(e) {}
+      const { error } = await supabase.from('signups').delete().eq('id', signupId);
+      if (error) throw error;
     } catch(e) {
       alert((zh ? '取消失敗：' : 'Failed: ') + e.message);
     }
   };
 
-  // ── Delete cancelled record ──
-  window.deleteCancelledRecord = async (signupId) => {
-    const zh = getLang() === 'zh';
-    if (!confirm(zh ? '確定要刪除這筆取消記錄？' : 'Remove this cancelled record?')) return;
-    try {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'cancelledSignups', signupId));
-    } catch(e) {
-      alert((zh ? '刪除失敗：' : 'Failed: ') + e.message);
-    }
-  };
+  // ── Delete cancelled record ── (no-op in Supabase; cancelled signups are not stored)
+  window.deleteCancelledRecord = async (signupId) => {};
 
   // ── Calendar links ──
   function buildCalendarLinks({ title, date, time, location, venue, equipment, note, zh }) {

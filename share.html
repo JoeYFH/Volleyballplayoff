@@ -72,12 +72,10 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { firebaseConfig } from './firebase-config.js';
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Detect in-app browser (Messenger, LINE, Instagram…) — show open-in-browser prompt
     const _ua = navigator.userAgent;
@@ -110,12 +108,16 @@
     if (!sessionId) {
       window.location.replace(base);
     } else {
-      const snap = await getDoc(doc(db, 'sessions', sessionId)).catch(() => null);
-      if (!snap || !snap.exists()) {
+      const { data: snapData } = await supabase.from('sessions').select('*').eq('id', sessionId).single().catch(() => ({ data: null }));
+      if (!snapData) {
         document.getElementById('loadingEl').style.display = 'none';
         document.getElementById('errorEl').style.display = '';
       } else {
-        const s = snap.data();
+        const s = {
+          title: snapData.title, date: snapData.date, time: snapData.time,
+          location: snapData.location, venue: snapData.venue, type: snapData.type,
+          creatorName: snapData.creator_name,
+        };
 
         // Format helpers
         const typeMap = { mixed: { label: '混打', cls: 'type-mixed' }, male: { label: '男生', cls: 'type-male' }, female: { label: '女生', cls: 'type-female' } };

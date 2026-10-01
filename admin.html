@@ -247,25 +247,36 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import {
-    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
-  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-  import {
-    getFirestore, doc, collection, addDoc, setDoc, getDoc,
-    onSnapshot, query, orderBy, deleteDoc, Timestamp, updateDoc, getDocs
-  } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-  import { firebaseConfig, ADMIN_EMAILS } from './firebase-config.js';
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  import { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAILS } from './supabase-config.js';
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  getRedirectResult(auth).catch(() => {});
-  function signIn() {
-    if (isMobile) signInWithRedirect(auth, provider);
-    else signInWithPopup(auth, provider);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function mapSession(row) {
+    return {
+      id: row.id, title: row.title, date: row.date, time: row.time,
+      location: row.location, venue: row.venue, type: row.type || '',
+      limit: row.limit_total || 0, maleLimit: row.male_limit || 0, femaleLimit: row.female_limit || 0,
+      equipment: row.equipment || [], note: row.note,
+      isOpen: row.is_open, isPrivate: row.is_private, cancelled: row.cancelled,
+      openAt: row.open_at, closeAt: row.close_at,
+      createdBy: row.created_by, creatorName: row.creator_name, creatorPhoto: row.creator_photo,
+      createdAt: row.created_at,
+    };
+  }
+  function mapSignup(row, position) {
+    return {
+      id: row.id, sessionId: row.session_id, uid: row.uid, name: row.name,
+      isLate: row.is_late, lateTime: row.late_minutes,
+      forFriend: row.friend_name || '', pairWith: row.pair, bringEquip: row.bring_equip || [],
+      gender: row.gender || '', friendGender: row.friend_gender || '',
+      forceConfirmed: row.force_confirmed, forceWaitlisted: row.force_waitlisted,
+      signedAt: row.signed_at, position: position,
+    };
+  }
+
+  async function signIn() {
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   }
 
   let currentUser = null;
@@ -275,29 +286,21 @@
   let selectedEquip = new Set();
 
   // Auth
-  document.getElementById('googleLoginBtn').addEventListener('click', async () => {
-    try {
-      await signIn();
-    } catch (e) {
-      document.getElementById('loginError').textContent = '登入失敗：' + e.message;
-      document.getElementById('loginError').classList.remove('hidden');
-    }
-  });
+  document.getElementById('googleLoginBtn').addEventListener('click', signIn);
+  document.getElementById('logoutBtn').addEventListener('click', () => supabase.auth.signOut());
 
-  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-
-  onAuthStateChanged(auth, (user) => {
+  function handleAuthUser(user) {
     if (user) {
       currentUser = user;
+      const photoURL = user.user_metadata?.avatar_url || null;
+      const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('adminApp').classList.remove('hidden');
-      // Show user info
       const photo = document.getElementById('adminPhoto');
       const name = document.getElementById('adminName');
-      if (user.photoURL) { photo.src = user.photoURL; photo.classList.remove('hidden'); }
-      name.textContent = user.displayName || user.email;
+      if (photoURL) { photo.src = photoURL; photo.classList.remove('hidden'); }
+      name.textContent = displayName;
       name.classList.remove('hidden');
-      // Show feedback tab for super admins
       if (ADMIN_EMAILS.includes(user.email)) {
         document.getElementById('tabFeedback').classList.remove('hidden');
       }
@@ -308,7 +311,9 @@
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('adminApp').classList.add('hidden');
     }
-  });
+  }
+  supabase.auth.onAuthStateChange((event, session) => { handleAuthUser(session?.user || null); });
+  supabase.auth.getSession().then(({ data: { session } }) => { handleAuthUser(session?.user || null); });
 
   // Equipment chips
   document.getElementById('equipChips').addEventListener('click', (e) => {
@@ -335,22 +340,26 @@
     if (tab === 'feedback') loadFeedback();
   };
 
-  // Load current session
-  function loadCurrentSession() {
-    onSnapshot(doc(db, 'config', 'current'), async (snap) => {
-      if (!snap.exists() || !snap.data().sessionId) {
-        document.getElementById('currentSessionCard').classList.add('hidden');
-        return;
-      }
-      currentSessionId = snap.data().sessionId;
-      const sessSnap = await getDoc(doc(db, 'sessions', currentSessionId));
-      if (!sessSnap.exists()) { document.getElementById('currentSessionCard').classList.add('hidden'); return; }
-
-      const s = sessSnap.data();
-      document.getElementById('currentSessionCard').classList.remove('hidden');
-      renderCurrentSession(s);
-      subscribeAdminSignups();
-    });
+  // Load current session — uses localStorage to persist selection, falls back to latest open session
+  async function loadCurrentSession() {
+    let sess = null;
+    const storedId = localStorage.getItem('adminCurrentSessionId');
+    if (storedId) {
+      const { data } = await supabase.from('sessions').select('*').eq('id', storedId).single();
+      if (data && !data.cancelled) sess = data;
+    }
+    if (!sess) {
+      const { data: sessions } = await supabase.from('sessions').select('*')
+        .eq('created_by', currentUser.id).eq('cancelled', false)
+        .order('created_at', { ascending: false }).limit(1);
+      sess = sessions && sessions[0];
+    }
+    if (!sess) { document.getElementById('currentSessionCard').classList.add('hidden'); return; }
+    currentSessionId = sess.id;
+    localStorage.setItem('adminCurrentSessionId', currentSessionId);
+    document.getElementById('currentSessionCard').classList.remove('hidden');
+    renderCurrentSession(mapSession(sess));
+    subscribeAdminSignups();
   }
 
   function renderCurrentSession(s) {
@@ -377,26 +386,37 @@
 
   document.getElementById('toggleOpenBtn').addEventListener('click', async () => {
     if (!currentSessionId) return;
-    const snap = await getDoc(doc(db, 'sessions', currentSessionId));
-    if (snap.exists()) {
-      await updateDoc(doc(db, 'sessions', currentSessionId), { isOpen: !snap.data().isOpen });
-      renderCurrentSession({ ...snap.data(), isOpen: !snap.data().isOpen });
+    const { data: sess } = await supabase.from('sessions').select('*').eq('id', currentSessionId).single();
+    if (sess) {
+      await supabase.from('sessions').update({ is_open: !sess.is_open }).eq('id', currentSessionId);
+      renderCurrentSession(mapSession({ ...sess, is_open: !sess.is_open }));
     }
   });
 
   document.getElementById('closeSessionBtn').addEventListener('click', async () => {
     if (!confirm('確定要結束目前場次嗎？')) return;
-    await setDoc(doc(db, 'config', 'current'), { sessionId: null });
+    localStorage.removeItem('adminCurrentSessionId');
+    if (signupChannel) { supabase.removeChannel(signupChannel); signupChannel = null; }
+    currentSessionId = null;
     document.getElementById('currentSessionCard').classList.add('hidden');
   });
 
+  let signupChannel = null;
+  async function fetchAdminSignups() {
+    const { data } = await supabase.from('signups').select('*').eq('session_id', currentSessionId).order('signed_at', { ascending: true });
+    signupsData = (data || []).map((d, i) => ({
+      id: d.id, name: d.name, uid: d.uid,
+      isLate: d.is_late, lateTime: d.late_minutes,
+      forFriend: d.friend_name || '', pairWith: d.pair, position: i + 1,
+    }));
+    renderAdminList(signupsData);
+  }
   function subscribeAdminSignups() {
-    if (unsubSignups) unsubSignups();
-    const q = query(collection(db, 'sessions', currentSessionId, 'signups'), orderBy('signedAt', 'asc'));
-    unsubSignups = onSnapshot(q, (snap) => {
-      signupsData = snap.docs.map((d, i) => ({ id: d.id, ...d.data(), position: i + 1 }));
-      renderAdminList(signupsData);
-    });
+    if (signupChannel) supabase.removeChannel(signupChannel);
+    signupChannel = supabase.channel('admin-signups-' + currentSessionId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'signups', filter: `session_id=eq.${currentSessionId}` }, fetchAdminSignups)
+      .subscribe();
+    fetchAdminSignups();
   }
 
   function renderAdminList(list) {
@@ -420,11 +440,7 @@
 
   window.removeSignup = async (id) => {
     if (!confirm('確定移除此報名？')) return;
-    const signup = signupsData.find(s => s.id === id);
-    if (signup?.uid) {
-      await deleteDoc(doc(db, 'users', signup.uid, 'mySignups', id));
-    }
-    await deleteDoc(doc(db, 'sessions', currentSessionId, 'signups', id));
+    await supabase.from('signups').delete().eq('id', id);
   };
 
   // Export
@@ -460,20 +476,21 @@
     const openAtVal = document.getElementById('fOpenAt').value;
     const openNow = document.getElementById('fOpenNow').checked;
 
+    const displayName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email;
+    const photoURL = currentUser.user_metadata?.avatar_url || null;
     const sessionData = {
       title: document.getElementById('fTitle').value.trim() || `${date} 臨打`,
-      date,
-      time,
-      location,
+      date, time, location,
       venue: document.getElementById('fVenue').value.trim(),
-      limit: parseInt(document.getElementById('fLimit').value) || 0,
+      limit_total: parseInt(document.getElementById('fLimit').value) || 0,
       type: document.getElementById('fType').value,
       equipment,
       note: document.getElementById('fNote').value.trim(),
-      isOpen: openNow,
-      openAt: openAtVal ? Timestamp.fromDate(new Date(openAtVal)) : null,
-      createdAt: Timestamp.now(),
-      createdBy: currentUser.uid,
+      is_open: openNow,
+      open_at: openAtVal ? new Date(openAtVal).toISOString() : null,
+      created_by: currentUser.id,
+      creator_name: displayName,
+      creator_photo: photoURL,
     };
 
     try {
@@ -483,16 +500,16 @@
       if (saveTemplate) {
         const templateName = prompt('範本名稱：', sessionData.title);
         if (!templateName) return;
-        await setDoc(doc(db, 'users', currentUser.uid, 'templates', Date.now().toString()), {
-          ...sessionData, name: templateName, createdAt: Timestamp.now()
-        });
+        const tmplData = { time, location, venue: sessionData.venue, limit: sessionData.limit_total, type: sessionData.type, equipment, note: sessionData.note };
+        await supabase.from('templates').insert({ user_id: currentUser.id, name: templateName, data: tmplData });
         showCreateMsg('✅ 已儲存為範本！', 'success');
         loadTemplates();
         return;
       }
 
-      const ref = await addDoc(collection(db, 'sessions'), sessionData);
-      await setDoc(doc(db, 'config', 'current'), { sessionId: ref.id });
+      const { data: newRow, error: createErr } = await supabase.from('sessions').insert(sessionData).select().single();
+      if (createErr) throw createErr;
+      currentSessionId = newRow.id;
       showCreateMsg('✅ 場次建立成功！', 'success');
 
       // Set up scheduled open if openAt is set and openNow is false
@@ -500,7 +517,7 @@
         const delay = new Date(openAtVal).getTime() - Date.now();
         if (delay > 0 && delay < 86400000) {
           setTimeout(async () => {
-            await updateDoc(doc(db, 'sessions', ref.id), { isOpen: true });
+            await supabase.from('sessions').update({ is_open: true }).eq('id', newRow.id);
           }, delay);
         }
       }
@@ -521,13 +538,11 @@
   }
 
   // Templates
-  function loadTemplates() {
+  async function loadTemplates() {
     if (!currentUser) return;
-    const q = query(collection(db, 'users', currentUser.uid, 'templates'), orderBy('createdAt', 'desc'));
-    onSnapshot(q, (snap) => {
-      const templates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderTemplates(templates);
-    });
+    const { data: rows } = await supabase.from('templates').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    const templates = (rows || []).map(r => ({ id: r.id, name: r.name, ...(r.data || {}) }));
+    renderTemplates(templates);
   }
 
   function renderTemplates(templates) {
@@ -581,7 +596,8 @@
 
   window.deleteTemplate = async (id) => {
     if (!confirm('確定刪除此範本？')) return;
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'templates', id));
+    await supabase.from('templates').delete().eq('id', id);
+    loadTemplates();
   };
 
 
@@ -593,26 +609,26 @@
     emptyEl.classList.remove('hidden');
     listEl.innerHTML = '';
     try {
-      const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
-      if (!snap.docs.length) { emptyEl.textContent = '目前沒有任何意見回饋'; return; }
+      const { data: allItems, error } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      if (!allItems?.length) { emptyEl.textContent = '目前沒有任何意見回饋'; return; }
 
       const statusFilter = document.getElementById('fbStatusFilter')?.value || 'all';
       const sortBy = document.getElementById('fbSortBy')?.value || 'date_desc';
       const urgencyOrder = { high: 0, medium: 1, low: 2 };
       const statusOrder = { pending: 0, processing: 1, resolved: 2 };
 
-      let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let items = allItems;
 
       // Filter by status
       if (statusFilter !== 'all') {
-        const filterStatus = statusFilter === 'pending' ? 'pending' : statusFilter === 'processing' ? 'processing' : 'resolved';
-        items = items.filter(f => (f.status || 'pending') === filterStatus);
+        items = items.filter(f => (f.status || 'pending') === statusFilter);
       }
 
       // Sort
       items.sort((a, b) => {
-        if (sortBy === 'date_desc') return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
-        if (sortBy === 'date_asc') return (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0);
+        if (sortBy === 'date_desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (sortBy === 'date_asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         if (sortBy === 'urgency_desc') return (urgencyOrder[a.urgency] ?? 99) - (urgencyOrder[b.urgency] ?? 99);
         if (sortBy === 'urgency_asc') return (urgencyOrder[b.urgency] ?? 99) - (urgencyOrder[a.urgency] ?? 99);
         if (sortBy === 'status') return (statusOrder[a.status || 'pending'] ?? 99) - (statusOrder[b.status || 'pending'] ?? 99);
@@ -632,7 +648,7 @@
       };
 
       listEl.innerHTML = items.map(f => {
-        const ts = f.createdAt ? new Date(f.createdAt.toMillis()) : null;
+        const ts = f.created_at ? new Date(f.created_at) : null;
         const dateStr = ts ? `${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}` : '';
         const currentStatus = f.status || 'pending';
         const nextStatuses = ['pending', 'processing', 'resolved'].filter(s => s !== currentStatus);
@@ -652,7 +668,7 @@
             <span class="text-xs text-gray-400 shrink-0">${dateStr}</span>
           </div>
           <p class="text-sm text-gray-800">${escHtml(f.description)}</p>
-          ${f.userName ? `<p class="text-xs text-gray-400">👤 ${escHtml(f.userName)}${f.email?' · '+escHtml(f.email):''}</p>` : (f.email ? `<p class="text-xs text-gray-400">📧 ${escHtml(f.email)}</p>` : '')}
+          ${f.user_name ? `<p class="text-xs text-gray-400">👤 ${escHtml(f.user_name)}${f.email?' · '+escHtml(f.email):''}</p>` : (f.email ? `<p class="text-xs text-gray-400">📧 ${escHtml(f.email)}</p>` : '')}
           <div class="flex items-center gap-1.5 flex-wrap pt-1">
             <span class="text-xs text-gray-400">更改狀態：</span>
             ${statusBtns}
@@ -663,11 +679,12 @@
       emptyEl.textContent = '載入失敗：' + e.message;
     }
   }
+  window.loadFeedback = loadFeedback;
 
   window.updateFeedbackStatus = async (feedbackId, newStatus) => {
     try {
-      await updateDoc(doc(db, 'feedback', feedbackId), { status: newStatus });
-      loadFeedback(); // reload to reflect changes
+      await supabase.from('feedback').update({ status: newStatus }).eq('id', feedbackId);
+      loadFeedback();
     } catch(e) {
       alert('更新失敗：' + e.message);
     }
