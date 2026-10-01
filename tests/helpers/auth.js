@@ -30,7 +30,7 @@ export async function loginAsTestUser(page) {
   await page.reload();
 
   // 等待 UI 更新（登入按鈕消失）
-  await page.waitForSelector('#loginBtn.hidden', { timeout: 5000 }).catch(() => {});
+  await page.waitForSelector('#loginBtn', { state: 'hidden', timeout: 5000 }).catch(() => {});
 }
 
 /**

@@ -64,7 +64,7 @@ async function fillSignupForm(page, opts) {
  * 找指定類型的場次，點報名按鈕，回傳 sessionId
  */
 async function openSignupModal(page, sessionType) {
-  await page.waitForSelector('#loadingSpinner.hidden', { timeout: 10000 });
+  await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
 
   // 先切到符合類型的 gender filter
   if (sessionType === 'male') await page.click('#sg-male');
@@ -89,7 +89,7 @@ async function openSignupModal(page, sessionType) {
 test.describe('場次列表', () => {
   test('訪客可以看到場次列表', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('#loadingSpinner.hidden', { timeout: 10000 });
+    await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
     const hasSessions = await page.locator('#sessionsList > div').count();
     const hasEmpty = await page.locator('#noSessionsMsg').isVisible();
     expect(hasSessions > 0 || hasEmpty).toBeTruthy();
@@ -271,7 +271,7 @@ test.describe('混排場次', () => {
   });
 
   test('混排場次有男女進度條', async ({ page }) => {
-    await page.waitForSelector('#loadingSpinner.hidden', { timeout: 10000 });
+    await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
     await page.click('#sg-mixed');
     await page.waitForTimeout(300);
 
@@ -308,7 +308,7 @@ test.describe('取消報名', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await loginAsTestUser(page);
-    await page.waitForSelector('#loadingSpinner.hidden', { timeout: 10000 });
+    await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
   });
 
   test('已報名者可以取消自己的報名', async ({ page }) => {
