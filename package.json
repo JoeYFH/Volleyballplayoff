@@ -27,6 +27,8 @@
   },
   "homepage": "https://github.com/JoeYFH/volleyballplayoff#readme",
   "devDependencies": {
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "dotenv": "^16.5.0"
   }
 }
