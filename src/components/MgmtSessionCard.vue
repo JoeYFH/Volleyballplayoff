@@ -87,6 +87,10 @@
           class="text-xs px-3 py-1.5 bg-sky-50 text-sky-600 rounded-lg hover:bg-sky-100 transition">
           🔗 {{ isZh ? '分享連結' : 'Share' }}
         </button>
+        <button @click="$emit('edit', session)"
+          class="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition">
+          ✏️ {{ isZh ? '編輯' : 'Edit' }}
+        </button>
         <button @click="$emit('delete', session.id)"
           class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition">
           🗑️ {{ isZh ? '刪除' : 'Delete' }}
@@ -131,7 +135,7 @@ const props = defineProps({
   isZh: { type: Boolean, default: true },
 });
 
-defineEmits(['toggle-open', 'toggle-private', 'delete', 'share']);
+defineEmits(['toggle-open', 'toggle-private', 'delete', 'share', 'edit']);
 
 const { signups } = useSignups(props.session.id, {
   limit: props.session.limit,

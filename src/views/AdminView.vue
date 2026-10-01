@@ -148,10 +148,19 @@
             @toggle-private="handleTogglePrivate"
             @delete="handleDelete"
             @share="handleShare"
+            @edit="handleEdit"
           />
         </div>
       </template>
     </div>
+
+    <!-- Edit session sheet -->
+    <CreateSessionSheet
+      v-if="showEditSheet"
+      :editSession="editingSession"
+      @close="showEditSheet = false; editingSession = null"
+      @updated="onSessionUpdated"
+    />
 
     <!-- Share modal -->
     <div v-if="shareUrl" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" @click.self="shareUrl = ''">
@@ -172,12 +181,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { supabase } from '@/lib/supabase.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { useI18n } from '@/lib/i18n.js';
 import MgmtSessionCard from '@/components/MgmtSessionCard.vue';
+import CreateSessionSheet from '@/components/CreateSessionSheet.vue';
 
 const { user, loading: authLoading, isAdmin, signInWithGoogle, signOut } = useAuth();
 const { lang, setLang } = useI18n();
@@ -208,6 +218,8 @@ const shareUrl = ref('');
 const copiedShare = ref(false);
 const feedbackList = ref([]);
 const feedbackLoading = ref(false);
+const editingSession = ref(null);
+const showEditSheet = ref(false);
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -305,16 +317,35 @@ async function handleFixCreatorInfo() {
   fetchSessions();
 }
 
-watch([user, authLoading], ([u, loading]) => {
-  if (!loading && u && isAdmin()) {
+// Use watchEffect for reliable reactive re-evaluation
+watchEffect(() => {
+  if (!authLoading.value && user.value && isAdmin()) {
     fetchSessions();
     if (!channel) subscribeRealtime();
   }
-}, { immediate: true });
+});
+
+// Extra safety: also try on mount after a tick
+onMounted(() => {
+  if (!authLoading.value && user.value && isAdmin()) {
+    fetchSessions();
+    if (!channel) subscribeRealtime();
+  }
+});
 
 onUnmounted(() => {
   if (channel) supabase.removeChannel(channel);
 });
+
+function handleEdit(session) {
+  editingSession.value = session;
+  showEditSheet.value = true;
+}
+function onSessionUpdated() {
+  showEditSheet.value = false;
+  editingSession.value = null;
+  fetchSessions();
+}
 
 // ── Handlers ───────────────────────────────────────────────────────────────────
 async function handleToggleOpen(id, isOpen) {
