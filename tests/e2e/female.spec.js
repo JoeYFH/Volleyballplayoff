@@ -24,6 +24,7 @@ test.describe.serial('純女場次', () => {
 
     // 備注顯示在 my-sessions 開場者管理頁
     await page.goto('/my-sessions.html');
+    await loginAsTestUser(page);
     await expect(page.locator('body')).toContainText('這是測試用的備注', { timeout: 10000 });
   });
 
