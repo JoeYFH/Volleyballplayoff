@@ -18,13 +18,17 @@ async function getClient() {
 /**
  * 建立測試用場次，回傳 session id
  * @param {'male'|'female'|'mixed'} type
+ * @param {{ maleLimit?: number, femaleLimit?: number }} options
  */
-export async function createTestSession(type) {
+export async function createTestSession(type, options = {}) {
   const supabase = await getClient();
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateStr = tomorrow.toISOString().slice(0, 10);
+
+  const maleLimit = options.maleLimit ?? (type === 'mixed' ? 6 : 0);
+  const femaleLimit = options.femaleLimit ?? (type === 'mixed' ? 6 : 0);
 
   const payload = {
     title: `[測試場次] ${type}`,
@@ -34,8 +38,8 @@ export async function createTestSession(type) {
     type,
     is_open: true,
     limit_total: type === 'mixed' ? 0 : 12,
-    male_limit: type === 'mixed' ? 6 : 0,
-    female_limit: type === 'mixed' ? 6 : 0,
+    male_limit: maleLimit,
+    female_limit: femaleLimit,
     equipment: ['球', '氣瓶'],
     venue: '場館一樓大廳集合，場地在二樓 B4',
     note: '這是測試用的備注，只有開場者看得到',

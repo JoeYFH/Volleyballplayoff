@@ -7,7 +7,7 @@ let sessionId;
 
 test.describe.serial('混排場次', () => {
   test('建立測試場次（混排）', async () => {
-    sessionId = await createTestSession('mixed');
+    sessionId = await createTestSession('mixed', { maleLimit: 1, femaleLimit: 1 });
     expect(sessionId).toBeTruthy();
     console.log(`\n🏐 混排測試場次建立：${sessionId}`);
   });
@@ -25,6 +25,8 @@ test.describe.serial('混排場次', () => {
     // 備注顯示在 my-sessions 開場者管理頁
     await page.goto('/my-sessions.html');
     await loginAsTestUser(page);
+    await page.waitForSelector('#authLoading', { state: 'hidden', timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('#mySessionsLoading', { state: 'hidden', timeout: 10000 }).catch(() => {});
     await expect(page.locator('body')).toContainText('這是測試用的備注', { timeout: 10000 });
   });
 
@@ -92,6 +94,24 @@ test.describe.serial('混排場次', () => {
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
     await expect(page.locator(`#list-${id}`)).toContainText('代報女朋友D');
+  });
+
+  test('超過男女名額後顯示候補名單', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
+    await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
+    await page.click('#sg-mixed');
+    await page.waitForTimeout(300);
+
+    const listEl = page.locator(`#list-${sessionId}`);
+    if (!(await listEl.count())) { test.skip(true, '找不到混排場次'); return; }
+
+    // 男女名額各 1，已分別有 2 名男生和 2 名女生報名，候補分隔線應出現
+    await expect(listEl).toContainText('候補', { timeout: 5000 });
+    // 超額的男生應在候補
+    await expect(listEl).toContainText('代報男朋友C');
+    // 超額的女生應在候補
+    await expect(listEl).toContainText('代報女朋友D');
   });
 
   test('混排場次有男女進度條', async ({ page }) => {

@@ -25,6 +25,8 @@ test.describe.serial('純男場次', () => {
     // 備注顯示在 my-sessions 開場者管理頁
     await page.goto('/my-sessions.html');
     await loginAsTestUser(page);
+    await page.waitForSelector('#authLoading', { state: 'hidden', timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('#mySessionsLoading', { state: 'hidden', timeout: 10000 }).catch(() => {});
     await expect(page.locator('body')).toContainText('這是測試用的備注', { timeout: 10000 });
   });
 
