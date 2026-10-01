@@ -37,6 +37,8 @@ export async function createTestSession(type) {
     male_limit: type === 'mixed' ? 6 : 0,
     female_limit: type === 'mixed' ? 6 : 0,
     equipment: ['球', '氣瓶'],
+    venue: '場館一樓大廳集合，場地在二樓 B4',
+    note: '這是測試用的備注，只有開場者看得到',
   };
 
   const { data, error } = await supabase
