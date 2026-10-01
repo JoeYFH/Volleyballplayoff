@@ -57,6 +57,10 @@
               : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
           📋 {{ isZh ? '所有開場' : 'All Sessions' }}
         </button>
+        <button @click="handleFixCreatorInfo"
+          class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-purple-200 text-purple-600 hover:bg-purple-50">
+          👤 {{ isZh ? '補全建立者資料' : 'Fix Creator Info' }}
+        </button>
         <button @click="handleClearGarbage"
           class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-red-200 text-red-500 hover:bg-red-50">
           🗑️ {{ isZh ? '清除垃圾資料' : 'Clear Junk' }}
@@ -77,7 +81,9 @@
           {{ isZh ? `共 ${sessions.length} 場` : `${sessions.length} sessions` }}
         </span>
         <span v-if="sessionsLoading" class="text-xs text-gray-400 animate-pulse">{{ isZh ? '載入中…' : 'Loading…' }}</span>
+        <button v-if="!sessionsLoading" @click="fetchSessions" class="text-xs text-gray-400 hover:text-indigo-500 transition">↻</button>
       </div>
+      <div v-if="fetchError" class="mb-3 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs">⚠️ {{ fetchError }}</div>
 
       <!-- Feedback panel -->
       <div v-if="activePanel === 'feedback'" class="mb-4">
@@ -191,6 +197,7 @@ function mapSession(row) {
 // ── Data ───────────────────────────────────────────────────────────────────────
 const sessions = ref([]);
 const sessionsLoading = ref(false);
+const fetchError = ref('');
 const activeFilter = ref('all');
 const activePanel = ref('sessions');
 const shareUrl = ref('');
@@ -225,11 +232,13 @@ const filteredSessions = computed(() => {
 // ── Fetch all sessions ─────────────────────────────────────────────────────────
 async function fetchSessions() {
   sessionsLoading.value = true;
+  fetchError.value = '';
   try {
     const { data, error } = await supabase.from('sessions').select('*').order('date', { ascending: false });
-    if (!error && data) {
-      sessions.value = data.map(mapSession);
-    }
+    if (error) { fetchError.value = error.message; return; }
+    sessions.value = (data || []).map(mapSession);
+  } catch (e) {
+    fetchError.value = e.message || 'Unknown error';
   } finally {
     sessionsLoading.value = false;
   }
@@ -240,11 +249,29 @@ let channel = null;
 
 function subscribeRealtime() {
   channel = supabase
-    .channel('admin-sessions-changes')
+    .channel('admin-sessions-' + Math.random().toString(36).slice(2))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
       fetchSessions();
     })
     .subscribe();
+}
+
+// ── Fix missing creator info for admin's own sessions ─────────────────────────
+async function handleFixCreatorInfo() {
+  if (!user.value) return;
+  const name = user.value.user_metadata?.full_name || user.value.user_metadata?.name || user.value.email || '';
+  const photo = user.value.user_metadata?.avatar_url || null;
+  const uid = user.value.id;
+  const { error, count } = await supabase.from('sessions')
+    .update({ creator_name: name, creator_photo: photo })
+    .eq('created_by', uid)
+    .is('creator_name', null);
+  if (error) { alert('Error: ' + error.message); return; }
+  // Also match by name for old Firebase sessions
+  await supabase.from('sessions').update({ creator_name: name, creator_photo: photo })
+    .eq('creator_name', '');
+  alert(isZh.value ? `✅ 已補全建立者資料（${count ?? '?'} 筆）` : `✅ Updated creator info (${count ?? '?'} records)`);
+  fetchSessions();
 }
 
 watch([user, authLoading], ([u, loading]) => {
