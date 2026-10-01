@@ -61,27 +61,31 @@
 
       <div class="px-4 pt-4 pb-16">
 
-        <!-- ── 建立新場次 ── -->
-        <button @click="showCreateSheet = true" class="w-full mb-2 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
-          + {{ isZh ? '建立新場次' : 'New Session' }}
-        </button>
-
-        <!-- ── 快捷按鈕列 ── -->
-        <div class="flex gap-2 mb-4 flex-wrap">
+        <!-- ── 頂部導覽按鈕列 ── -->
+        <div class="grid gap-2 mb-4" :class="isAdmin() ? 'grid-cols-4' : 'grid-cols-2'">
           <button @click="showCreateSheet = true"
-            class="flex-1 min-w-[120px] text-sm px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition">
-            📑 {{ isZh ? '我的範本' : 'Templates' }}
+            :class="['text-xs px-2 py-2.5 rounded-xl font-semibold transition flex flex-col items-center gap-0.5',
+              'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95']">
+            <span class="text-base leading-none">➕</span>
+            <span>{{ isZh ? '建立新場次' : 'New Session' }}</span>
+          </button>
+          <button @click="showCreateSheet = true"
+            class="text-xs px-2 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold transition flex flex-col items-center gap-0.5">
+            <span class="text-base leading-none">📑</span>
+            <span>{{ isZh ? '我的範本' : 'Templates' }}</span>
           </button>
           <button v-if="isAdmin()" @click="toggleAllSessions"
-            :class="['flex-1 min-w-[120px] text-sm px-3 py-2 rounded-xl font-medium transition',
+            :class="['text-xs px-2 py-2.5 rounded-xl font-semibold transition flex flex-col items-center gap-0.5',
               showAllSessions ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
-            📋 {{ isZh ? '所有開場' : 'All Sessions' }}
+            <span class="text-base leading-none">📋</span>
+            <span>{{ isZh ? '所有開場' : 'All Sessions' }}</span>
           </button>
           <button v-if="isAdmin()" @click="toggleFeedback"
-            :class="['flex-1 min-w-[120px] text-sm px-3 py-2 rounded-xl font-medium transition',
+            :class="['text-xs px-2 py-2.5 rounded-xl font-semibold transition flex flex-col items-center gap-0.5 relative',
               showFeedback ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
-            💬 {{ isZh ? '意見回覆' : 'Feedback' }}
-            <span v-if="feedbackList.length" class="ml-1 text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5">{{ feedbackList.length }}</span>
+            <span class="text-base leading-none">💬</span>
+            <span>{{ isZh ? '意見回覆' : 'Feedback' }}</span>
+            <span v-if="feedbackList.length" class="absolute -top-1 -right-1 text-[10px] bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">{{ feedbackList.length }}</span>
           </button>
         </div>
 
