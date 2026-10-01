@@ -61,36 +61,112 @@
 
       <div class="px-4 pt-4 pb-16">
 
-        <!-- ── 頂部導覽按鈕列 ── -->
-        <div class="grid gap-2 mb-4" :class="isAdmin() ? 'grid-cols-4' : 'grid-cols-2'">
-          <button @click="showCreateSheet = true"
-            :class="['text-xs px-2 py-2.5 rounded-xl font-semibold transition flex flex-col items-center gap-0.5',
-              'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95']">
-            <span class="text-base leading-none">➕</span>
-            <span>{{ isZh ? '建立新場次' : 'New Session' }}</span>
+        <!-- ── 建立新場次 ── -->
+        <button @click="showCreateSheet = true" class="w-full mb-3 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
+          + {{ isZh ? '建立新場次' : 'New Session' }}
+        </button>
+
+        <!-- ── Tab 列 ── -->
+        <div class="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
+          <button @click="setTab('my')"
+            :class="['flex-1 text-xs font-semibold py-2 rounded-lg transition',
+              activeTab === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+            🏃 {{ isZh ? '我的開場' : 'My' }}
           </button>
-          <button @click="showCreateSheet = true"
-            class="text-xs px-2 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold transition flex flex-col items-center gap-0.5">
-            <span class="text-base leading-none">📑</span>
-            <span>{{ isZh ? '我的範本' : 'Templates' }}</span>
+          <button @click="setTab('templates')"
+            :class="['flex-1 text-xs font-semibold py-2 rounded-lg transition',
+              activeTab === 'templates' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+            📑 {{ isZh ? '我的範本' : 'Templates' }}
           </button>
-          <button v-if="isAdmin()" @click="toggleAllSessions"
-            :class="['text-xs px-2 py-2.5 rounded-xl font-semibold transition flex flex-col items-center gap-0.5',
-              showAllSessions ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
-            <span class="text-base leading-none">📋</span>
-            <span>{{ isZh ? '所有開場' : 'All Sessions' }}</span>
+          <button v-if="isAdmin()" @click="setTab('all')"
+            :class="['flex-1 text-xs font-semibold py-2 rounded-lg transition',
+              activeTab === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+            📋 {{ isZh ? '所有開場' : 'All' }}
           </button>
-          <button v-if="isAdmin()" @click="toggleFeedback"
-            :class="['text-xs px-2 py-2.5 rounded-xl font-semibold transition flex flex-col items-center gap-0.5 relative',
-              showFeedback ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
-            <span class="text-base leading-none">💬</span>
-            <span>{{ isZh ? '意見回覆' : 'Feedback' }}</span>
-            <span v-if="feedbackList.length" class="absolute -top-1 -right-1 text-[10px] bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">{{ feedbackList.length }}</span>
+          <button v-if="isAdmin()" @click="setTab('feedback')"
+            :class="['flex-1 text-xs font-semibold py-2 rounded-lg transition relative',
+              activeTab === 'feedback' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+            💬 {{ isZh ? '意見回覆' : 'Feedback' }}
+            <span v-if="feedbackList.length" class="absolute top-0.5 right-0.5 text-[9px] bg-red-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold">{{ feedbackList.length }}</span>
           </button>
         </div>
 
+        <!-- ── 我的開場 ── -->
+        <div v-if="activeTab === 'my'">
+          <div class="flex gap-1.5 mb-1.5 overflow-x-auto pb-1">
+            <button v-for="f in statusFilters" :key="f.key" @click="statusFilter = f.key"
+              :class="statusFilter === f.key ? 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0' : 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0'">
+              {{ f.label }}
+            </button>
+          </div>
+          <div class="flex justify-end gap-1.5 mb-3">
+            <select v-model="sortType" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+              <option value="createdAt">{{ isZh ? '🕐 建立時間' : '🕐 Created' }}</option>
+              <option value="date">{{ isZh ? '📅 活動日期' : '📅 By Date' }}</option>
+              <option value="closeAt">{{ isZh ? '⏰ 截止時間' : '⏰ By Close' }}</option>
+            </select>
+            <select v-model="sortDir" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+              <option value="desc">{{ isZh ? '遠→近' : 'Far→Near' }}</option>
+              <option value="asc">{{ isZh ? '近→遠' : 'Near→Far' }}</option>
+            </select>
+          </div>
+          <div v-if="loading" class="space-y-4">
+            <div v-for="i in 2" :key="i" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div class="skeleton h-5 w-2/3 rounded-lg mb-2"></div>
+              <div class="skeleton h-3 w-1/4 rounded mb-4"></div>
+              <div class="flex gap-2"><div class="skeleton h-7 w-20 rounded-lg"></div><div class="skeleton h-7 w-16 rounded-lg"></div></div>
+            </div>
+          </div>
+          <div v-else-if="!filteredSessions.length" class="text-center py-10 text-gray-400">
+            <div class="text-4xl mb-2">📭</div>
+            <p class="text-sm">{{ isZh ? '還沒有建立任何場次' : 'No sessions created yet' }}</p>
+          </div>
+          <div v-else class="space-y-4">
+            <MgmtSessionCard v-for="s in filteredSessions" :key="s.id"
+              :session="s" :user="user" :is-zh="isZh"
+              @toggle-open="toggleOpen" @toggle-private="togglePrivate"
+              @delete="deleteSession" @share="shareSession" @edit="openEdit" />
+          </div>
+        </div>
+
+        <!-- ── 我的範本 ── -->
+        <div v-else-if="activeTab === 'templates'">
+          <div v-if="templatesLoading" class="flex justify-center py-8"><div class="text-3xl animate-bounce">🏐</div></div>
+          <div v-else-if="!templates.length" class="text-center py-10 text-gray-400">
+            <div class="text-4xl mb-2">📭</div>
+            <p class="text-sm">{{ isZh ? '還沒有儲存任何範本' : 'No templates saved yet' }}</p>
+            <p class="text-xs text-gray-300 mt-1">{{ isZh ? '建立場次時可儲存為範本' : 'Save a template when creating a session' }}</p>
+          </div>
+          <div v-else class="space-y-3">
+            <div v-for="tpl in templates" :key="tpl.id" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-800 text-sm truncate">{{ tpl.name }}</p>
+                  <div class="text-xs text-gray-400 mt-0.5 space-y-0.5">
+                    <div v-if="tpl.data?.location">📍 {{ tpl.data.location }}</div>
+                    <div v-if="tpl.data?.limit">👥 {{ tpl.data.limit }}{{ isZh ? '人' : '' }}
+                      <span v-if="tpl.data.type === 'mixed' && (tpl.data.maleLimit || tpl.data.femaleLimit)"> (♂{{ tpl.data.maleLimit || 0 }} ♀{{ tpl.data.femaleLimit || 0 }})</span>
+                    </div>
+                    <div v-if="tpl.data?.type">🏷️ {{ tpl.data.type === 'mixed' ? (isZh ? '混排' : 'Mixed') : tpl.data.type === 'male' ? (isZh ? '男生' : 'Male') : (isZh ? '女生' : 'Female') }}</div>
+                  </div>
+                </div>
+                <div class="flex gap-1.5 shrink-0">
+                  <button @click="loadTemplateCreate(tpl)"
+                    class="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition font-medium">
+                    {{ isZh ? '使用' : 'Use' }}
+                  </button>
+                  <button @click="deleteTemplate(tpl.id)"
+                    class="text-xs px-2 py-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── 所有開場 (admin) ── -->
-        <div v-if="showAllSessions" class="mb-6">
+        <div v-else-if="activeTab === 'all'">
           <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
             <button v-for="f in adminFilters" :key="f.key" @click="adminFilter = f.key"
               :class="['text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap transition shrink-0',
@@ -111,7 +187,7 @@
         </div>
 
         <!-- ── 意見回覆 (admin) ── -->
-        <div v-if="showFeedback" class="mb-6">
+        <div v-else-if="activeTab === 'feedback'">
           <div v-if="feedbackLoading" class="text-center py-8 text-gray-400 text-sm animate-pulse">{{ isZh ? '載入中…' : 'Loading…' }}</div>
           <div v-else-if="!feedbackList.length" class="text-center py-8 text-gray-400">
             <div class="text-3xl mb-2">📭</div><p class="text-sm">{{ isZh ? '還沒有意見回饋' : 'No feedback yet' }}</p>
@@ -135,47 +211,6 @@
           </div>
         </div>
 
-        <!-- ── 我的開場 ── -->
-        <div class="border-t border-gray-100 pt-4">
-          <p class="text-xs font-semibold text-gray-400 mb-2">{{ isZh ? '我的開場' : 'My Sessions' }}</p>
-
-          <div class="flex gap-1.5 mb-1.5 overflow-x-auto pb-1">
-            <button v-for="f in statusFilters" :key="f.key" @click="statusFilter = f.key"
-              :class="statusFilter === f.key ? 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0' : 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0'">
-              {{ f.label }}
-            </button>
-          </div>
-
-          <div class="flex justify-end gap-1.5 mb-3">
-            <select v-model="sortType" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
-              <option value="createdAt">{{ isZh ? '🕐 建立時間' : '🕐 Created' }}</option>
-              <option value="date">{{ isZh ? '📅 活動日期' : '📅 By Date' }}</option>
-              <option value="closeAt">{{ isZh ? '⏰ 截止時間' : '⏰ By Close' }}</option>
-            </select>
-            <select v-model="sortDir" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
-              <option value="desc">{{ isZh ? '遠→近' : 'Far→Near' }}</option>
-              <option value="asc">{{ isZh ? '近→遠' : 'Near→Far' }}</option>
-            </select>
-          </div>
-
-          <div v-if="loading" class="space-y-4">
-            <div v-for="i in 2" :key="i" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div class="skeleton h-5 w-2/3 rounded-lg mb-2"></div>
-              <div class="skeleton h-3 w-1/4 rounded mb-4"></div>
-              <div class="flex gap-2"><div class="skeleton h-7 w-20 rounded-lg"></div><div class="skeleton h-7 w-16 rounded-lg"></div></div>
-            </div>
-          </div>
-          <div v-else-if="!filteredSessions.length" class="text-center py-10 text-gray-400">
-            <div class="text-4xl mb-2">📭</div>
-            <p class="text-sm">{{ isZh ? '還沒有建立任何場次' : 'No sessions created yet' }}</p>
-          </div>
-          <div v-else class="space-y-4">
-            <MgmtSessionCard v-for="s in filteredSessions" :key="s.id"
-              :session="s" :user="user" :is-zh="isZh"
-              @toggle-open="toggleOpen" @toggle-private="togglePrivate"
-              @delete="deleteSession" @share="shareSession" @edit="openEdit" />
-          </div>
-        </div>
       </div>
     </div>
 
@@ -183,7 +218,8 @@
     <CreateSessionSheet
       v-if="showCreateSheet"
       :editSession="editingSession"
-      @close="showCreateSheet = false; editingSession = null"
+      :preloadData="templatePreload"
+      @close="showCreateSheet = false; editingSession = null; templatePreload = null"
       @created="onSessionCreated"
       @updated="onSessionUpdated"
     />
@@ -233,6 +269,7 @@ const sortType = ref('createdAt');
 const sortDir = ref('desc');
 const showCreateSheet = ref(false);
 const editingSession = ref(null);
+const templatePreload = ref(null);
 
 const statusFilters = computed(() => [
   { key: 'all', label: isZh.value ? '所有' : 'All' },
@@ -349,7 +386,7 @@ function onSessionUpdated() {
   showCreateSheet.value = false;
   editingSession.value = null;
   allSessions.value = [];
-  if (showAllSessions.value) toggleAllSessions();
+  if (activeTab.value === 'all') setTab('all');
 }
 
 const shareUrl = ref('');
@@ -365,8 +402,27 @@ async function copyShare() {
   setTimeout(() => { copiedShare.value = false; }, 2000);
 }
 
+// ── Tab state ──
+const activeTab = ref('my');
+
+async function setTab(tab) {
+  activeTab.value = tab;
+  if (tab === 'all' && !allSessions.value.length) {
+    allSessionsLoading.value = true;
+    const { data } = await supabase.from('sessions').select('*').order('date', { ascending: false });
+    allSessions.value = (data || []).map(mapSession);
+    allSessionsLoading.value = false;
+  }
+  if (tab === 'feedback' && !feedbackList.value.length) {
+    feedbackLoading.value = true;
+    const { data } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
+    feedbackList.value = data || [];
+    feedbackLoading.value = false;
+  }
+  if (tab === 'templates') await loadTemplates();
+}
+
 // ── Admin: 所有開場 ──
-const showAllSessions = ref(false);
 const allSessions = ref([]);
 const allSessionsLoading = ref(false);
 const adminFilter = ref('all');
@@ -393,29 +449,34 @@ const filteredAllSessions = computed(() => {
   });
 });
 
-async function toggleAllSessions() {
-  showAllSessions.value = !showAllSessions.value;
-  if (showAllSessions.value && !allSessions.value.length) {
-    allSessionsLoading.value = true;
-    const { data } = await supabase.from('sessions').select('*').order('date', { ascending: false });
-    allSessions.value = (data || []).map(mapSession);
-    allSessionsLoading.value = false;
-  }
-}
-
 // ── Admin: 意見回覆 ──
-const showFeedback = ref(false);
 const feedbackList = ref([]);
 const feedbackLoading = ref(false);
 
-async function toggleFeedback() {
-  showFeedback.value = !showFeedback.value;
-  if (showFeedback.value && !feedbackList.value.length) {
-    feedbackLoading.value = true;
-    const { data } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
-    feedbackList.value = data || [];
-    feedbackLoading.value = false;
-  }
+// ── 我的範本 ──
+const templates = ref([]);
+const templatesLoading = ref(false);
+
+async function loadTemplates() {
+  if (!user.value) return;
+  templatesLoading.value = true;
+  const { data } = await supabase.from('templates').select('*')
+    .eq('user_id', user.value.id).order('created_at', { ascending: false });
+  templates.value = data || [];
+  templatesLoading.value = false;
+}
+
+function loadTemplateCreate(tpl) {
+  editingSession.value = null;
+  templatePreload.value = tpl.data;
+  showCreateSheet.value = true;
+}
+
+async function deleteTemplate(id) {
+  const msg = isZh.value ? '確定刪除此範本？' : 'Delete this template?';
+  if (!confirm(msg)) return;
+  await supabase.from('templates').delete().eq('id', id);
+  templates.value = templates.value.filter(t => t.id !== id);
 }
 
 function openEdit(session) {

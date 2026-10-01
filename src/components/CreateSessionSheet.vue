@@ -270,6 +270,7 @@ import { sessionToRow } from '@/composables/useSessions.js';
 // ── Props & Emits ──────────────────────────────────────────────────────────────
 const props = defineProps({
   editSession: { type: Object, default: null },
+  preloadData: { type: Object, default: null },
 });
 const emit = defineEmits(['close', 'created', 'updated']);
 
@@ -497,6 +498,10 @@ const templates = ref([]);
 
 onMounted(async () => {
   if (!user.value) return;
+  if (props.preloadData) {
+    loadTemplate({ data: props.preloadData });
+    return;
+  }
   const { data } = await supabase.from('templates').select('*')
     .eq('user_id', user.value.id).order('created_at', { ascending: false });
   templates.value = data || [];
