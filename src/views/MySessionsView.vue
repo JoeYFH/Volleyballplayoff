@@ -374,7 +374,13 @@ async function togglePrivate(sessionId, currentIsPrivate) {
 async function deleteSession(sessionId) {
   const msg = isZh.value ? '確定刪除此場次？此操作無法恢復！' : 'Delete this session? This cannot be undone!';
   if (!confirm(msg)) return;
-  await supabase.from('sessions').delete().eq('id', sessionId);
+  const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
+  if (error) {
+    alert(isZh.value ? `刪除失敗：${error.message}` : `Delete failed: ${error.message}`);
+  } else {
+    sessions.value = sessions.value.filter(s => s.id !== sessionId);
+    allSessions.value = allSessions.value.filter(s => s.id !== sessionId);
+  }
 }
 
 function onSessionCreated() {
