@@ -208,9 +208,15 @@ function mapSession(row) {
 
 async function loadSessions() {
   if (!user.value) return;
+  const uid = user.value.id;
+  const name = user.value.user_metadata?.full_name || user.value.user_metadata?.name || '';
+  // Match by Supabase UID (new sessions) OR by creator_name (old Firebase-migrated sessions)
   const { data } = await supabase.from('sessions').select('*')
-    .eq('created_by', user.value.id).order('date', { ascending: false });
-  sessions.value = (data || []).map(mapSession);
+    .or(name ? `created_by.eq.${uid},creator_name.eq.${name}` : `created_by.eq.${uid}`)
+    .order('date', { ascending: false });
+  // Deduplicate in case both conditions match the same row
+  const seen = new Set();
+  sessions.value = (data || []).filter(r => seen.has(r.id) ? false : seen.add(r.id)).map(mapSession);
   loading.value = false;
 }
 
