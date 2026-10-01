@@ -32,7 +32,7 @@
 
         <template v-else>
           <div class="flex items-center gap-2">
-            <img v-if="photoURL" :src="photoURL" class="w-8 h-8 rounded-full border border-white shadow-sm shrink-0" />
+            <img v-if="photoURL" :src="photoURL" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full border border-white shadow-sm shrink-0" onerror="this.style.display='none'" />
             <div class="flex flex-col items-start gap-0.5">
               <div class="flex items-center gap-1.5">
                 <p class="text-xs font-medium text-gray-700 max-w-[80px] truncate leading-none">{{ displayName }}</p>
@@ -59,9 +59,16 @@ import { useAuth } from '@/composables/useAuth.js';
 const { lang, t, setLang } = useI18n();
 const { user, isAdmin, signInWithGoogle, signOut } = useAuth();
 
-const photoURL = computed(() => user.value?.user_metadata?.avatar_url || null);
+const photoURL = computed(() =>
+  user.value?.user_metadata?.avatar_url
+  || user.value?.identities?.[0]?.identity_data?.avatar_url
+  || null
+);
 const displayName = computed(() =>
-  user.value?.user_metadata?.full_name || user.value?.user_metadata?.name || user.value?.email || ''
+  user.value?.user_metadata?.full_name
+  || user.value?.user_metadata?.name
+  || user.value?.identities?.[0]?.identity_data?.full_name
+  || user.value?.email || ''
 );
 
 function toggleLang() {
