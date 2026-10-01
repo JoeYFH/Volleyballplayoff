@@ -363,12 +363,20 @@ const filteredSessions = computed(() => {
   return list;
 });
 
+function patchLocalSession(sessionId, fields) {
+  const patch = s => s.id === sessionId ? { ...s, ...fields } : s;
+  sessions.value = sessions.value.map(patch);
+  allSessions.value = allSessions.value.map(patch);
+}
+
 async function toggleOpen(sessionId, currentIsOpen) {
-  await supabase.from('sessions').update({ is_open: !currentIsOpen }).eq('id', sessionId);
+  const { error } = await supabase.from('sessions').update({ is_open: !currentIsOpen }).eq('id', sessionId);
+  if (!error) patchLocalSession(sessionId, { isOpen: !currentIsOpen });
 }
 
 async function togglePrivate(sessionId, currentIsPrivate) {
-  await supabase.from('sessions').update({ is_private: !currentIsPrivate }).eq('id', sessionId);
+  const { error } = await supabase.from('sessions').update({ is_private: !currentIsPrivate }).eq('id', sessionId);
+  if (!error) patchLocalSession(sessionId, { isPrivate: !currentIsPrivate });
 }
 
 async function deleteSession(sessionId) {
@@ -390,6 +398,7 @@ function onSessionCreated() {
 function onSessionUpdated() {
   showCreateSheet.value = false;
   editingSession.value = null;
+  loadSessions();
   allSessions.value = [];
   if (activeTab.value === 'all') setTab('all');
 }
