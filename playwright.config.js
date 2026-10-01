@@ -5,8 +5,6 @@ config({ path: '.env.test' });
 
 export default defineConfig({
   testDir: './tests/e2e',
-  globalSetup: './tests/global-setup.js',
-  globalTeardown: './tests/global-teardown.js',
   timeout: 30000,
   retries: 1,
   use: {

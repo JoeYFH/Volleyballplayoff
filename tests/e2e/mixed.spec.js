@@ -1,17 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'fs';
 import { loginAsTestUser } from '../helpers/auth.js';
 import { fillSignupForm, openSignupModal } from '../helpers/signup.js';
+import { createTestSession, deleteTestSession } from '../helpers/session.js';
 
-const sessionId = JSON.parse(readFileSync('test-results/test-sessions.json', 'utf8')).mixed;
+let sessionId;
 
-test.describe('混排場次', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await loginAsTestUser(page);
+test.describe.serial('混排場次', () => {
+  test('建立測試場次（混排）', async () => {
+    sessionId = await createTestSession('mixed');
+    expect(sessionId).toBeTruthy();
+    console.log(`\n🏐 混排測試場次建立：${sessionId}`);
   });
 
   test('報名混排場次（男）', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
     const id = await openSignupModal(page, 'mixed', sessionId);
     if (!id) { test.skip(true, '找不到混排場次'); return; }
 
@@ -22,6 +25,8 @@ test.describe('混排場次', () => {
   });
 
   test('報名混排場次（女）', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
     const id = await openSignupModal(page, 'mixed', sessionId);
     if (!id) { test.skip(true, '找不到混排場次'); return; }
 
@@ -32,6 +37,8 @@ test.describe('混排場次', () => {
   });
 
   test('代報名朋友（混排，男）', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
     const id = await openSignupModal(page, 'mixed', sessionId);
     if (!id) { test.skip(true, '找不到混排場次'); return; }
 
@@ -48,6 +55,8 @@ test.describe('混排場次', () => {
   });
 
   test('代報名朋友（混排，女）', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
     const id = await openSignupModal(page, 'mixed', sessionId);
     if (!id) { test.skip(true, '找不到混排場次'); return; }
 
@@ -64,6 +73,8 @@ test.describe('混排場次', () => {
   });
 
   test('混排場次有男女進度條', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
     await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
     await page.click('#sg-mixed');
     await page.waitForTimeout(300);
@@ -77,6 +88,8 @@ test.describe('混排場次', () => {
   });
 
   test('選攜帶器材後顯示在報名列表（混排場次）', async ({ page }) => {
+    await page.goto('/');
+    await loginAsTestUser(page);
     const id = await openSignupModal(page, 'mixed', sessionId);
     if (!id) { test.skip(true, '找不到混排場次'); return; }
 
@@ -91,5 +104,10 @@ test.describe('混排場次', () => {
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
     await expect(page.locator(`#list-${id}`)).toContainText('🎒');
+  });
+
+  test('刪除測試場次（混排）', async () => {
+    await deleteTestSession(sessionId);
+    console.log(`\n🗑️  混排測試場次刪除：${sessionId}`);
   });
 });

@@ -5,9 +5,9 @@
   "main": "firebase-config.js",
   "scripts": {
     "test": "playwright test",
-    "test:male": "playwright test tests/e2e/male.spec.js",
-    "test:female": "playwright test tests/e2e/female.spec.js",
-    "test:mixed": "playwright test tests/e2e/mixed.spec.js",
+    "test:male": "playwright test tests/e2e/male.spec.js --project=chromium",
+    "test:female": "playwright test tests/e2e/female.spec.js --project=chromium",
+    "test:mixed": "playwright test tests/e2e/mixed.spec.js --project=chromium",
     "test:list": "playwright test tests/e2e/list.spec.js",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
