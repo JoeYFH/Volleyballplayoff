@@ -6,9 +6,12 @@ test.describe('首頁場次列表', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Wait for filter bar to confirm Vue app is loaded and data fetched
+    // Wait for filter bar — confirms Vue app has mounted and data load attempted
     await page.locator('button:has-text("報名中"), button:has-text("Open")').first()
       .waitFor({ state: 'visible', timeout: 12000 });
+
+    // Allow a bit more time for Supabase async fetch to complete
+    await page.waitForTimeout(1000);
 
     const hasSessions = await page.locator('[id^="card-"]').count();
     const hasEmpty = await page.locator('text=/沒有即將舉行|No upcoming/').isVisible();

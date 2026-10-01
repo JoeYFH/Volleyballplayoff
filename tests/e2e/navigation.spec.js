@@ -81,7 +81,7 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
 
     // 首頁圖示按鈕（RouterLink to="/"）
     await page.locator('a[href="/"]').first().click();
-    await expect(page).toHaveURL(/^\/$|\/\?/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/$|\/\?/, { timeout: 5000 });
   });
 
   // ── 分享功能 ──
