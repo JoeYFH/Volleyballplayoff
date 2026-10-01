@@ -23,20 +23,29 @@
       </div>
 
       <!-- Info grid -->
-      <div class="flex flex-wrap gap-y-1.5 gap-x-4 text-sm text-gray-800 mt-3">
-        <div class="flex items-center gap-1"><span>📅</span><span>{{ formatDate(session.date) }}</span></div>
-        <div class="flex items-center gap-1"><span>🕐</span><span>{{ session.time || '—' }}</span></div>
-        <div class="flex items-center gap-1 w-full">
+      <div class="text-sm text-gray-800 mt-3 space-y-1">
+        <!-- Row 1: date + time -->
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <div class="flex items-center gap-1"><span>📅</span><span>{{ formatDate(session.date) }}</span></div>
+          <div class="flex items-center gap-1"><span>🕐</span><span>{{ session.time || '—' }}</span></div>
+        </div>
+        <!-- Row 2: location + venue on same line -->
+        <div class="flex items-start gap-1 flex-wrap">
           <span>📍</span>
           <a :href="`https://maps.google.com/?q=${encodeURIComponent(session.location || '')}`" target="_blank" class="text-indigo-500 hover:underline">{{ session.location || '—' }}</a>
+          <span v-if="session.venue" class="text-gray-400 text-xs self-center">·</span>
+          <span v-if="session.venue" class="text-xs text-gray-500">{{ session.venue }}</span>
         </div>
-        <div v-if="session.venue" class="flex items-center gap-1 text-xs text-gray-500 col-span-2"><span>🏟️</span><span>{{ session.venue }}</span></div>
-        <div v-if="session.limit" class="flex items-center gap-1"><span>👥</span><span>{{ isZh ? '名額' : 'Limit' }} {{ session.limit }}{{ isZh ? '人' : ' players' }}</span></div>
-        <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
-        <div v-if="session.equipment?.length" class="flex items-center gap-1 text-xs text-gray-500 col-span-2">
-          <span>🎒</span><span>{{ isZh ? '需自備：' : 'Bring: ' }}{{ session.equipment.join(isZh ? '、' : ', ') }}</span>
+        <!-- Row 3: limit, type, equipment -->
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <div v-if="session.limit" class="flex items-center gap-1"><span>👥</span><span>{{ isZh ? '名額' : 'Limit' }} {{ session.limit }}{{ isZh ? '人' : '' }}</span></div>
+          <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
+          <div v-if="session.equipment?.length" class="flex items-center gap-1 text-xs text-gray-500">
+            <span>🎒</span><span>{{ isZh ? '需自備：' : 'Bring: ' }}{{ session.equipment.join(isZh ? '、' : ', ') }}</span>
+          </div>
         </div>
-        <div v-if="isOrganizer && session.note" class="flex items-center gap-1 text-xs text-gray-400 col-span-2"><span>📝</span><span>{{ session.note }}</span></div>
+        <!-- Note (organizer only) -->
+        <div v-if="isOrganizer && session.note" class="flex items-center gap-1 text-xs text-gray-400"><span>📝</span><span>{{ session.note }}</span></div>
       </div>
 
       <!-- Progress bar(s) -->
