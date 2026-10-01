@@ -25,6 +25,7 @@ export async function loginAsTestUser(page) {
 
   await page.addInitScript(({ key, session }) => {
     localStorage.setItem(key, JSON.stringify(session));
+    localStorage.setItem('lang', 'zh');
   }, { key: storageKey, session: data.session });
 
   await page.reload();
