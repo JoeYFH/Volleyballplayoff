@@ -53,7 +53,7 @@ test.describe.serial('純女場次', () => {
     if (!(await chips.count())) { test.skip(true, '無器材 chip'); return; }
 
     await chips.first().click();
-    await fillSignupForm(page, { name: 'Playwright 女生攜帶測試' });
+    await fillSignupForm(page, { name: 'Playwright 女生攜帶測試', forFriend: true, friendName: '器材測試朋友(女)' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
     await expect(page.locator(`#list-${id}`)).toContainText('🎒');

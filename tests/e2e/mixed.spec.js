@@ -100,7 +100,7 @@ test.describe.serial('混排場次', () => {
     if (!(await chips.count())) { test.skip(true, '無器材 chip'); return; }
 
     await chips.first().click();
-    await fillSignupForm(page, { name: 'Playwright 混排帶器材', gender: 'male' });
+    await fillSignupForm(page, { name: 'Playwright 混排帶器材', gender: 'male', forFriend: true, friendName: '器材測試朋友(混排)', friendGender: 'male' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
     await expect(page.locator(`#list-${id}`)).toContainText('🎒');
