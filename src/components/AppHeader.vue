@@ -1,6 +1,6 @@
 <template>
   <div class="sticky top-0 z-20 bg-gray-50 px-4 pt-4 pb-3 border-b border-gray-100">
-    <div class="flex items-center justify-between gap-2">
+    <div class="max-w-2xl mx-auto flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0">
         <span class="text-2xl shrink-0">🏐</span>
         <div class="hidden sm:block min-w-0">

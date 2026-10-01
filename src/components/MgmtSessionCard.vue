@@ -4,7 +4,13 @@
       <!-- Title + status -->
       <div class="flex items-start justify-between gap-2 mb-2">
         <div>
-          <p class="font-bold text-gray-800">{{ title }}</p>
+          <div class="flex items-center gap-1.5">
+            <p class="font-bold text-gray-800">{{ title }}</p>
+            <a :href="`/?session=${session.id}`" target="_blank"
+              class="text-gray-300 hover:text-indigo-500 transition shrink-0" :title="isZh ? '查看報名頁面' : 'View signup page'">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            </a>
+          </div>
           <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <img v-if="session.creatorPhoto" :src="session.creatorPhoto" class="w-4 h-4 rounded-full border border-gray-200 shrink-0" alt="" onerror="this.style.display='none'" />
             <p v-if="session.creatorName" class="text-xs text-gray-400">{{ isZh ? '舉辦人' : 'By' }}: {{ session.creatorName }}</p>

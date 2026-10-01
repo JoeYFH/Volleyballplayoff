@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50 pb-24">
     <AppHeader />
 
-    <div class="px-4 pt-0">
+    <div class="max-w-2xl mx-auto px-4 pt-0">
       <FilterBar
         v-model:statusFilter="statusFilter"
         v-model:genderFilter="genderFilter"
@@ -17,7 +17,7 @@
     </div>
 
     <!-- Sessions list -->
-    <div v-else class="px-4 pt-4 space-y-4">
+    <div v-else class="max-w-2xl mx-auto px-4 pt-4 space-y-4">
       <div v-if="!filteredSessions.length" class="text-center py-10 text-gray-400">
         <div class="text-4xl mb-3">📭</div>
         <p>{{ isZh ? '目前沒有即將舉行的場次' : 'No upcoming sessions' }}</p>
