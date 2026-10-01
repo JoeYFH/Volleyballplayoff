@@ -12,7 +12,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
-    "report": "node scripts/report.js"
+    "report": "node scripts/report.js",
+    "cleanup": "node scripts/cleanup-test-sessions.js"
   },
   "type": "module",
   "repository": {

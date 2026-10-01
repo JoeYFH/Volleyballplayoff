@@ -53,6 +53,11 @@ export async function createTestSession(type) {
  */
 export async function deleteTestSession(sessionId) {
   if (!sessionId) return;
-  const supabase = await getClient();
-  await supabase.from('sessions').delete().eq('id', sessionId);
+  try {
+    const supabase = await getClient();
+    const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
+    if (error) console.error(`[afterAll] 刪除測試場次失敗 ${sessionId}：${error.message}`);
+  } catch (e) {
+    console.error(`[afterAll] 刪除測試場次例外 ${sessionId}：${e.message}`);
+  }
 }
