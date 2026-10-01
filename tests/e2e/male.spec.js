@@ -1,19 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
 import { loginAsTestUser } from '../helpers/auth.js';
 import { fillSignupForm, openSignupModal } from '../helpers/signup.js';
-import { createTestSession, deleteTestSession } from '../helpers/session.js';
 
-let sessionId;
+const sessionId = JSON.parse(readFileSync('test-results/test-sessions.json', 'utf8')).male;
 
 test.describe('純男場次', () => {
-  test.beforeAll(async () => {
-    sessionId = await createTestSession('male');
-  });
-
-  test.afterAll(async () => {
-    await deleteTestSession(sessionId);
-  });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await loginAsTestUser(page);
@@ -26,7 +18,6 @@ test.describe('純男場次', () => {
     await fillSignupForm(page, { name: 'Playwright 男生' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
-    // 登入後 #modalName 隱藏，顯示帳號名；(me) badge 代表本人報名成功
     await expect(page.locator(`#list-${id}`)).toContainText('(me)');
   });
 

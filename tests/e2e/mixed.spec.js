@@ -1,19 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
 import { loginAsTestUser } from '../helpers/auth.js';
 import { fillSignupForm, openSignupModal } from '../helpers/signup.js';
-import { createTestSession, deleteTestSession } from '../helpers/session.js';
 
-let sessionId;
+const sessionId = JSON.parse(readFileSync('test-results/test-sessions.json', 'utf8')).mixed;
 
 test.describe('混排場次', () => {
-  test.beforeAll(async () => {
-    sessionId = await createTestSession('mixed');
-  });
-
-  test.afterAll(async () => {
-    await deleteTestSession(sessionId);
-  });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await loginAsTestUser(page);
