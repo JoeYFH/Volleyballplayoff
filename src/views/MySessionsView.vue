@@ -65,6 +65,12 @@
           + {{ isZh ? '建立新場次' : 'New Session' }}
         </button>
 
+        <!-- Admin shortcut -->
+        <RouterLink v-if="isAdmin()" to="/admin"
+          class="flex items-center justify-center gap-2 w-full mb-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl py-2.5 font-semibold text-sm hover:bg-amber-100 transition">
+          ⚙️ {{ isZh ? '管理後台' : 'Admin Panel' }}
+        </RouterLink>
+
         <!-- Status filters -->
         <div class="flex gap-1.5 mb-1.5 overflow-x-auto pb-1">
           <button v-for="f in statusFilters" :key="f.key" @click="statusFilter = f.key"

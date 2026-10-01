@@ -61,6 +61,10 @@
           class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-purple-200 text-purple-600 hover:bg-purple-50">
           👤 {{ isZh ? '補全建立者資料' : 'Fix Creator Info' }}
         </button>
+        <button @click="handleCreateTestSession"
+          class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-teal-200 text-teal-600 hover:bg-teal-50">
+          🧪 {{ isZh ? '建立測試場次' : 'Test Session' }}
+        </button>
         <button @click="handleClearGarbage"
           class="text-sm px-4 py-2 rounded-xl font-semibold transition shadow-sm bg-white border border-red-200 text-red-500 hover:bg-red-50">
           🗑️ {{ isZh ? '清除垃圾資料' : 'Clear Junk' }}
@@ -254,6 +258,33 @@ function subscribeRealtime() {
       fetchSessions();
     })
     .subscribe();
+}
+
+// ── Create test session ────────────────────────────────────────────────────────
+async function handleCreateTestSession() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const date = tomorrow.toISOString().split('T')[0];
+  const { error } = await supabase.from('sessions').insert({
+    title: '[測試場次]',
+    date,
+    time: '19:00',
+    location: '測試球館',
+    venue: '場館一樓大廳集合',
+    type: 'mixed',
+    limit_total: 12,
+    male_limit: 6,
+    female_limit: 6,
+    is_open: true,
+    is_private: false,
+    created_by: user.value?.id,
+    creator_name: 'test',
+    creator_photo: null,
+    note: '這是測試場次',
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  alert(isZh.value ? '✅ 測試場次已建立！' : '✅ Test session created!');
+  fetchSessions();
 }
 
 // ── Fix missing creator info for admin's own sessions ─────────────────────────
