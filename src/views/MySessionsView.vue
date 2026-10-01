@@ -300,14 +300,13 @@ function mapSession(row) {
 async function loadSessions() {
   if (!user.value) return;
   const uid = user.value.id;
-  const name = user.value.user_metadata?.full_name || user.value.user_metadata?.name || '';
-  const [{ data: byUid }, { data: byName }] = await Promise.all([
-    supabase.from('sessions').select('*').eq('created_by', uid),
-    name ? supabase.from('sessions').select('*').eq('creator_name', name) : { data: [] },
-  ]);
-  const seen = new Set();
-  sessions.value = [...(byUid || []), ...(byName || [])]
-    .filter(r => seen.has(r.id) ? false : seen.add(r.id))
+  const myName = user.value.user_metadata?.full_name || user.value.user_metadata?.name || '';
+  // Only show sessions I created where creator_name matches mine (or is unset)
+  // This excludes sessions created under a different name (e.g. test sessions)
+  const { data } = await supabase.from('sessions').select('*')
+    .eq('created_by', uid)
+    .or(`creator_name.is.null,creator_name.eq.${myName}`);
+  sessions.value = (data || [])
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
     .map(mapSession);
   loading.value = false;
