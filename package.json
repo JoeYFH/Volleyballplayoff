@@ -4,6 +4,9 @@
   "description": "> **Volleyball Pickup Sign-up System** > 讓球友快速建立場次、線上報名的輕量 Web App。",
   "main": "firebase-config.js",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "playwright test",
     "test:male": "playwright test tests/e2e/male.spec.js --project=chromium",
     "test:female": "playwright test tests/e2e/female.spec.js --project=chromium",
@@ -30,6 +33,15 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@supabase/supabase-js": "^2.49.4",
-    "dotenv": "^16.5.0"
+    "@vitejs/plugin-vue": "^6.0.9",
+    "autoprefixer": "^10.6.1",
+    "dotenv": "^16.5.0",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.19",
+    "vite": "^8.3.1"
+  },
+  "dependencies": {
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1"
   }
 }
