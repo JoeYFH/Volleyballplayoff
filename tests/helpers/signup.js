@@ -37,7 +37,10 @@ export async function fillSignupForm(page, opts) {
   await page.click('#modalSubmitBtn');
 }
 
-export async function openSignupModal(page, sessionType) {
+/**
+ * @param {string} [targetSessionId] - 指定場次 ID；省略則取第一個符合類型的場次
+ */
+export async function openSignupModal(page, sessionType, targetSessionId = null) {
   await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
 
   if (sessionType === 'male') await page.click('#sg-male');
@@ -46,7 +49,10 @@ export async function openSignupModal(page, sessionType) {
 
   await page.waitForTimeout(300);
 
-  const signupBtn = page.locator('button[id^="signup-btn-"]').first();
+  const signupBtn = targetSessionId
+    ? page.locator(`#signup-btn-${targetSessionId}`)
+    : page.locator('button[id^="signup-btn-"]').first();
+
   if (!(await signupBtn.count())) return null;
 
   const btnId = await signupBtn.getAttribute('id');
