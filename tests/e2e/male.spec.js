@@ -19,9 +19,12 @@ test.describe.serial('純男場次', () => {
     await page.click('#sg-male');
     await page.waitForTimeout(300);
 
-    const card = page.locator(`#card-${sessionId}`);
-    await expect(card).toContainText('場館一樓大廳集合');
-    await expect(card).toContainText('這是測試用的備注');
+    // 活動詳細說明顯示在主頁場次卡片
+    await expect(page.locator(`#card-${sessionId}`)).toContainText('場館一樓大廳集合');
+
+    // 備注顯示在 my-sessions 開場者管理頁
+    await page.goto('/my-sessions.html');
+    await expect(page.locator('body')).toContainText('這是測試用的備注', { timeout: 10000 });
   });
 
   test('登入後報名純男場次', async ({ page }) => {
