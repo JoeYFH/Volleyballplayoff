@@ -174,7 +174,7 @@ const displayName = computed(() =>
   || user.value?.email || ''
 );
 
-const statusFilter = ref('open');
+const statusFilter = ref('all');
 const sortType = ref('createdAt');
 const sortDir = ref('desc');
 const showCreateSheet = ref(false);
@@ -210,13 +210,16 @@ async function loadSessions() {
   if (!user.value) return;
   const uid = user.value.id;
   const name = user.value.user_metadata?.full_name || user.value.user_metadata?.name || '';
-  // Match by Supabase UID (new sessions) OR by creator_name (old Firebase-migrated sessions)
-  const { data } = await supabase.from('sessions').select('*')
-    .or(name ? `created_by.eq.${uid},creator_name.eq.${name}` : `created_by.eq.${uid}`)
-    .order('date', { ascending: false });
-  // Deduplicate in case both conditions match the same row
+  // Fetch by UID and by name separately to avoid .or() escaping issues with spaces
+  const [{ data: byUid }, { data: byName }] = await Promise.all([
+    supabase.from('sessions').select('*').eq('created_by', uid),
+    name ? supabase.from('sessions').select('*').eq('creator_name', name) : { data: [] },
+  ]);
   const seen = new Set();
-  sessions.value = (data || []).filter(r => seen.has(r.id) ? false : seen.add(r.id)).map(mapSession);
+  sessions.value = [...(byUid || []), ...(byName || [])]
+    .filter(r => seen.has(r.id) ? false : seen.add(r.id))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .map(mapSession);
   loading.value = false;
 }
 
