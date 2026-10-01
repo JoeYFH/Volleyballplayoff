@@ -1,0 +1,26 @@
+{
+  "name": "volleyballplayoff",
+  "version": "1.0.0",
+  "description": "> **Volleyball Pickup Sign-up System** > 讓球友快速建立場次、線上報名的輕量 Web App。",
+  "main": "firebase-config.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoeYFH/volleyballplayoff.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JoeYFH/volleyballplayoff/issues"
+  },
+  "homepage": "https://github.com/JoeYFH/volleyballplayoff#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
