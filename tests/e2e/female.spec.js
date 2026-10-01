@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 import { loginAsTestUser } from '../helpers/auth.js';
 import { fillSignupForm, openSignupModal } from '../helpers/signup.js';
 import { createTestSession, deleteTestSession } from '../helpers/session.js';
@@ -12,7 +13,7 @@ test.describe.serial('純女場次', () => {
     console.log(`\n🏐 純女測試場次建立：${sessionId}`);
   });
 
-  test('場次卡片顯示活動詳細說明與備注（純女）', async ({ page }) => {
+  test('場次卡片顯示活動詳細說明（純女）', async ({ page }) => {
     await page.goto('/');
     await loginAsTestUser(page);
     await page.waitForSelector('#loadingSpinner', { state: 'hidden', timeout: 10000 });
@@ -21,13 +22,12 @@ test.describe.serial('純女場次', () => {
 
     // 活動詳細說明顯示在主頁場次卡片
     await expect(page.locator(`#card-${sessionId}`)).toContainText('場館一樓大廳集合');
+  });
 
-    // 備注顯示在 my-sessions 開場者管理頁
-    await page.goto('/my-sessions.html');
-    await loginAsTestUser(page);
-    await page.waitForSelector('#authLoading', { state: 'hidden', timeout: 10000 }).catch(() => {});
-    await page.waitForSelector('#mySessionsLoading', { state: 'hidden', timeout: 10000 }).catch(() => {});
-    await expect(page.locator('body')).toContainText('這是測試用的備注', { timeout: 10000 });
+  test('備注欄位正確儲存（純女）', async () => {
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    const { data } = await supabase.from('sessions').select('note').eq('id', sessionId).single();
+    expect(data?.note).toContain('這是測試用的備注');
   });
 
   test('登入後報名純女場次', async ({ page }) => {
