@@ -24,16 +24,22 @@ test.describe.serial('混排場次', () => {
     await expect(page.locator(`#list-${id}`)).toContainText('(me)');
   });
 
-  test('報名混排場次（女）', async ({ page }) => {
+  test('代報名女生（混排場次）', async ({ page }) => {
     await page.goto('/');
     await loginAsTestUser(page);
     const id = await openSignupModal(page, 'mixed', sessionId);
     if (!id) { test.skip(true, '找不到混排場次'); return; }
 
-    await fillSignupForm(page, { name: 'Playwright 混排女', gender: 'female' });
+    await fillSignupForm(page, {
+      name: 'Playwright 混排',
+      gender: 'male',
+      forFriend: true,
+      friendName: '代報女生E',
+      friendGender: 'female',
+    });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator(`#list-${id}`)).toContainText('(me)');
+    await expect(page.locator(`#list-${id}`)).toContainText('代報女生E');
   });
 
   test('代報名朋友（混排，男）', async ({ page }) => {
