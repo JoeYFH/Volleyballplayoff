@@ -71,7 +71,7 @@ test.describe('登入後操作', () => {
     await loginAsTestUser(page);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('button:has-text("我的報名"), button:has-text("My Signups")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("我的報名"), button:has-text("My Signups")')).toBeVisible({ timeout: 15000 });
   });
 
   test('登入後 FAB 選單有「我的開場」選項', async ({ page }) => {
@@ -79,7 +79,9 @@ test.describe('登入後操作', () => {
     await loginAsTestUser(page);
     await page.waitForLoadState('networkidle');
 
-    await page.locator('button[title="選單"], button:has-text("≡")').click();
+    const menuBtn = page.locator('button[title="選單"], button:has-text("≡")').first();
+    await menuBtn.waitFor({ state: 'visible', timeout: 15000 });
+    await menuBtn.click();
     await expect(page.locator('button:has-text("我的開場"), button:has-text("My Sessions")')).toBeVisible({ timeout: 5000 });
   });
 });

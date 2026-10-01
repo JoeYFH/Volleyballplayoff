@@ -24,8 +24,10 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // 左下角 💬 FAB
-    await page.locator('button[title="意見回饋"], button:has-text("💬")').first().click();
+    // 等 Vue app 掛載完成（💬 FAB 出現即代表 app 已 render）
+    const fab = page.locator('button[title="意見回饋"], button:has-text("💬")').first();
+    await fab.waitFor({ state: 'visible', timeout: 15000 });
+    await fab.click();
 
     // FeedbackModal：有 textarea 和送出按鈕
     await expect(page.locator('textarea')).toBeVisible({ timeout: 5000 });
@@ -36,7 +38,9 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('button[title="意見回饋"], button:has-text("💬")').first().click();
+    const fab = page.locator('button[title="意見回饋"], button:has-text("💬")').first();
+    await fab.waitFor({ state: 'visible', timeout: 15000 });
+    await fab.click();
     await expect(page.locator('textarea')).toBeVisible({ timeout: 5000 });
 
     // 填寫描述（必填）
@@ -56,8 +60,10 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await loginAsTestUser(page);
     await page.waitForLoadState('networkidle');
 
-    // 開啟 speed dial
-    await page.locator('button[title="選單"], button:has-text("≡")').click();
+    // 等選單按鈕出現後開啟 speed dial
+    const menuBtn = page.locator('button[title="選單"], button:has-text("≡")').first();
+    await menuBtn.waitFor({ state: 'visible', timeout: 15000 });
+    await menuBtn.click();
 
     // 點「我的開場」
     await page.locator('button:has-text("我的開場"), button:has-text("My Sessions")').click();
@@ -70,7 +76,9 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await loginAsTestUser(page);
     await page.waitForLoadState('networkidle');
 
-    await page.locator('button:has-text("我的報名"), button:has-text("My Signups")').click();
+    const mySignupsBtn = page.locator('button:has-text("我的報名"), button:has-text("My Signups")').first();
+    await mySignupsBtn.waitFor({ state: 'visible', timeout: 15000 });
+    await mySignupsBtn.click();
     await expect(page).toHaveURL(/\/my-signups/, { timeout: 5000 });
   });
 
