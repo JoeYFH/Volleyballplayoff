@@ -143,7 +143,7 @@
                 :class="equipment.includes(item)
                   ? 'text-xs px-3 py-1.5 rounded-full border border-indigo-500 bg-indigo-500 text-white transition'
                   : 'text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition'">
-                {{ item }}
+                {{ equipLabel(item) }}
               </button>
             </div>
             <!-- Custom equipment input -->
@@ -281,6 +281,8 @@ const isEdit = computed(() => !!props.editSession);
 
 // ── Default equipment chips ────────────────────────────────────────────────────
 const DEFAULT_EQUIP = ['標竿', '音響', '球'];
+const EQUIP_EN = { '標竿': 'Poles', '音響': 'Speaker', '球': 'Ball' };
+function equipLabel(item) { return isZh.value ? item : (EQUIP_EN[item] || item); }
 
 // ── Form state ─────────────────────────────────────────────────────────────────
 const title        = ref('');
