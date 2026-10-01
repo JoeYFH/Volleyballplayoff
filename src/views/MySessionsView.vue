@@ -125,14 +125,14 @@
       </div>
     </div>
 
-    <!-- Create session placeholder sheet -->
-    <div v-if="showCreateSheet" class="fixed inset-0 bg-black/40 z-40 flex items-end justify-center" @click.self="showCreateSheet = false">
-      <div class="bg-white rounded-t-3xl w-full max-w-lg p-6">
-        <h3 class="font-bold text-gray-800 mb-2">{{ isZh ? '建立新場次' : 'New Session' }}</h3>
-        <p class="text-center text-gray-400 py-6 text-sm">{{ isZh ? '功能開發中，請使用主頁的「建立場次」按鈕' : 'Under development. Use the main page Create button.' }}</p>
-        <button @click="showCreateSheet = false" class="w-full py-2 text-gray-400 text-sm">{{ isZh ? '關閉' : 'Close' }}</button>
-      </div>
-    </div>
+    <!-- Create / Edit session sheet -->
+    <CreateSessionSheet
+      v-if="showCreateSheet"
+      :editSession="editingSession"
+      @close="showCreateSheet = false; editingSession = null"
+      @created="onSessionCreated"
+      @updated="onSessionUpdated"
+    />
 
     <!-- Share modal -->
     <div v-if="shareUrl" class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center px-4" @click.self="shareUrl = ''">
@@ -155,6 +155,7 @@ import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
 import MgmtSessionCard from '@/components/MgmtSessionCard.vue';
+import CreateSessionSheet from '@/components/CreateSessionSheet.vue';
 
 const route = useRoute();
 const { lang, setLang } = useI18n();
@@ -177,6 +178,7 @@ const statusFilter = ref('open');
 const sortType = ref('createdAt');
 const sortDir = ref('desc');
 const showCreateSheet = ref(false);
+const editingSession = ref(null);
 
 const statusFilters = computed(() => [
   { key: 'all', label: isZh.value ? '所有' : 'All' },
@@ -275,6 +277,15 @@ async function deleteSession(sessionId) {
   const msg = isZh.value ? '確定刪除此場次？此操作無法恢復！' : 'Delete this session? This cannot be undone!';
   if (!confirm(msg)) return;
   await supabase.from('sessions').delete().eq('id', sessionId);
+}
+
+function onSessionCreated() {
+  showCreateSheet.value = false;
+  editingSession.value = null;
+}
+function onSessionUpdated() {
+  showCreateSheet.value = false;
+  editingSession.value = null;
 }
 
 const shareUrl = ref('');

@@ -38,13 +38,12 @@
 
     <FabMenu :user="user" :is-zh="isZh" @create="showCreateSheet = true" @feedback="showFeedback = true" />
 
-    <!-- Create session placeholder -->
-    <div v-if="showCreateSheet" class="fixed inset-0 bg-black/40 z-40 flex items-end justify-center" @click.self="showCreateSheet = false">
-      <div class="bg-white rounded-t-3xl w-full max-w-lg p-6">
-        <p class="text-center text-gray-500 py-8">Create session — migration in progress</p>
-        <button @click="showCreateSheet = false" class="w-full py-2 text-gray-400">Close</button>
-      </div>
-    </div>
+    <!-- Create session sheet -->
+    <CreateSessionSheet
+      v-if="showCreateSheet"
+      @close="showCreateSheet = false"
+      @created="showCreateSheet = false"
+    />
 
     <!-- Share modal -->
     <div v-if="shareUrl" class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center px-4" @click.self="shareUrl = ''">
@@ -66,6 +65,7 @@ import AppHeader from '@/components/AppHeader.vue';
 import FilterBar from '@/components/FilterBar.vue';
 import SessionCard from '@/components/SessionCard.vue';
 import FabMenu from '@/components/FabMenu.vue';
+import CreateSessionSheet from '@/components/CreateSessionSheet.vue';
 import { useAuth } from '@/composables/useAuth.js';
 import { useSessions } from '@/composables/useSessions.js';
 import { useI18n } from '@/lib/i18n.js';
