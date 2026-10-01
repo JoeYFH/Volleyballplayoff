@@ -45,6 +45,9 @@
       @created="showCreateSheet = false"
     />
 
+    <!-- Feedback modal -->
+    <FeedbackModal v-if="showFeedback" :is-zh="isZh" @close="showFeedback = false" />
+
     <!-- Share modal -->
     <div v-if="shareUrl" class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center px-4" @click.self="shareUrl = ''">
       <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
@@ -66,6 +69,7 @@ import FilterBar from '@/components/FilterBar.vue';
 import SessionCard from '@/components/SessionCard.vue';
 import FabMenu from '@/components/FabMenu.vue';
 import CreateSessionSheet from '@/components/CreateSessionSheet.vue';
+import FeedbackModal from '@/components/FeedbackModal.vue';
 import { useAuth } from '@/composables/useAuth.js';
 import { useSessions } from '@/composables/useSessions.js';
 import { useI18n } from '@/lib/i18n.js';
