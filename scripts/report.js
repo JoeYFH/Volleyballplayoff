@@ -25,13 +25,18 @@ function collectTests(node, suiteName = '', out = []) {
   for (const s of node.suites ?? []) collectTests(s, name, out);
   for (const t of node.specs  ?? []) {
     for (const r of t.tests ?? []) {
+      // Playwright JSON: 'expected' = passed, 'unexpected' = failed, 'skipped' = skipped
+      let status = 'skipped';
+      if (r.status === 'expected') status = 'passed';
+      else if (r.status === 'unexpected') status = 'failed';
+
       out.push({
-        suite:  name,
-        title:  t.title,
-        status: r.status,
+        suite:   name,
+        title:   t.title,
+        status,
         browser: r.projectName,
         duration: r.results?.[r.results.length - 1]?.duration ?? 0,
-        errors: r.results?.flatMap(x => x.errors ?? []) ?? [],
+        errors:  r.results?.flatMap(x => x.errors ?? []) ?? [],
       });
     }
   }
