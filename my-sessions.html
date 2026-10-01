@@ -1652,13 +1652,16 @@
     document.getElementById('sf_mixedLimitErr').classList.add('hidden');
   };
   sfOnTypeChange(); // initialize
-  // Auto-sum: when maleLimit or femaleLimit changes, update total limit
-  ['sf_maleLimit','sf_femaleLimit'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      const m = parseInt(document.getElementById('sf_maleLimit').value) || 0;
-      const f = parseInt(document.getElementById('sf_femaleLimit').value) || 0;
-      if (m > 0 || f > 0) document.getElementById('sf_limit').value = m + f;
-    });
+  // Auto-fill: when one gender limit changes, fill the other to the remaining quota
+  document.getElementById('sf_maleLimit').addEventListener('input', () => {
+    const total = parseInt(document.getElementById('sf_limit').value) || 0;
+    const m = parseInt(document.getElementById('sf_maleLimit').value) || 0;
+    if (total > 0) document.getElementById('sf_femaleLimit').value = Math.max(0, total - m);
+  });
+  document.getElementById('sf_femaleLimit').addEventListener('input', () => {
+    const total = parseInt(document.getElementById('sf_limit').value) || 0;
+    const f = parseInt(document.getElementById('sf_femaleLimit').value) || 0;
+    if (total > 0) document.getElementById('sf_maleLimit').value = Math.max(0, total - f);
   });
 
   // closeAt is now handled by sf_closeWhen selector (game_start = use date+time, custom = datetime-local)
