@@ -91,8 +91,16 @@ CREATE POLICY "sessions_delete" ON sessions FOR DELETE USING (
 -- Signups: 所有人可讀，登入者可建立，本人可修改/刪除
 CREATE POLICY "signups_select" ON signups FOR SELECT USING (true);
 CREATE POLICY "signups_insert" ON signups FOR INSERT WITH CHECK (true);
-CREATE POLICY "signups_update" ON signups FOR UPDATE USING (auth.uid() = uid OR auth.uid() IN (SELECT created_by FROM sessions WHERE id = session_id));
-CREATE POLICY "signups_delete" ON signups FOR DELETE USING (auth.uid() = uid OR auth.uid() IN (SELECT created_by FROM sessions WHERE id = session_id));
+CREATE POLICY "signups_update" ON signups FOR UPDATE USING (
+  auth.uid() = uid
+  OR auth.uid() IN (SELECT created_by FROM sessions WHERE id = session_id)
+  OR auth.email() IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
+);
+CREATE POLICY "signups_delete" ON signups FOR DELETE USING (
+  auth.uid() = uid
+  OR auth.uid() IN (SELECT created_by FROM sessions WHERE id = session_id)
+  OR auth.email() IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
+);
 
 -- Templates: 只有本人能操作
 CREATE POLICY "templates_all" ON templates USING (auth.uid() = user_id);
