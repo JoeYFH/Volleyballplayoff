@@ -1,4 +1,4 @@
-import { ref, readonly } from 'vue';
+import { ref, readonly, onUnmounted } from 'vue';
 import { supabase } from '@/lib/supabase.js';
 
 function mapSession(row) {
@@ -69,10 +69,12 @@ export function useSessions() {
 
   fetchSessions();
 
-  supabase
-    .channel('sessions-changes')
+  const channel = supabase
+    .channel('sessions-changes-' + Math.random().toString(36).slice(2))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, fetchSessions)
     .subscribe();
+
+  onUnmounted(() => { supabase.removeChannel(channel); });
 
   return { sessions: readonly(sessions), loading: readonly(loading), fetchSessions };
 }

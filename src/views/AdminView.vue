@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { supabase } from '@/lib/supabase.js';
 import { useAuth } from '@/composables/useAuth.js';
@@ -194,10 +194,12 @@ function subscribeRealtime() {
     .subscribe();
 }
 
-onMounted(() => {
-  fetchSessions();
-  subscribeRealtime();
-});
+watch([user, authLoading], ([u, loading]) => {
+  if (!loading && u && isAdmin()) {
+    fetchSessions();
+    if (!channel) subscribeRealtime();
+  }
+}, { immediate: true });
 
 onUnmounted(() => {
   if (channel) supabase.removeChannel(channel);
