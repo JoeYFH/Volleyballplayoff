@@ -8,7 +8,6 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null &&
         (request.auth.uid == resource.data.createdBy ||
-         request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
 
       // 取消報名參照（供刪場次時清理用）：登入者可建立，場主/管理員可讀取刪除
       match /cancelledSignups/{signupId} {
@@ -16,7 +15,6 @@ service cloud.firestore {
         allow read, delete: if request.auth != null && (
           request.auth.uid == resource.data.uid ||
           request.auth.uid == get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdBy ||
-          request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
         );
       }
 
@@ -27,11 +25,9 @@ service cloud.firestore {
         allow delete: if request.auth != null &&
           (request.auth.uid == resource.data.uid ||
            request.auth.uid == get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdBy ||
-           request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
         allow update: if request.auth != null &&
           (request.auth.uid == resource.data.uid ||
            request.auth.uid == get(/databases/$(database)/documents/sessions/$(sessionId)).data.createdBy ||
-           request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']);
       }
     }
 
@@ -44,7 +40,6 @@ service cloud.firestore {
     match /users/{userId}/mySignups/{signupId} {
       allow read, write: if request.auth != null && (
         request.auth.uid == userId ||
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
       );
     }
 
@@ -52,7 +47,6 @@ service cloud.firestore {
     match /users/{userId}/cancelledSignups/{signupId} {
       allow read, write: if request.auth != null && (
         request.auth.uid == userId ||
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com']
       );
       allow delete: if request.auth != null &&
         request.auth.uid == get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.createdBy;
@@ -61,18 +55,15 @@ service cloud.firestore {
     // 管理員 collectionGroup 查詢用（跨用戶掃描孤兒資料）
     match /{path=**}/mySignups/{signupId} {
       allow read, write: if request.auth != null &&
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
 
     match /{path=**}/cancelledSignups/{signupId} {
       allow read, write: if request.auth != null &&
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
 
     // 管理員 collectionGroup 查詢 signups（掃描父場次已刪的孤兒報名）
     match /{path=**}/signups/{signupId} {
       allow read, delete: if request.auth != null &&
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
 
     // 設定：所有人可讀
@@ -85,9 +76,7 @@ service cloud.firestore {
     match /feedback/{feedbackId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null &&
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
       allow delete: if request.auth != null &&
-        request.auth.token.email in ['abc8038570@gmail.com', 'joehuangyf@gmail.com'];
     }
   }
 }

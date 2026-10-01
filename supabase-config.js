@@ -4,7 +4,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Super Admin 電子信箱清單
 const ADMIN_EMAILS = [
   'abc8038570@gmail.com',
-  'joehuangyf@gmail.com',
 ];
 
 export { SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_EMAILS };

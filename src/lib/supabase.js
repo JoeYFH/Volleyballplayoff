@@ -5,7 +5,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const ADMIN_EMAILS = [
   'abc8038570@gmail.com',
-  'joehuangyf@gmail.com',
 ];
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
