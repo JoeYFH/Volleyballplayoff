@@ -59,74 +59,118 @@
         </div>
       </div>
 
-      <div class="px-4 pt-4">
-        <!-- Create button -->
-        <button @click="showCreateSheet = true" class="w-full mb-3 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
+      <div class="px-4 pt-4 pb-16">
+
+        <!-- ── 建立新場次 ── -->
+        <button @click="showCreateSheet = true" class="w-full mb-2 bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
           + {{ isZh ? '建立新場次' : 'New Session' }}
         </button>
 
-        <!-- Admin shortcut -->
-        <RouterLink v-if="isAdmin()" to="/admin"
-          class="flex items-center justify-center gap-2 w-full mb-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl py-2.5 font-semibold text-sm hover:bg-amber-100 transition">
-          ⚙️ {{ isZh ? '管理後台' : 'Admin Panel' }}
-        </RouterLink>
-
-        <!-- Status filters -->
-        <div class="flex gap-1.5 mb-1.5 overflow-x-auto pb-1">
-          <button v-for="f in statusFilters" :key="f.key" @click="statusFilter = f.key"
-            :class="statusFilter === f.key ? 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0' : 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0'">
-            {{ f.label }}
+        <!-- ── 快捷按鈕列 ── -->
+        <div class="flex gap-2 mb-4 flex-wrap">
+          <button @click="showCreateSheet = true"
+            class="flex-1 min-w-[120px] text-sm px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition">
+            📑 {{ isZh ? '我的範本' : 'Templates' }}
+          </button>
+          <button v-if="isAdmin()" @click="toggleAllSessions"
+            :class="['flex-1 min-w-[120px] text-sm px-3 py-2 rounded-xl font-medium transition',
+              showAllSessions ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
+            📋 {{ isZh ? '所有開場' : 'All Sessions' }}
+          </button>
+          <button v-if="isAdmin()" @click="toggleFeedback"
+            :class="['flex-1 min-w-[120px] text-sm px-3 py-2 rounded-xl font-medium transition',
+              showFeedback ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50']">
+            💬 {{ isZh ? '意見回覆' : 'Feedback' }}
+            <span v-if="feedbackList.length" class="ml-1 text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5">{{ feedbackList.length }}</span>
           </button>
         </div>
 
-        <!-- Sort controls -->
-        <div class="flex justify-end gap-1.5 mb-3">
-          <select v-model="sortType" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
-            <option value="createdAt">{{ isZh ? '🕐 建立時間' : '🕐 Created' }}</option>
-            <option value="date">{{ isZh ? '📅 活動日期' : '📅 By Date' }}</option>
-            <option value="closeAt">{{ isZh ? '⏰ 截止時間' : '⏰ By Close' }}</option>
-          </select>
-          <select v-model="sortDir" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
-            <option value="desc">{{ isZh ? '遠→近' : 'Far→Near' }}</option>
-            <option value="asc">{{ isZh ? '近→遠' : 'Near→Far' }}</option>
-          </select>
+        <!-- ── 所有開場 (admin) ── -->
+        <div v-if="showAllSessions" class="mb-6">
+          <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
+            <button v-for="f in adminFilters" :key="f.key" @click="adminFilter = f.key"
+              :class="['text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap transition shrink-0',
+                adminFilter === f.key ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50']">
+              {{ f.label }}
+            </button>
+          </div>
+          <div v-if="allSessionsLoading" class="flex justify-center py-8"><div class="text-3xl animate-bounce">🏐</div></div>
+          <div v-else-if="!filteredAllSessions.length" class="text-center py-8 text-gray-400 text-sm">
+            <div class="text-3xl mb-2">📭</div>{{ isZh ? '沒有符合條件的場次' : 'No matching sessions' }}
+          </div>
+          <div v-else class="space-y-3">
+            <MgmtSessionCard v-for="s in filteredAllSessions" :key="s.id"
+              :session="s" :user="user" :is-zh="isZh"
+              @toggle-open="toggleOpen" @toggle-private="togglePrivate"
+              @delete="deleteSession" @share="shareSession" @edit="openEdit" />
+          </div>
         </div>
 
-        <!-- Skeleton loading -->
-        <div v-if="loading" class="space-y-4">
-          <div v-for="i in 2" :key="i" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <div class="skeleton h-5 w-2/3 rounded-lg mb-2"></div>
-            <div class="skeleton h-3 w-1/4 rounded mb-4"></div>
-            <div class="skeleton h-3 w-1/2 rounded mb-1"></div>
-            <div class="skeleton h-3 w-1/3 rounded mb-4"></div>
-            <div class="flex gap-2">
-              <div class="skeleton h-7 w-20 rounded-lg"></div>
-              <div class="skeleton h-7 w-16 rounded-lg"></div>
-              <div class="skeleton h-7 w-20 rounded-lg"></div>
+        <!-- ── 意見回覆 (admin) ── -->
+        <div v-if="showFeedback" class="mb-6">
+          <div v-if="feedbackLoading" class="text-center py-8 text-gray-400 text-sm animate-pulse">{{ isZh ? '載入中…' : 'Loading…' }}</div>
+          <div v-else-if="!feedbackList.length" class="text-center py-8 text-gray-400">
+            <div class="text-3xl mb-2">📭</div><p class="text-sm">{{ isZh ? '還沒有意見回饋' : 'No feedback yet' }}</p>
+          </div>
+          <div v-else class="space-y-3">
+            <div v-for="fb in feedbackList" :key="fb.id" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <div class="flex justify-between items-start gap-2 mb-1">
+                <div class="flex gap-2 flex-wrap">
+                  <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', fb.type==='bug'?'bg-red-100 text-red-600':fb.type==='idea'?'bg-blue-100 text-blue-600':'bg-gray-100 text-gray-500']">
+                    {{ fb.type==='bug'?(isZh?'🐛 問題':'Bug'):fb.type==='idea'?(isZh?'💡 建議':'Idea'):(isZh?'📝 其他':'Other') }}
+                  </span>
+                  <span :class="['text-xs px-2 py-0.5 rounded-full', fb.urgency==='high'?'bg-red-50 text-red-500':fb.urgency==='medium'?'bg-amber-50 text-amber-500':'bg-gray-50 text-gray-400']">
+                    {{ fb.urgency==='high'?(isZh?'⚠️ 高':'High'):fb.urgency==='medium'?(isZh?'⚡ 中':'Med'):(isZh?'低':'Low') }}
+                  </span>
+                </div>
+                <span class="text-xs text-gray-300 shrink-0">{{ fmtDate(fb.created_at) }}</span>
+              </div>
+              <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{{ fb.description }}</p>
+              <p v-if="fb.email" class="text-xs text-indigo-500 mt-1.5">📧 {{ fb.email }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Empty state -->
-        <div v-else-if="!filteredSessions.length" class="text-center py-10 text-gray-400">
-          <div class="text-4xl mb-2">📭</div>
-          <p class="text-sm">{{ isZh ? '還沒有建立任何場次' : 'No sessions created yet' }}</p>
-          <p class="text-xs mt-2 text-gray-300">{{ isZh ? '只顯示透過本網頁建立的場次' : 'Only shows sessions created through this website' }}</p>
-        </div>
+        <!-- ── 我的開場 ── -->
+        <div class="border-t border-gray-100 pt-4">
+          <p class="text-xs font-semibold text-gray-400 mb-2">{{ isZh ? '我的開場' : 'My Sessions' }}</p>
 
-        <!-- Sessions list -->
-        <div v-else class="space-y-4">
-          <MgmtSessionCard
-            v-for="s in filteredSessions"
-            :key="s.id"
-            :session="s"
-            :user="user"
-            :is-zh="isZh"
-            @toggle-open="toggleOpen"
-            @toggle-private="togglePrivate"
-            @delete="deleteSession"
-            @share="shareSession"
-          />
+          <div class="flex gap-1.5 mb-1.5 overflow-x-auto pb-1">
+            <button v-for="f in statusFilters" :key="f.key" @click="statusFilter = f.key"
+              :class="statusFilter === f.key ? 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white transition shrink-0' : 'text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 transition shrink-0'">
+              {{ f.label }}
+            </button>
+          </div>
+
+          <div class="flex justify-end gap-1.5 mb-3">
+            <select v-model="sortType" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+              <option value="createdAt">{{ isZh ? '🕐 建立時間' : '🕐 Created' }}</option>
+              <option value="date">{{ isZh ? '📅 活動日期' : '📅 By Date' }}</option>
+              <option value="closeAt">{{ isZh ? '⏰ 截止時間' : '⏰ By Close' }}</option>
+            </select>
+            <select v-model="sortDir" class="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+              <option value="desc">{{ isZh ? '遠→近' : 'Far→Near' }}</option>
+              <option value="asc">{{ isZh ? '近→遠' : 'Near→Far' }}</option>
+            </select>
+          </div>
+
+          <div v-if="loading" class="space-y-4">
+            <div v-for="i in 2" :key="i" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div class="skeleton h-5 w-2/3 rounded-lg mb-2"></div>
+              <div class="skeleton h-3 w-1/4 rounded mb-4"></div>
+              <div class="flex gap-2"><div class="skeleton h-7 w-20 rounded-lg"></div><div class="skeleton h-7 w-16 rounded-lg"></div></div>
+            </div>
+          </div>
+          <div v-else-if="!filteredSessions.length" class="text-center py-10 text-gray-400">
+            <div class="text-4xl mb-2">📭</div>
+            <p class="text-sm">{{ isZh ? '還沒有建立任何場次' : 'No sessions created yet' }}</p>
+          </div>
+          <div v-else class="space-y-4">
+            <MgmtSessionCard v-for="s in filteredSessions" :key="s.id"
+              :session="s" :user="user" :is-zh="isZh"
+              @toggle-open="toggleOpen" @toggle-private="togglePrivate"
+              @delete="deleteSession" @share="shareSession" @edit="openEdit" />
+          </div>
         </div>
       </div>
     </div>
@@ -300,6 +344,8 @@ function onSessionCreated() {
 function onSessionUpdated() {
   showCreateSheet.value = false;
   editingSession.value = null;
+  allSessions.value = [];
+  if (showAllSessions.value) toggleAllSessions();
 }
 
 const shareUrl = ref('');
@@ -314,6 +360,71 @@ async function copyShare() {
   copiedShare.value = true;
   setTimeout(() => { copiedShare.value = false; }, 2000);
 }
+
+// ── Admin: 所有開場 ──
+const showAllSessions = ref(false);
+const allSessions = ref([]);
+const allSessionsLoading = ref(false);
+const adminFilter = ref('all');
+
+const adminFilters = computed(() => [
+  { key: 'all', label: isZh.value ? '全部' : 'All' },
+  { key: 'open', label: isZh.value ? '報名中' : 'Open' },
+  { key: 'closed', label: isZh.value ? '已關閉' : 'Closed' },
+  { key: 'past', label: isZh.value ? '過去' : 'Past' },
+]);
+
+const filteredAllSessions = computed(() => {
+  const today = new Date().toISOString().split('T')[0];
+  const now = Date.now();
+  return allSessions.value.filter(s => {
+    const isPast = (s.date || '') < today;
+    const closeAtMs = s.closeAt ? new Date(s.closeAt).getTime() : null;
+    const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
+    if (adminFilter.value === 'all') return true;
+    if (adminFilter.value === 'past') return isPast;
+    if (adminFilter.value === 'open') return !isPast && !effectivelyClosed;
+    if (adminFilter.value === 'closed') return !isPast && effectivelyClosed;
+    return true;
+  });
+});
+
+async function toggleAllSessions() {
+  showAllSessions.value = !showAllSessions.value;
+  if (showAllSessions.value && !allSessions.value.length) {
+    allSessionsLoading.value = true;
+    const { data } = await supabase.from('sessions').select('*').order('date', { ascending: false });
+    allSessions.value = (data || []).map(mapSession);
+    allSessionsLoading.value = false;
+  }
+}
+
+// ── Admin: 意見回覆 ──
+const showFeedback = ref(false);
+const feedbackList = ref([]);
+const feedbackLoading = ref(false);
+
+async function toggleFeedback() {
+  showFeedback.value = !showFeedback.value;
+  if (showFeedback.value && !feedbackList.value.length) {
+    feedbackLoading.value = true;
+    const { data } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
+    feedbackList.value = data || [];
+    feedbackLoading.value = false;
+  }
+}
+
+function openEdit(session) {
+  editingSession.value = session;
+  showCreateSheet.value = true;
+}
+
+function fmtDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 </script>
 
 <style scoped>
