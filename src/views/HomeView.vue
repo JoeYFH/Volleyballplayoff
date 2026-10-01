@@ -38,14 +38,6 @@
 
     <FabMenu :user="user" :is-zh="isZh" @create="showCreateSheet = true" @feedback="showFeedback = true" />
 
-    <!-- Signup modal placeholder -->
-    <div v-if="showSignupModal" class="fixed inset-0 bg-black/40 z-40 flex items-end justify-center" @click.self="showSignupModal = false">
-      <div class="bg-white rounded-t-3xl w-full max-w-lg p-6">
-        <p class="text-center text-gray-500 py-8">Signup modal — migration in progress</p>
-        <button @click="showSignupModal = false" class="w-full py-2 text-gray-400">Close</button>
-      </div>
-    </div>
-
     <!-- Create session placeholder -->
     <div v-if="showCreateSheet" class="fixed inset-0 bg-black/40 z-40 flex items-end justify-center" @click.self="showCreateSheet = false">
       <div class="bg-white rounded-t-3xl w-full max-w-lg p-6">
@@ -124,17 +116,8 @@ const filteredSessions = computed(() => {
   return list;
 });
 
-// Signup modal
-const showSignupModal = ref(false);
-const activeSession = ref(null);
-function openSignupModal(session) {
-  activeSession.value = session;
-  showSignupModal.value = true;
-}
-function openEditSignupModal({ sessionId, signupId }) {
-  // TODO: implement edit
-  console.log('edit signup', sessionId, signupId);
-}
+function openSignupModal() {}
+function openEditSignupModal() {}
 
 // Create session
 const showCreateSheet = ref(false);

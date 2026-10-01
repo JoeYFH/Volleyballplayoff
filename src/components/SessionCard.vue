@@ -77,7 +77,7 @@
       <div v-if="signupTimeHtml" class="text-xs text-gray-400 mt-1" v-html="signupTimeHtml"></div>
 
       <!-- Signup button -->
-      <button v-if="effectivelyOpen" @click="$emit('signup', session)" class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
+      <button v-if="effectivelyOpen" @click="openSignup" class="w-full mt-4 bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition">
         🙋 {{ isZh ? '我要報名' : 'Sign Up' }}
       </button>
 
@@ -103,15 +103,28 @@
       :type="session.type"
       :user="user"
       :is-zh="isZh"
-      @edit="$emit('edit-signup', $event)"
+      @edit="openEditSignup"
       @cancel="onCancelSignup"
     />
   </div>
+
+  <!-- Signup modal (teleported to body to avoid stacking context issues) -->
+  <Teleport to="body">
+    <SignupModal
+      v-if="showSignupModal"
+      :session="session"
+      :signups="signups"
+      :edit-signup="editSignupData"
+      @close="closeSignupModal"
+      @submitted="closeSignupModal"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import SignupList from './SignupList.vue';
+import SignupModal from './SignupModal.vue';
 import { useSignups } from '@/composables/useSignups.js';
 import { supabase } from '@/lib/supabase.js';
 
@@ -123,6 +136,23 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['signup', 'share', 'edit-signup']);
+
+// Signup modal state
+const showSignupModal = ref(false);
+const editSignupData = ref(null);
+
+function openSignup() {
+  editSignupData.value = null;
+  showSignupModal.value = true;
+}
+function openEditSignup(signup) {
+  editSignupData.value = signup;
+  showSignupModal.value = true;
+}
+function closeSignupModal() {
+  showSignupModal.value = false;
+  editSignupData.value = null;
+}
 
 const { signups } = useSignups(props.session.id, {
   limit: props.session.limit,
