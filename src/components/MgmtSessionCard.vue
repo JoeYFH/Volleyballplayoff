@@ -25,20 +25,29 @@
 
       <!-- Session info -->
       <div class="text-sm text-gray-800 space-y-1 mb-3">
+        <!-- Row 1: 日期 + 時間 -->
         <div class="flex flex-wrap gap-x-4 gap-y-0.5">
-          <span v-if="session.date">📅 {{ formatDate(session.date) }}</span>
-          <span v-if="session.time">🕐 {{ session.time }}</span>
+          <div v-if="session.date" class="flex items-center gap-1"><span>📅</span><span>{{ formatDate(session.date) }}</span></div>
+          <div v-if="session.time" class="flex items-center gap-1"><span>🕐</span><span>{{ session.time }}</span></div>
         </div>
-        <div v-if="session.location">
-          📍 <a :href="`https://maps.google.com/?q=${encodeURIComponent(session.location)}`" target="_blank" class="text-indigo-500 hover:underline">{{ session.location }}</a>
+        <!-- Row 2: 地點 · 場館 同行 -->
+        <div v-if="session.location" class="flex items-start gap-1 flex-wrap">
+          <span>📍</span>
+          <a :href="`https://maps.google.com/?q=${encodeURIComponent(session.location)}`" target="_blank" class="text-indigo-500 hover:underline">{{ session.location }}</a>
+          <span v-if="session.venue" class="text-gray-400 text-xs self-center">·</span>
+          <span v-if="session.venue" class="text-xs text-gray-500 self-center">{{ session.venue }}</span>
         </div>
-        <div v-if="session.limit">
-          👥 {{ isZh ? '名額' : 'Limit' }} {{ session.limit }}
-          <span v-if="session.type === 'mixed' && (session.maleLimit || session.femaleLimit)"> (♂{{ session.maleLimit || 0 }} ♀{{ session.femaleLimit || 0 }})</span>
+        <!-- Row 3: 名額 + 類型 同行 -->
+        <div class="flex flex-wrap gap-x-4 gap-y-0.5">
+          <div v-if="session.limit" class="flex items-center gap-1">
+            <span>👥</span><span>{{ isZh ? '名額' : 'Limit' }} {{ session.limit }}{{ isZh ? '人' : '' }}</span>
+            <span v-if="session.type === 'mixed' && (session.maleLimit || session.femaleLimit)" class="text-xs text-gray-400">(♂{{ session.maleLimit || 0 }} ♀{{ session.femaleLimit || 0 }})</span>
+          </div>
+          <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
         </div>
-        <div v-if="session.type">🏷️ {{ typeLabel }}</div>
+        <!-- 報名時間 -->
         <div v-if="signupTimeHtml" class="text-xs text-gray-500" v-html="signupTimeHtml"></div>
-        <div v-if="session.venue" class="text-xs text-gray-500">🏟️ {{ session.venue }}</div>
+        <!-- 備註 -->
         <div v-if="session.note" class="mt-1 px-2 py-1 bg-amber-50 text-amber-800 rounded-lg text-xs">📝 {{ isZh ? '備註' : 'Note' }}: {{ session.note }}</div>
       </div>
 
