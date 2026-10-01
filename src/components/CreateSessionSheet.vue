@@ -19,6 +19,21 @@
       <div class="flex-1 min-h-0 overflow-y-auto" style="overscroll-behavior-y: contain">
         <div class="px-5 py-4 space-y-4">
 
+          <!-- 0. Templates -->
+          <div v-if="!isEdit && templates.length" class="bg-indigo-50 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs font-semibold text-indigo-700">📑 {{ isZh ? '我的範本' : 'My Templates' }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button v-for="tpl in templates" :key="tpl.id"
+                @click="loadTemplate(tpl)"
+                class="flex items-center gap-1 text-xs bg-white border border-indigo-200 text-indigo-700 rounded-lg px-2.5 py-1.5 hover:bg-indigo-100 transition">
+                {{ tpl.name }}
+                <span @click.stop="deleteTemplate(tpl.id)" class="text-indigo-300 hover:text-red-400 ml-1">✕</span>
+              </button>
+            </div>
+          </div>
+
           <!-- 1. Session Title -->
           <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">
@@ -220,6 +235,12 @@
               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"></textarea>
           </div>
 
+          <!-- Save as template -->
+          <button v-if="!isEdit" @click="saveTemplate"
+            class="w-full border border-indigo-200 text-indigo-600 rounded-xl py-2.5 text-sm font-medium hover:bg-indigo-50 transition">
+            📑 {{ isZh ? '儲存為範本' : 'Save as Template' }}
+          </button>
+
           <!-- Submit Button -->
           <button @click="submit" :disabled="submitting"
             class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60">
@@ -240,7 +261,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
@@ -467,6 +488,66 @@ function inputClass(hasError) {
       ? 'border-red-400 ring-2 ring-red-200 focus:ring-red-300'
       : 'border-gray-200 focus:ring-indigo-300',
   ].join(' ');
+}
+
+// ── Templates ─────────────────────────────────────────────────────────────────
+const templates = ref([]);
+
+onMounted(async () => {
+  if (!user.value) return;
+  const { data } = await supabase.from('templates').select('*')
+    .eq('user_id', user.value.id).order('created_at', { ascending: false });
+  templates.value = data || [];
+});
+
+function currentFormData() {
+  return {
+    title: title.value, location: location.value, venue: venue.value,
+    limit: limit.value, type: type.value,
+    maleLimit: maleLimit.value, femaleLimit: femaleLimit.value,
+    equipment: [...equipment.value], customEquipItems: [...customEquipItems.value],
+    note: note.value, isPrivate: isPrivate.value, time: time.value,
+    openWhen: openWhen.value, openOffset: openOffset.value,
+    closeWhen: closeWhen.value, closeOffset: closeOffset.value,
+  };
+}
+
+async function saveTemplate() {
+  if (!user.value) return;
+  const name = prompt(isZh.value ? '範本名稱：' : 'Template name:');
+  if (!name?.trim()) return;
+  const { data, error } = await supabase.from('templates').insert({
+    user_id: user.value.id,
+    name: name.trim(),
+    data: currentFormData(),
+  }).select().single();
+  if (error) { alert('Error: ' + error.message); return; }
+  templates.value = [data, ...templates.value];
+}
+
+function loadTemplate(tpl) {
+  const d = tpl.data;
+  title.value        = d.title || '';
+  location.value     = d.location || '';
+  venue.value        = d.venue || '';
+  limit.value        = d.limit ?? 0;
+  type.value         = d.type || 'mixed';
+  maleLimit.value    = d.maleLimit ?? 0;
+  femaleLimit.value  = d.femaleLimit ?? 0;
+  equipment.value    = [...(d.equipment || [])];
+  customEquipItems.value = [...(d.customEquipItems || [])];
+  note.value         = d.note || '';
+  isPrivate.value    = !!d.isPrivate;
+  if (d.time) time.value = d.time;
+  if (d.openWhen) openWhen.value = d.openWhen;
+  if (d.openOffset) openOffset.value = d.openOffset;
+  if (d.closeWhen) closeWhen.value = d.closeWhen;
+  if (d.closeOffset) closeOffset.value = d.closeOffset;
+}
+
+async function deleteTemplate(id) {
+  await supabase.from('templates').delete().eq('id', id);
+  templates.value = templates.value.filter(t => t.id !== id);
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────────
