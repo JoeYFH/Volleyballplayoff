@@ -208,24 +208,17 @@ function mapSession(row) {
 
 async function loadSessions() {
   if (!user.value) return;
-  let rows = [];
-  if (isAdmin()) {
-    // Admin sees all sessions
-    const { data } = await supabase.from('sessions').select('*').order('date', { ascending: false });
-    rows = data || [];
-  } else {
-    const uid = user.value.id;
-    const name = user.value.user_metadata?.full_name || user.value.user_metadata?.name || '';
-    const [{ data: byUid }, { data: byName }] = await Promise.all([
-      supabase.from('sessions').select('*').eq('created_by', uid),
-      name ? supabase.from('sessions').select('*').eq('creator_name', name) : { data: [] },
-    ]);
-    const seen = new Set();
-    rows = [...(byUid || []), ...(byName || [])]
-      .filter(r => seen.has(r.id) ? false : seen.add(r.id))
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  }
-  sessions.value = rows.map(mapSession);
+  const uid = user.value.id;
+  const name = user.value.user_metadata?.full_name || user.value.user_metadata?.name || '';
+  const [{ data: byUid }, { data: byName }] = await Promise.all([
+    supabase.from('sessions').select('*').eq('created_by', uid),
+    name ? supabase.from('sessions').select('*').eq('creator_name', name) : { data: [] },
+  ]);
+  const seen = new Set();
+  sessions.value = [...(byUid || []), ...(byName || [])]
+    .filter(r => seen.has(r.id) ? false : seen.add(r.id))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .map(mapSession);
   loading.value = false;
 }
 
