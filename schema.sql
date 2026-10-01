@@ -113,3 +113,7 @@ CREATE POLICY "feedback_insert" ON feedback FOR INSERT WITH CHECK (true);
 -- ========================================
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE signups;
+
+-- UPDATE 事件需要 REPLICA IDENTITY FULL 才能通過 filter 正確觸發
+ALTER TABLE sessions REPLICA IDENTITY FULL;
+ALTER TABLE signups REPLICA IDENTITY FULL;
