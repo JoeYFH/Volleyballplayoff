@@ -35,6 +35,16 @@ export async function loginAsTestUser(page) {
 }
 
 /**
+ * 強制設定 lang=zh（不需登入）
+ * 在 page.goto() 前呼叫，確保中文 UI selector 可用
+ */
+export async function setLangZh(page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('lang', 'zh');
+  });
+}
+
+/**
  * 登出
  */
 export async function logout(page) {

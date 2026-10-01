@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsTestUser } from '../helpers/auth.js';
+import { loginAsTestUser, setLangZh } from '../helpers/auth.js';
 import { createTestSession, deleteTestSession, updateTestSession } from '../helpers/session.js';
 import { openSignupModal, fillSignupForm, clickStatusFilter, clickGenderFilter } from '../helpers/signup.js';
 
@@ -111,14 +111,18 @@ test.describe.serial('混排場次', () => {
   test('暫停後場次從「報名中」tab 消失', async ({ page }) => {
     await updateTestSession(sessionId, { is_open: false });
 
+    await setLangZh(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    // Wait for filter bar to confirm Vue has mounted and sessions loaded
+    await page.locator('button:has-text("報名中")').first().waitFor({ state: 'visible', timeout: 12000 });
 
     // 預設「報名中」filter，已暫停的場次不應出現
     await expect(page.locator(`#card-${sessionId}`)).toBeHidden({ timeout: 5000 });
   });
 
   test('直接連結仍可瀏覽場次（卡片可見）', async ({ page }) => {
+    await setLangZh(page);
     await page.goto(`/?session=${sessionId}`);
     await page.waitForLoadState('networkidle');
 
@@ -133,8 +137,11 @@ test.describe.serial('混排場次', () => {
   test('重新開放後報名按鈕恢復', async ({ page }) => {
     await updateTestSession(sessionId, { is_open: true });
 
+    await setLangZh(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    // Wait for filter bar to confirm Vue has mounted and sessions loaded
+    await page.locator('button:has-text("報名中")').first().waitFor({ state: 'visible', timeout: 12000 });
 
     const card = page.locator(`#card-${sessionId}`);
     await expect(card).toBeVisible({ timeout: 10000 });
