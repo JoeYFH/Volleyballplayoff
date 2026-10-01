@@ -26,7 +26,8 @@ test.describe('純男場次', () => {
     await fillSignupForm(page, { name: 'Playwright 男生' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator(`#list-${id}`)).toContainText('Playwright 男生');
+    // 登入後 #modalName 隱藏，顯示帳號名；(me) badge 代表本人報名成功
+    await expect(page.locator(`#list-${id}`)).toContainText('(me)');
   });
 
   test('代報名朋友（純男場次）', async ({ page }) => {

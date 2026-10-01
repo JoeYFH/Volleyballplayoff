@@ -26,7 +26,7 @@ test.describe('混排場次', () => {
     await fillSignupForm(page, { name: 'Playwright 混排男', gender: 'male' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator(`#list-${id}`)).toContainText('Playwright 混排男');
+    await expect(page.locator(`#list-${id}`)).toContainText('(me)');
   });
 
   test('報名混排場次（女）', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('混排場次', () => {
     await fillSignupForm(page, { name: 'Playwright 混排女', gender: 'female' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator(`#list-${id}`)).toContainText('Playwright 混排女');
+    await expect(page.locator(`#list-${id}`)).toContainText('(me)');
   });
 
   test('代報名朋友（混排，男）', async ({ page }) => {

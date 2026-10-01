@@ -26,7 +26,7 @@ test.describe('純女場次', () => {
     await fillSignupForm(page, { name: 'Playwright 女生' });
 
     await expect(page.locator('#signupModal')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator(`#list-${id}`)).toContainText('Playwright 女生');
+    await expect(page.locator(`#list-${id}`)).toContainText('(me)');
   });
 
   test('代報名朋友（純女場次）', async ({ page }) => {
