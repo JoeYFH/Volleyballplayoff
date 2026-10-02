@@ -30,8 +30,10 @@ export async function loginAsTestUser(page) {
 
   await page.reload();
 
-  // 等待 UI 更新（登入按鈕消失）
-  await page.waitForSelector('#loginBtn', { state: 'hidden', timeout: 5000 }).catch(() => {});
+  // Google 登入按鈕消失 = Vue 已 mount 且 user 從 localStorage 讀取完成
+  await page.locator('button:has(img[src*="google"])').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+  // 確保 sessions fetch 完成
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 }
 
 /**
@@ -48,5 +50,6 @@ export async function setLangZh(page) {
  * 登出
  */
 export async function logout(page) {
-  await page.click('#logoutBtn').catch(() => {});
+  // 登出按鈕在 AppHeader，以文字定位
+  await page.locator('button:has-text("登出"), button:has-text("Log out"), button:has-text("Logout")').first().click().catch(() => {});
 }
