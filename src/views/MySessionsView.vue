@@ -413,7 +413,7 @@ function onSessionUpdated() {
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(sessionId) {
-  shareUrl.value = `${location.origin}/?session=${sessionId}`;
+  shareUrl.value = `${location.origin}/og/${sessionId}`;
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }

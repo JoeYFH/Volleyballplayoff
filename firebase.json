@@ -10,7 +10,16 @@
       "functions/**"
     ],
     "rewrites": [
+      { "source": "/og/**", "function": "og" },
+      { "source": "/og-image/**", "function": "ogImage" },
       { "source": "**", "destination": "/index.html" }
     ]
-  }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git"]
+    }
+  ]
 }

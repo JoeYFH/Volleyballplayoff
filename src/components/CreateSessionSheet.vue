@@ -265,6 +265,12 @@
             </button>
           </template>
 
+          <!-- Submit error -->
+          <div v-if="submitError" class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+            <span class="shrink-0 mt-0.5">❌</span>
+            <span>{{ submitError }}</span>
+          </div>
+
           <!-- Submit Button -->
           <button @click="submit" :disabled="submitting"
             class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60">
@@ -345,6 +351,7 @@ const locationError    = ref('');
 const genderLimitError = ref('');
 
 const submitting = ref(false);
+const submitError = ref('');
 const templateName = ref('');
 const templateNameError = ref('');
 const locationInputRef = ref(null);
@@ -720,6 +727,7 @@ async function deleteTemplate(id) {
 
 // ── Submit ─────────────────────────────────────────────────────────────────────
 async function submit() {
+  submitError.value = '';
   if (!validate()) return;
 
   submitting.value = true;
@@ -784,10 +792,8 @@ async function submit() {
       emit('close');
     }
   } catch (e) {
-    alert(
-      (isZh.value ? '❌ 儲存失敗' : '❌ Save failed')
-      + (e.message ? `\n${e.message}` : '')
-    );
+    submitError.value = (isZh.value ? '儲存失敗' : 'Save failed')
+      + (e.message ? `：${e.message}` : '');
   } finally {
     submitting.value = false;
   }
