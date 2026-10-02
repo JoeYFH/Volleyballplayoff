@@ -23,8 +23,18 @@ test.describe.serial('純男場次', () => {
     await loginAsTestUser(page);
     await page.waitForLoadState('networkidle');
 
+    // 診斷：login 後預設 filter 的卡片數（報名中）
+    const defaultCards = await page.locator('[id^="card-"]').count();
+    console.log(`\n🔍 預設 filter 卡片數：${defaultCards}`);
+
     await clickStatusFilter(page, '所有');
     await clickGenderFilter(page, '♂ 男生');
+
+    // 診斷：看目前有幾張卡片、是否包含我們的 sessionId
+    const totalCards = await page.locator('[id^="card-"]').count();
+    const cardIds = await page.locator('[id^="card-"]').evaluateAll(els => els.map(e => e.id));
+    console.log(`\n🔍 filter 後卡片數：${totalCards}，IDs：${JSON.stringify(cardIds)}`);
+    console.log(`🔍 目標 card ID：card-${sessionId}`);
 
     await expect(page.locator(`#card-${sessionId}`)).toBeVisible({ timeout: 10000 });
     await expect(page.locator(`#card-${sessionId}`)).toContainText('場館一樓大廳集合');
