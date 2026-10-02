@@ -91,3 +91,17 @@ export async function deleteTestSession(sessionId) {
     console.error(`[afterAll] 刪除測試場次失敗 ${sessionId}：${e.message}`);
   }
 }
+
+/**
+ * 清理所有名稱以 [測試範本] 開頭的範本（供 afterAll 使用）
+ */
+export async function deleteTestTemplates() {
+  try {
+    const { supabase, user } = await getClient();
+    await supabase.from('templates').delete()
+      .eq('user_id', user.id)
+      .ilike('name', '[測試範本]%');
+  } catch (e) {
+    console.error(`[afterAll] 清理測試範本失敗：${e.message}`);
+  }
+}
