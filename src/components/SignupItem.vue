@@ -20,7 +20,7 @@
       </div>
     </div>
     <template v-if="isOwn">
-      <button @click="$emit('edit', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
+      <button @click="$emit('edit', signup)" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
       <button @click="$emit('cancel', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
     </template>
   </div>

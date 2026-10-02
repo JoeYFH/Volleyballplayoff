@@ -311,9 +311,9 @@ async function loadSessions() {
   // Only show sessions I created where creator_name matches mine (or is unset)
   // This excludes sessions created under a different name (e.g. test sessions)
   const { data } = await supabase.from('sessions').select('*')
-    .eq('created_by', uid)
-    .or(`creator_name.is.null,creator_name.eq.${myName}`);
+    .eq('created_by', uid);
   sessions.value = (data || [])
+    .filter(s => !s.creator_name || s.creator_name === myName)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
     .map(mapSession);
   loading.value = false;

@@ -31,11 +31,6 @@ test.describe.serial('純男場次', () => {
     await clickStatusFilter(page, '所有');
     await clickGenderFilter(page, '♂ 男生');
 
-    // 診斷：列出目前頁面上的 card ID
-    const cardIds = await page.locator('[id^="card-"]').evaluateAll(els => els.map(e => e.id));
-    console.log('目前頁面 card IDs:', cardIds);
-    console.log('期待找到:', `card-${sessionId}`);
-
     await expect(page.locator(`#card-${sessionId}`)).toBeVisible({ timeout: 15000 });
     await expect(page.locator(`#card-${sessionId}`)).toContainText('場館一樓大廳集合');
   });
