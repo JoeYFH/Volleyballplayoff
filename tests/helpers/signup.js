@@ -51,13 +51,10 @@ export async function fillSignupForm(page, opts = {}) {
     if (!(await chk.isChecked())) await chk.check();
 
     if (opts.friendName) {
-      // 朋友姓名 input 在 checkbox 區塊後
-      const friendInput = modal.locator('#modalFriendChk ~ div input[type="text"], #modalFriendChk + label + div input[type="text"]');
-      // fallback: second text input in modal
+      // Wait for friend name input to appear after checkbox is checked
       const inputs = modal.locator('input[type="text"]');
-      const cnt = await inputs.count();
-      if (cnt >= 2) await inputs.last().fill(opts.friendName);
-      else if (await friendInput.count()) await friendInput.first().fill(opts.friendName);
+      await inputs.first().waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      await inputs.last().fill(opts.friendName);
     }
 
     if (opts.friendGender) {
