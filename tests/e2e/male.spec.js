@@ -21,14 +21,17 @@ test.describe.serial('純男場次', () => {
   test('場次卡片顯示活動詳細資訊', async ({ page }) => {
     await setLangZh(page);
     await page.goto('/');
-    // 等 filter bar 出現（Vue 已 mount），再等 loading spinner 消失（fetchSessions 完成）
+    // 等 filter bar 出現（Vue 已 mount）
     await page.locator('button:has-text("報名中")').first().waitFor({ state: 'visible', timeout: 12000 });
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    // 等 loading spinner 消失（fetchSessions 完成）
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    // 等場次列表有資料（至少一張卡片出現）再切換 filter
+    await page.locator('[id^="card-"]').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     await clickStatusFilter(page, '所有');
     await clickGenderFilter(page, '♂ 男生');
 
-    await expect(page.locator(`#card-${sessionId}`)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`#card-${sessionId}`)).toBeVisible({ timeout: 15000 });
     await expect(page.locator(`#card-${sessionId}`)).toContainText('場館一樓大廳集合');
   });
 
@@ -44,7 +47,9 @@ test.describe.serial('純男場次', () => {
   test('代報名朋友（純男場次）', async ({ page }) => {
     await loginAsTestUser(page);
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.locator('button:has-text("報名中")').first().waitFor({ state: 'visible', timeout: 12000 });
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    await page.locator('[id^="card-"]').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     await clickStatusFilter(page, '所有');
     await clickGenderFilter(page, '♂ 男生');

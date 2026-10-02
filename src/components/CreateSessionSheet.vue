@@ -518,6 +518,10 @@ function validate() {
     timeError.value = isZh.value ? '請選擇時間' : 'Time is required';
     ok = false;
   }
+  // Sync PlaceAutocompleteElement's typed value if user didn't select from dropdown
+  if (placesAutocomplete?.value && !location.value.trim()) {
+    location.value = placesAutocomplete.value;
+  }
   if (!location.value.trim()) {
     locationError.value = isZh.value ? '請填入地點' : 'Location is required';
     ok = false;
@@ -572,7 +576,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (placesAutocomplete) {
-    window.google?.maps?.event?.clearInstanceListeners(placesAutocomplete);
+    if (typeof placesAutocomplete.remove === 'function') {
+      placesAutocomplete.remove();
+    } else {
+      window.google?.maps?.event?.clearInstanceListeners(placesAutocomplete);
+    }
     placesAutocomplete = null;
   }
 });
@@ -594,14 +602,32 @@ async function initGooglePlaces(apiKey, inputEl) {
       document.head.appendChild(s);
     });
   }
-  placesAutocomplete = new window.google.maps.places.Autocomplete(inputEl, {
-    fields: ['formatted_address', 'name'],
-  });
-  placesAutocomplete.addListener('place_changed', () => {
-    const place = placesAutocomplete.getPlace();
-    location.value = place.formatted_address || place.name || '';
-    locationError.value = '';
-  });
+  const places = window.google.maps.places;
+
+  if (places.PlaceAutocompleteElement) {
+    // New API (required for API keys created after March 2025)
+    const el = new places.PlaceAutocompleteElement();
+    el.style.cssText = 'width:100%;display:block;';
+    inputEl.parentNode.insertBefore(el, inputEl);
+    inputEl.style.display = 'none';
+    placesAutocomplete = el;
+
+    el.addEventListener('gmp-placeselect', async ({ place }) => {
+      await place.fetchFields({ fields: ['formattedAddress', 'displayName'] });
+      location.value = place.formattedAddress || place.displayName?.text || '';
+      locationError.value = '';
+    });
+  } else if (places.Autocomplete) {
+    // Legacy API fallback
+    placesAutocomplete = new places.Autocomplete(inputEl, {
+      fields: ['formatted_address', 'name'],
+    });
+    placesAutocomplete.addListener('place_changed', () => {
+      const place = placesAutocomplete.getPlace();
+      location.value = place.formatted_address || place.name || '';
+      locationError.value = '';
+    });
+  }
 }
 
 function onMaleLimitChange() {
