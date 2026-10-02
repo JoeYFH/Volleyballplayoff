@@ -36,7 +36,7 @@
             <label class="block text-sm font-medium text-gray-600 mb-1">
               📑 {{ isZh ? '套用範本' : 'Apply Template' }}
             </label>
-            <select @change="onTemplateSelect($event)" :class="inputClass(false)">
+            <select v-model="loadedTemplateId" @change="onTemplateSelect" :class="inputClass(false)">
               <option value="">{{ isZh ? '— 選擇範本 —' : '— Select a template —' }}</option>
               <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option>
             </select>
@@ -630,15 +630,10 @@ function currentFormData() {
   };
 }
 
-function onTemplateSelect(e) {
-  const id = e.target.value;
-  if (!id) return;
-  const tpl = templates.value.find(t => t.id === id);
-  if (tpl) {
-    loadTemplate(tpl);
-    loadedTemplateId.value = id;
-  }
-  e.target.value = '';
+function onTemplateSelect() {
+  if (!loadedTemplateId.value) return;
+  const tpl = templates.value.find(t => t.id === loadedTemplateId.value);
+  if (tpl) loadTemplate(tpl);
 }
 
 async function saveTemplate() {
