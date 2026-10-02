@@ -65,8 +65,10 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
     await menuBtn.waitFor({ state: 'visible', timeout: 15000 });
     await menuBtn.click();
 
-    // 點「我的開場」
-    await page.locator('button:has-text("我的開場"), button:has-text("My Sessions")').click();
+    // 等 speed-dial 展開後點「我的開場」
+    const mySessionsBtn = page.locator('button:has-text("我的開場"), button:has-text("My Sessions")');
+    await mySessionsBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await mySessionsBtn.click();
 
     await expect(page).toHaveURL(/\/my-sessions/, { timeout: 5000 });
   });
