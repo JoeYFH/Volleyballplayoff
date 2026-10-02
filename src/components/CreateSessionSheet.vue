@@ -81,7 +81,7 @@
             <label class="block text-sm font-medium text-gray-600 mb-1">
               {{ isZh ? '地點' : 'Location' }} <span class="text-red-400">*</span>
             </label>
-            <input v-model="location" type="text" maxlength="300"
+            <input ref="locationInputRef" v-model="location" type="text" maxlength="300"
               :placeholder="isZh ? '輸入完整地址或場館名稱' : 'Enter full address or venue name'"
               :class="inputClass(!!locationError)"
               @input="locationError = ''" />
@@ -127,7 +127,8 @@
               </label>
               <input v-model.number="maleLimit" type="number" min="0" max="999"
                 :class="inputClass(!!genderLimitError)"
-                @input="genderLimitError = ''" />
+                @input="genderLimitError = ''"
+                @change="onMaleLimitChange" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
@@ -135,7 +136,8 @@
               </label>
               <input v-model.number="femaleLimit" type="number" min="0" max="999"
                 :class="inputClass(!!genderLimitError)"
-                @input="genderLimitError = ''" />
+                @input="genderLimitError = ''"
+                @change="onFemaleLimitChange" />
             </div>
             <p v-if="genderLimitError" class="col-span-2 text-xs text-red-500">{{ genderLimitError }}</p>
           </div>
@@ -244,10 +246,24 @@
           </div>
 
           <!-- Save as template -->
-          <button v-if="!isEdit && !isEditTemplate" @click="saveTemplate"
-            class="w-full border border-indigo-200 text-indigo-600 rounded-xl py-2.5 text-sm font-medium hover:bg-indigo-50 transition">
-            📑 {{ isZh ? '儲存為範本' : 'Save as Template' }}
-          </button>
+          <template v-if="!isEdit && !isEditTemplate">
+            <!-- 套用範本後：更新 or 另存新範本 -->
+            <div v-if="loadedTemplateId" class="flex gap-2">
+              <button @click="updateLoadedTemplate"
+                class="flex-1 border border-indigo-300 text-indigo-600 rounded-xl py-2.5 text-sm font-medium hover:bg-indigo-50 transition">
+                🔄 {{ isZh ? '更新範本' : 'Update Template' }}
+              </button>
+              <button @click="saveTemplate"
+                class="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition">
+                📑 {{ isZh ? '另存新範本' : 'Save as New' }}
+              </button>
+            </div>
+            <!-- 未套用範本：只顯示儲存為範本 -->
+            <button v-else @click="saveTemplate"
+              class="w-full border border-indigo-200 text-indigo-600 rounded-xl py-2.5 text-sm font-medium hover:bg-indigo-50 transition">
+              📑 {{ isZh ? '儲存為範本' : 'Save as Template' }}
+            </button>
+          </template>
 
           <!-- Submit Button -->
           <button @click="submit" :disabled="submitting"
@@ -271,7 +287,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
@@ -331,6 +347,9 @@ const genderLimitError = ref('');
 const submitting = ref(false);
 const templateName = ref('');
 const templateNameError = ref('');
+const locationInputRef = ref(null);
+const loadedTemplateId = ref('');
+let placesAutocomplete = null;
 
 // ── All equipment chips (defaults + custom) ────────────────────────────────────
 const allEquipItems = computed(() => [...DEFAULT_EQUIP, ...customEquipItems.value]);
@@ -530,6 +549,12 @@ function inputClass(hasError) {
 const templates = ref([]);
 
 onMounted(async () => {
+  // Google Places Autocomplete
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (apiKey && locationInputRef.value) {
+    initGooglePlaces(apiKey, locationInputRef.value).catch(() => {});
+  }
+
   if (!user.value) return;
   if (props.editTemplate) {
     loadTemplate({ data: props.editTemplate.data });
@@ -544,6 +569,54 @@ onMounted(async () => {
     .eq('user_id', user.value.id).order('created_at', { ascending: false });
   templates.value = data || [];
 });
+
+onUnmounted(() => {
+  if (placesAutocomplete) {
+    window.google?.maps?.event?.clearInstanceListeners(placesAutocomplete);
+    placesAutocomplete = null;
+  }
+});
+
+async function initGooglePlaces(apiKey, inputEl) {
+  if (!window.google?.maps?.places) {
+    await new Promise((resolve, reject) => {
+      if (document.querySelector('script[data-gplaces]')) {
+        const check = setInterval(() => {
+          if (window.google?.maps?.places) { clearInterval(check); resolve(); }
+        }, 100);
+        return;
+      }
+      const s = document.createElement('script');
+      s.dataset.gplaces = '1';
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=zh-TW`;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  placesAutocomplete = new window.google.maps.places.Autocomplete(inputEl, {
+    fields: ['formatted_address', 'name'],
+  });
+  placesAutocomplete.addListener('place_changed', () => {
+    const place = placesAutocomplete.getPlace();
+    location.value = place.formatted_address || place.name || '';
+    locationError.value = '';
+  });
+}
+
+function onMaleLimitChange() {
+  if (limit.value > 0 && maleLimit.value >= 0) {
+    femaleLimit.value = Math.max(0, limit.value - maleLimit.value);
+    genderLimitError.value = '';
+  }
+}
+
+function onFemaleLimitChange() {
+  if (limit.value > 0 && femaleLimit.value >= 0) {
+    maleLimit.value = Math.max(0, limit.value - femaleLimit.value);
+    genderLimitError.value = '';
+  }
+}
 
 function currentFormData() {
   return {
@@ -561,7 +634,10 @@ function onTemplateSelect(e) {
   const id = e.target.value;
   if (!id) return;
   const tpl = templates.value.find(t => t.id === id);
-  if (tpl) loadTemplate(tpl);
+  if (tpl) {
+    loadTemplate(tpl);
+    loadedTemplateId.value = id;
+  }
   e.target.value = '';
 }
 
@@ -569,6 +645,11 @@ async function saveTemplate() {
   if (!user.value) return;
   const name = prompt(isZh.value ? '範本名稱：' : 'Template name:');
   if (!name?.trim()) return;
+  // 重複名稱檢查
+  if (templates.value.some(t => t.name === name.trim())) {
+    alert(isZh.value ? `「${name.trim()}」已存在，請使用其他名稱` : `"${name.trim()}" already exists`);
+    return;
+  }
   const { data, error } = await supabase.from('templates').insert({
     user_id: user.value.id,
     name: name.trim(),
@@ -576,6 +657,19 @@ async function saveTemplate() {
   }).select().single();
   if (error) { alert('Error: ' + error.message); return; }
   templates.value = [data, ...templates.value];
+  loadedTemplateId.value = data.id;
+}
+
+async function updateLoadedTemplate() {
+  if (!user.value || !loadedTemplateId.value) return;
+  const { error } = await supabase.from('templates')
+    .update({ data: currentFormData() })
+    .eq('id', loadedTemplateId.value);
+  if (error) { alert('Error: ' + error.message); return; }
+  templates.value = templates.value.map(t =>
+    t.id === loadedTemplateId.value ? { ...t, data: currentFormData() } : t
+  );
+  alert(isZh.value ? '✅ 範本已更新' : '✅ Template updated');
 }
 
 function loadTemplate(tpl) {
@@ -678,3 +772,10 @@ async function submit() {
   }
 }
 </script>
+
+<style>
+/* Google Places autocomplete dropdown must appear above the modal (z-40) */
+.pac-container {
+  z-index: 9999 !important;
+}
+</style>
