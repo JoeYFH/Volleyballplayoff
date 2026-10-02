@@ -56,8 +56,8 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
 
   // ── 頁面跳轉 ──
   test('FAB 選單開啟後可跳至「我的開場」', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // 等選單按鈕出現後開啟 speed dial
@@ -74,8 +74,8 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
   });
 
   test('FAB「我的報名」跳至 /my-signups', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const mySignupsBtn = page.locator('button:has-text("我的報名"), button:has-text("My Signups")').first();
@@ -85,8 +85,8 @@ test.describe.serial('頁面導覽與按鈕功能', () => {
   });
 
   test('「我的開場」頁面回首頁按鈕可用', async ({ page }) => {
-    await page.goto('/my-sessions');
     await loginAsTestUser(page);
+    await page.goto('/my-sessions');
     await page.waitForLoadState('networkidle');
 
     // 首頁圖示按鈕（RouterLink to="/"）

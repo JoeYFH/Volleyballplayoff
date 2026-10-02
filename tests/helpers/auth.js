@@ -7,6 +7,7 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD;
 
 /**
  * 登入測試帳號並把 session 注入瀏覽器
+ * 必須在 page.goto() 之前呼叫，讓 init script 在首次導航時執行
  * 測試帳號需在 Supabase Dashboard > Authentication > Users 建立
  */
 export async function loginAsTestUser(page) {
@@ -27,13 +28,6 @@ export async function loginAsTestUser(page) {
     localStorage.setItem(key, JSON.stringify(session));
     localStorage.setItem('lang', 'zh');
   }, { key: storageKey, session: data.session });
-
-  await page.reload();
-
-  // Google 登入按鈕消失 = Vue 已 mount 且 user 從 localStorage 讀取完成
-  await page.locator('button:has(img[src*="google"])').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
-  // 確保 sessions fetch 完成
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 }
 
 /**

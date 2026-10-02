@@ -155,6 +155,10 @@
                     class="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition font-medium">
                     {{ isZh ? '使用' : 'Use' }}
                   </button>
+                  <button @click="editTemplate(tpl)"
+                    class="text-xs px-2 py-1.5 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 transition">
+                    ✏️
+                  </button>
                   <button @click="deleteTemplate(tpl.id)"
                     class="text-xs px-2 py-1.5 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition">
                     🗑️
@@ -219,9 +223,11 @@
       v-if="showCreateSheet"
       :editSession="editingSession"
       :preloadData="templatePreload"
-      @close="showCreateSheet = false; editingSession = null; templatePreload = null"
+      :editTemplate="editingTemplate"
+      @close="showCreateSheet = false; editingSession = null; templatePreload = null; editingTemplate = null"
       @created="onSessionCreated"
       @updated="onSessionUpdated"
+      @templateUpdated="onTemplateUpdated"
     />
 
     <!-- Share modal -->
@@ -270,6 +276,7 @@ const sortDir = ref('desc');
 const showCreateSheet = ref(false);
 const editingSession = ref(null);
 const templatePreload = ref(null);
+const editingTemplate = ref(null);
 
 const statusFilters = computed(() => [
   { key: 'all', label: isZh.value ? '所有' : 'All' },
@@ -482,8 +489,22 @@ async function loadTemplates() {
 
 function loadTemplateCreate(tpl) {
   editingSession.value = null;
+  editingTemplate.value = null;
   templatePreload.value = tpl.data;
   showCreateSheet.value = true;
+}
+
+function editTemplate(tpl) {
+  editingSession.value = null;
+  templatePreload.value = null;
+  editingTemplate.value = tpl;
+  showCreateSheet.value = true;
+}
+
+async function onTemplateUpdated() {
+  showCreateSheet.value = false;
+  editingTemplate.value = null;
+  await loadTemplates();
 }
 
 async function deleteTemplate(id) {

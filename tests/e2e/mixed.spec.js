@@ -20,8 +20,8 @@ test.describe.serial('混排場次', () => {
   // ── 基本顯示 ──────────────────────────────────────────────
 
   test('場次卡片顯示在首頁並含正確資訊', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await clickStatusFilter(page, '所有');
@@ -34,8 +34,8 @@ test.describe.serial('混排場次', () => {
   });
 
   test('場次卡片有「我要報名」和「分享」按鈕', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await clickStatusFilter(page, '所有');
@@ -48,8 +48,8 @@ test.describe.serial('混排場次', () => {
   });
 
   test('男女進度條都存在', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await clickStatusFilter(page, '所有');
@@ -64,8 +64,8 @@ test.describe.serial('混排場次', () => {
   // ── 候補功能 ──────────────────────────────────────────────
 
   test('報名第 1 位男生（確認）', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await clickStatusFilter(page, '所有');
@@ -79,8 +79,8 @@ test.describe.serial('混排場次', () => {
   });
 
   test('報名第 2 位男生（超額→候補）', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await clickStatusFilter(page, '所有');
@@ -94,8 +94,8 @@ test.describe.serial('混排場次', () => {
   });
 
   test('名單出現候補標示（男額滿）', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await clickStatusFilter(page, '所有');

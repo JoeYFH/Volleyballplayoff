@@ -67,16 +67,16 @@ test.describe('首頁場次列表', () => {
 
 test.describe('登入後操作', () => {
   test('登入後 FAB 出現「我的報名」按鈕', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('button:has-text("我的報名"), button:has-text("My Signups")')).toBeVisible({ timeout: 15000 });
   });
 
   test('登入後 FAB 選單有「我的開場」選項', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const menuBtn = page.locator('button[title="選單"], button:has-text("≡")').first();

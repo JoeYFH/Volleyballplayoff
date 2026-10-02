@@ -10,7 +10,7 @@
       <!-- Header -->
       <div class="flex-none px-5 py-4 flex items-center justify-between border-b border-gray-100 bg-white rounded-t-2xl">
         <h2 class="font-bold text-gray-800">
-          {{ isEdit ? (isZh ? '✏️ 編輯場次' : '✏️ Edit Session') : (isZh ? '🏐 建立新場次' : '🏐 Create Session') }}
+          {{ isEditTemplate ? (isZh ? '✏️ 編輯範本' : '✏️ Edit Template') : isEdit ? (isZh ? '✏️ 編輯場次' : '✏️ Edit Session') : (isZh ? '🏐 建立新場次' : '🏐 Create Session') }}
         </h2>
         <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
       </div>
@@ -19,8 +19,20 @@
       <div class="flex-1 min-h-0 overflow-y-auto" style="overscroll-behavior-y: contain">
         <div class="px-5 py-4 space-y-4">
 
-          <!-- 0. Templates -->
-          <div v-if="!isEdit && templates.length" class="bg-indigo-50 rounded-xl p-3">
+          <!-- 0a. Template Name (only in template edit mode) -->
+          <div v-if="isEditTemplate">
+            <label class="block text-sm font-medium text-gray-600 mb-1">
+              {{ isZh ? '範本名稱' : 'Template Name' }} <span class="text-red-400">*</span>
+            </label>
+            <input v-model="templateName" type="text" maxlength="100"
+              :placeholder="isZh ? '例：週五臨打範本' : 'e.g. Friday Pickup Template'"
+              :class="inputClass(!!templateNameError)"
+              @input="templateNameError = ''" />
+            <p v-if="templateNameError" class="mt-1 text-xs text-red-500">{{ templateNameError }}</p>
+          </div>
+
+          <!-- 0b. Templates -->
+          <div v-if="!isEdit && !isEditTemplate && templates.length" class="bg-indigo-50 rounded-xl p-3">
             <div class="flex items-center justify-between mb-2">
               <p class="text-xs font-semibold text-indigo-700">📑 {{ isZh ? '我的範本' : 'My Templates' }}</p>
             </div>
@@ -236,7 +248,7 @@
           </div>
 
           <!-- Save as template -->
-          <button v-if="!isEdit" @click="saveTemplate"
+          <button v-if="!isEdit && !isEditTemplate" @click="saveTemplate"
             class="w-full border border-indigo-200 text-indigo-600 rounded-xl py-2.5 text-sm font-medium hover:bg-indigo-50 transition">
             📑 {{ isZh ? '儲存為範本' : 'Save as Template' }}
           </button>
@@ -246,9 +258,11 @@
             class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60">
             {{ submitting
               ? (isZh ? '儲存中...' : 'Saving...')
-              : isEdit
-                ? (isZh ? '💾 儲存變更' : '💾 Save Changes')
-                : (isZh ? '🚀 建立場次' : '🚀 Create Session') }}
+              : isEditTemplate
+                ? (isZh ? '💾 更新範本' : '💾 Update Template')
+                : isEdit
+                  ? (isZh ? '💾 儲存變更' : '💾 Save Changes')
+                  : (isZh ? '🚀 建立場次' : '🚀 Create Session') }}
           </button>
 
           <!-- Bottom padding -->
@@ -271,14 +285,16 @@ import { sessionToRow } from '@/composables/useSessions.js';
 const props = defineProps({
   editSession: { type: Object, default: null },
   preloadData: { type: Object, default: null },
+  editTemplate: { type: Object, default: null },
 });
-const emit = defineEmits(['close', 'created', 'updated']);
+const emit = defineEmits(['close', 'created', 'updated', 'templateUpdated']);
 
 // ── i18n / auth ────────────────────────────────────────────────────────────────
 const { lang } = useI18n();
 const { user } = useAuth();
 const isZh = computed(() => lang.value === 'zh');
 const isEdit = computed(() => !!props.editSession);
+const isEditTemplate = computed(() => !!props.editTemplate);
 
 // ── Default equipment chips ────────────────────────────────────────────────────
 const DEFAULT_EQUIP = ['標竿', '音響', '球'];
@@ -317,6 +333,8 @@ const locationError    = ref('');
 const genderLimitError = ref('');
 
 const submitting = ref(false);
+const templateName = ref('');
+const templateNameError = ref('');
 
 // ── All equipment chips (defaults + custom) ────────────────────────────────────
 const allEquipItems = computed(() => [...DEFAULT_EQUIP, ...customEquipItems.value]);
@@ -453,6 +471,25 @@ function validate() {
   timeError.value     = '';
   locationError.value = '';
   genderLimitError.value = '';
+  templateNameError.value = '';
+
+  if (isEditTemplate.value) {
+    if (!templateName.value.trim()) {
+      templateNameError.value = isZh.value ? '請填入範本名稱' : 'Template name is required';
+      ok = false;
+    }
+    if (type.value === 'mixed' && limit.value > 0) {
+      const ml = maleLimit.value || 0;
+      const fl = femaleLimit.value || 0;
+      if ((ml > 0 || fl > 0) && ml + fl !== limit.value) {
+        genderLimitError.value = isZh.value
+          ? `男生(${ml}) + 女生(${fl}) = ${ml + fl}，必須等於總人數上限(${limit.value})`
+          : `Male(${ml}) + Female(${fl}) = ${ml + fl}, must equal total limit(${limit.value})`;
+        ok = false;
+      }
+    }
+    return ok;
+  }
 
   if (!title.value.trim()) {
     titleError.value = isZh.value ? '請填入場次名稱' : 'Title is required';
@@ -498,6 +535,11 @@ const templates = ref([]);
 
 onMounted(async () => {
   if (!user.value) return;
+  if (props.editTemplate) {
+    loadTemplate({ data: props.editTemplate.data });
+    templateName.value = props.editTemplate.name;
+    return;
+  }
   if (props.preloadData) {
     loadTemplate({ data: props.preloadData });
     return;
@@ -561,31 +603,42 @@ async function deleteTemplate(id) {
 async function submit() {
   if (!validate()) return;
 
-  const { openAt, isOpen } = computedOpenAt();
-  const closeAt = computedCloseAt();
-
-  const payload = {
-    title:    title.value.trim(),
-    date:     date.value,
-    time:     time.value,
-    location: location.value.trim(),
-    venue:    venue.value.trim() || null,
-    limit:    limit.value || 0,
-    type:     type.value,
-    maleLimit:   type.value === 'mixed' ? (maleLimit.value || 0) : 0,
-    femaleLimit: type.value === 'mixed' ? (femaleLimit.value || 0) : 0,
-    equipment: equipment.value,
-    note:     note.value.trim() || null,
-    isOpen,
-    isPrivate: isPrivate.value,
-    openAt,
-    closeAt,
-  };
-
   submitting.value = true;
   try {
+    if (isEditTemplate.value) {
+      // Template edit mode
+      const { error } = await supabase.from('templates')
+        .update({ name: templateName.value.trim(), data: currentFormData() })
+        .eq('id', props.editTemplate.id);
+      if (error) throw error;
+      emit('templateUpdated', props.editTemplate.id);
+      emit('close');
+      return;
+    }
+
+    const { openAt, isOpen } = computedOpenAt();
+    const closeAt = computedCloseAt();
+
+    const payload = {
+      title:    title.value.trim(),
+      date:     date.value,
+      time:     time.value,
+      location: location.value.trim(),
+      venue:    venue.value.trim() || null,
+      limit:    limit.value || 0,
+      type:     type.value,
+      maleLimit:   type.value === 'mixed' ? (maleLimit.value || 0) : 0,
+      femaleLimit: type.value === 'mixed' ? (femaleLimit.value || 0) : 0,
+      equipment: equipment.value,
+      note:     note.value.trim() || null,
+      isOpen,
+      isPrivate: isPrivate.value,
+      openAt,
+      closeAt,
+    };
+
     if (isEdit.value) {
-      // Edit mode
+      // Session edit mode
       const { error } = await supabase
         .from('sessions')
         .update(sessionToRow(payload))
