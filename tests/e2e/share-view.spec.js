@@ -15,10 +15,17 @@ test.describe.serial('分享頁面 /share/:id', () => {
     console.log(`\n🗑️  刪除分享頁面測試場次：${sessionId}`);
   });
 
+  async function waitForShareCard(page) {
+    // Wait for Vue to mount and render the share card container
+    await page.locator('div.rounded-3xl').waitFor({ state: 'visible', timeout: 10000 });
+    // Wait for loading state to finish (spinner disappears)
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+  }
+
   test('正確顯示場次資訊', async ({ page }) => {
     await setLangZh(page);
     await page.goto(`/share/${sessionId}`);
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await waitForShareCard(page);
 
     await expect(page.locator('text=/日期|Date/')).toBeVisible({ timeout: 10000 });
 
@@ -34,7 +41,7 @@ test.describe.serial('分享頁面 /share/:id', () => {
   test('顯示正確的場次類型標籤', async ({ page }) => {
     await setLangZh(page);
     await page.goto(`/share/${sessionId}`);
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await waitForShareCard(page);
     await expect(page.locator('text=/日期|Date/')).toBeVisible({ timeout: 10000 });
 
     // mixed session 應顯示「混排」
@@ -44,7 +51,7 @@ test.describe.serial('分享頁面 /share/:id', () => {
   test('「前往報名」按鈕連結包含 session id', async ({ page }) => {
     await setLangZh(page);
     await page.goto(`/share/${sessionId}`);
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await waitForShareCard(page);
     await expect(page.locator('text=/日期|Date/')).toBeVisible({ timeout: 10000 });
 
     const cta = page.locator('a:has-text("前往報名"), a:has-text("Sign Up Now")');
@@ -56,7 +63,7 @@ test.describe.serial('分享頁面 /share/:id', () => {
   test('「前往報名」導向首頁並帶 session 參數', async ({ page }) => {
     await setLangZh(page);
     await page.goto(`/share/${sessionId}`);
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await waitForShareCard(page);
     await expect(page.locator('text=/日期|Date/')).toBeVisible({ timeout: 10000 });
 
     await page.locator('a:has-text("前往報名"), a:has-text("Sign Up Now")').click();
@@ -66,7 +73,8 @@ test.describe.serial('分享頁面 /share/:id', () => {
   test('無效的 session id 顯示錯誤狀態', async ({ page }) => {
     await setLangZh(page);
     await page.goto('/share/invalid-session-id-00000000');
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await page.locator('div.rounded-3xl').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
 
     await expect(page.locator('text=/找不到此活動|Session not found/')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('a[href="/"]')).toBeVisible();
@@ -75,7 +83,7 @@ test.describe.serial('分享頁面 /share/:id', () => {
   test('回首頁連結可用', async ({ page }) => {
     await setLangZh(page);
     await page.goto(`/share/${sessionId}`);
-    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await waitForShareCard(page);
     await expect(page.locator('text=/日期|Date/')).toBeVisible({ timeout: 10000 });
 
     await page.locator('a[href="/"]').first().click();
