@@ -22,10 +22,8 @@
         <div class="text-4xl mb-3">📭</div>
         <p>{{ isZh ? '目前沒有即將舉行的場次' : 'No upcoming sessions' }}</p>
       </div>
+      <div v-for="session in filteredSessions" :id="`card-${session.id}`" :key="session.id">
       <SessionCard
-        v-for="session in filteredSessions"
-        :id="`card-${session.id}`"
-        :key="session.id"
         :session="session"
         :user="user"
         :is-admin="isAdmin()"
@@ -34,6 +32,7 @@
         @share="shareSession"
         @edit-signup="openEditSignupModal"
       />
+      </div>
     </div>
 
     <FabMenu :user="user" :is-zh="isZh" @create="showCreateSheet = true" @feedback="showFeedback = true" />
