@@ -32,18 +32,14 @@
           </div>
 
           <!-- 0b. Templates -->
-          <div v-if="!isEdit && !isEditTemplate && templates.length" class="bg-indigo-50 rounded-xl p-3">
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-xs font-semibold text-indigo-700">📑 {{ isZh ? '我的範本' : 'My Templates' }}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <button v-for="tpl in templates" :key="tpl.id"
-                @click="loadTemplate(tpl)"
-                class="flex items-center gap-1 text-xs bg-white border border-indigo-200 text-indigo-700 rounded-lg px-2.5 py-1.5 hover:bg-indigo-100 transition">
-                {{ tpl.name }}
-                <span @click.stop="deleteTemplate(tpl.id)" class="text-indigo-300 hover:text-red-400 ml-1">✕</span>
-              </button>
-            </div>
+          <div v-if="!isEdit && !isEditTemplate && templates.length">
+            <label class="block text-sm font-medium text-gray-600 mb-1">
+              📑 {{ isZh ? '套用範本' : 'Apply Template' }}
+            </label>
+            <select @change="onTemplateSelect($event)" :class="inputClass(false)">
+              <option value="">{{ isZh ? '— 選擇範本 —' : '— Select a template —' }}</option>
+              <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option>
+            </select>
           </div>
 
           <!-- 1. Session Title -->
@@ -559,6 +555,14 @@ function currentFormData() {
     openWhen: openWhen.value, openOffset: openOffset.value,
     closeWhen: closeWhen.value, closeOffset: closeOffset.value,
   };
+}
+
+function onTemplateSelect(e) {
+  const id = e.target.value;
+  if (!id) return;
+  const tpl = templates.value.find(t => t.id === id);
+  if (tpl) loadTemplate(tpl);
+  e.target.value = '';
 }
 
 async function saveTemplate() {
