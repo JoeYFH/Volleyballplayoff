@@ -75,10 +75,12 @@ test.describe.serial('我的開場頁面', () => {
     await expect(page.locator('h1:has-text("我的開場"), h1:has-text("My Sessions")')).toBeVisible({ timeout: 10000 });
 
     await page.locator('button:has-text("我的範本"), button:has-text("Templates")').click();
+    // 等範本 loading 動畫消失（Supabase 查詢完成）
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(500);
 
     // 可能有範本或顯示空狀態
-    const hasTemplate = await page.locator('text=/還沒有儲存|No templates/').isVisible();
+    const hasTemplate = await page.locator('text=/還沒有儲存任何範本|No templates/').isVisible();
     const itemCount = await page.locator('button:has-text("使用"), button:has-text("Use")').count();
     expect(hasTemplate || itemCount > 0).toBeTruthy();
   });
