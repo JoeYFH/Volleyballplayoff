@@ -313,7 +313,7 @@ async function loadSessions() {
   const { data } = await supabase.from('sessions').select('*')
     .eq('created_by', uid);
   sessions.value = (data || [])
-    .filter(s => !s.creator_name || s.creator_name === myName)
+    .filter(s => !myName || !s.creator_name || s.creator_name === myName)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
     .map(mapSession);
   loading.value = false;
