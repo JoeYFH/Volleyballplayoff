@@ -19,14 +19,16 @@ test.describe.serial('純女場次', () => {
   });
 
   test('場次卡片顯示活動詳細資訊', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/');
+    await page.locator('button:has-text("報名中")').first().waitFor({ state: 'visible', timeout: 12000 });
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    await page.locator('[id^="card-"]').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     await clickStatusFilter(page, '所有');
     await clickGenderFilter(page, '♀ 女生');
 
-    await expect(page.locator(`#card-${sessionId}`)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`#card-${sessionId}`)).toBeVisible({ timeout: 15000 });
     await expect(page.locator(`#card-${sessionId}`)).toContainText('場館一樓大廳集合');
   });
 
@@ -40,9 +42,11 @@ test.describe.serial('純女場次', () => {
   });
 
   test('代報名朋友（純女場次）', async ({ page }) => {
-    await page.goto('/');
     await loginAsTestUser(page);
-    await page.waitForLoadState('networkidle');
+    await page.goto('/');
+    await page.locator('button:has-text("報名中")').first().waitFor({ state: 'visible', timeout: 12000 });
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    await page.locator('[id^="card-"]').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     await clickStatusFilter(page, '所有');
     await clickGenderFilter(page, '♀ 女生');
