@@ -249,7 +249,7 @@ import { ref, computed, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
-import { supabase } from '@/lib/supabase.js';
+import { supabase, ogShareUrl } from '@/lib/supabase.js';
 import MgmtSessionCard from '@/components/MgmtSessionCard.vue';
 import CreateSessionSheet from '@/components/CreateSessionSheet.vue';
 
@@ -413,7 +413,7 @@ function onSessionUpdated() {
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(sessionId) {
-  shareUrl.value = `https://volleyballplayoff.web.app/?session=${sessionId}`;
+  shareUrl.value = ogShareUrl(sessionId);
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }

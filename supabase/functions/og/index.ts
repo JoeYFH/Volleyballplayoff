@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   }
 
   const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
-  const ogUrl = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${encodeURIComponent(sessionId)}`;
+  const ogUrl = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${encodeURIComponent(sessionId)}&apikey=${SUPABASE_ANON_KEY}`;
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

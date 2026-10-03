@@ -73,6 +73,7 @@ import FeedbackModal from '@/components/FeedbackModal.vue';
 import { useAuth } from '@/composables/useAuth.js';
 import { useSessions } from '@/composables/useSessions.js';
 import { useI18n } from '@/lib/i18n.js';
+import { ogShareUrl } from '@/lib/supabase.js';
 
 const { user, isAdmin } = useAuth();
 const { sessions, loading } = useSessions();
@@ -151,7 +152,7 @@ const showFeedback = ref(false);
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(session) {
-  shareUrl.value = `https://volleyballplayoff.web.app/?session=${session.id}`;
+  shareUrl.value = ogShareUrl(session.id);
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }
