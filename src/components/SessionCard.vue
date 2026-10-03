@@ -75,7 +75,7 @@
       <div v-else-if="session.limit" class="mt-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
           <span>{{ isZh ? '報名進度' : 'Progress' }}</span>
-          <span>{{ Math.min(signups.length, session.limit) }} / {{ session.limit }}</span>
+          <span>{{ signups.length }} / {{ session.limit }}</span>
         </div>
         <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden">
           <div :class="['h-2.5 rounded-full transition-all duration-500', totalPct >= 75 ? 'bg-amber-400' : 'bg-indigo-400']" :style="{ width: totalPct + '%' }"></div>
@@ -209,7 +209,7 @@ const hasMixedLimits = computed(() => props.session.type === 'mixed' && (props.s
 const effectiveTotalLimit = computed(() => props.session.limit || (hasMixedLimits.value ? props.session.maleLimit + props.session.femaleLimit : 0));
 const maleCount   = computed(() => signups.value.filter(s => s.gender === 'male').length);
 const femaleCount = computed(() => signups.value.filter(s => s.gender === 'female').length);
-const confirmedCount = computed(() => Math.min(signups.value.length, effectiveTotalLimit.value));
+const confirmedCount = computed(() => signups.value.length);
 const malePct   = computed(() => props.session.maleLimit   > 0 ? Math.round(Math.min(maleCount.value,   props.session.maleLimit)   / props.session.maleLimit   * 100) : 0);
 const femalePct = computed(() => props.session.femaleLimit > 0 ? Math.round(Math.min(femaleCount.value, props.session.femaleLimit) / props.session.femaleLimit * 100) : 0);
 const totalPct  = computed(() => props.session.limit > 0 ? Math.round(Math.min(signups.value.length, props.session.limit) / props.session.limit * 100) : 0);
