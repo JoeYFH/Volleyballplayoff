@@ -556,7 +556,8 @@ async function updateFbStatus(id, status) {
 
 async function deleteFb(id) {
   if (!confirm(isZh.value ? '確定刪除此回饋？' : 'Delete this feedback?')) return;
-  await supabase.from('feedback').delete().eq('id', id);
+  const { error } = await supabase.from('feedback').delete().eq('id', id);
+  if (error) { alert(isZh.value ? `刪除失敗：${error.message}` : `Delete failed: ${error.message}`); return; }
   feedbackList.value = feedbackList.value.filter(f => f.id !== id);
 }
 
