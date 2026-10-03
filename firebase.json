@@ -11,7 +11,7 @@
     "redirects": [
       {
         "source": "/og/:id",
-        "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og/:id?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYWNib2xtem1qdXR3dnhvd3BlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MDc4NTQsImV4cCI6MjEwNjM4Mzg1NH0.6iB-dXLssRMT7gxRVpX1GF5IKkKz1xfQiUfO13GH3pA",
+        "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og/:id",
         "type": 302
       }
     ],
