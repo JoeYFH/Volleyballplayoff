@@ -67,6 +67,12 @@
           🏐 {{ isZh ? '前往報名' : 'Sign Up Now' }}
         </a>
 
+        <!-- Share button -->
+        <button @click="copyShareLink"
+          class="block w-full text-center text-indigo-600 font-semibold py-3 rounded-2xl border border-indigo-200 hover:bg-indigo-50 transition mt-3 text-sm">
+          {{ copied ? (isZh ? '✅ 已複製分享連結' : '✅ Copied!') : (isZh ? '🔗 複製分享連結' : '🔗 Copy Share Link') }}
+        </button>
+
         <!-- Back link -->
         <RouterLink to="/" class="block text-center text-xs text-gray-400 hover:text-indigo-500 mt-4 transition">
           ← {{ isZh ? '回首頁' : 'Back to home' }}
@@ -80,7 +86,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
-import { supabase } from '@/lib/supabase.js';
+import { supabase, ogShareUrl } from '@/lib/supabase.js';
 import { useI18n } from '@/lib/i18n.js';
 
 const route = useRoute();
@@ -91,6 +97,14 @@ const state = ref('loading'); // 'loading' | 'loaded' | 'error'
 const session = ref(null);
 
 const sessionId = route.params.id;
+const copied = ref(false);
+
+async function copyShareLink() {
+  const url = ogShareUrl(sessionId);
+  await navigator.clipboard.writeText(url).catch(() => {});
+  copied.value = true;
+  setTimeout(() => { copied.value = false; }, 2000);
+}
 
 const joinUrl = computed(() => {
   if (!sessionId) return '/';
