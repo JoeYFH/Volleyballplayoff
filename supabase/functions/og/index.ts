@@ -18,7 +18,7 @@ function fmtDate(d: string) {
 function isBrowser(req: Request): boolean {
   const ua = req.headers.get('user-agent') || '';
   return /^Mozilla\//i.test(ua) &&
-    !/bot|crawl|spider|facebookexternalhit|slack|discord|telegram|whatsapp|linkedin|preview|fetch|curl/i.test(ua);
+    !/bot|crawl|spider|facebook|facebot|slack|discord|telegram|whatsapp|linkedin|preview|fetch|curl/i.test(ua);
 }
 
 function toBase64(str: string): string {
