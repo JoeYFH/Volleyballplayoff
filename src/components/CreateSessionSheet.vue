@@ -749,6 +749,9 @@ function loadTemplate(tpl) {
   const d = tpl.data;
   title.value        = d.title || '';
   location.value     = d.location || '';
+  // Google Places Autocomplete overrides the input's displayed value,
+  // so we must also update the DOM element directly.
+  if (locationInputRef.value) locationInputRef.value.value = d.location || '';
   venue.value        = d.venue || '';
   limit.value        = d.limit ?? 0;
   type.value         = d.type || 'mixed';
