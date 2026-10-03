@@ -6,19 +6,10 @@
       ".firebaserc",
       ".git",
       "**/.gitignore",
-      "**/README.md",
-      "functions/**"
+      "**/README.md"
     ],
     "rewrites": [
-      { "source": "/og/**", "function": "og" },
       { "source": "**", "destination": "/index.html" }
     ]
-  },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": ["node_modules", ".git"]
-    }
-  ]
+  }
 }

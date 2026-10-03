@@ -83,7 +83,8 @@ const urlSessionId = ref(new URLSearchParams(window.location.search).get('sessio
 
 onMounted(() => {
   if (urlSessionId.value) {
-    window.history.replaceState({}, '', `/og/${urlSessionId.value}`);
+    const el = document.getElementById(`card-${urlSessionId.value}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 });
 
@@ -140,7 +141,7 @@ const showFeedback = ref(false);
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(session) {
-  shareUrl.value = `${location.origin}/og/${session.id}`;
+  shareUrl.value = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${session.id}`;
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }

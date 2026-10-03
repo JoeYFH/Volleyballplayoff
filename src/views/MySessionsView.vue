@@ -413,7 +413,7 @@ function onSessionUpdated() {
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(sessionId) {
-  shareUrl.value = `${location.origin}/og/${sessionId}`;
+  shareUrl.value = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${sessionId}`;
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }
