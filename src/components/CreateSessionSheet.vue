@@ -251,7 +251,8 @@
           <div v-if="!isEdit && !isEditTemplate" class="bg-indigo-50/60 rounded-xl px-4 py-3">
             <label class="flex items-center gap-3 cursor-pointer select-none">
               <input id="selfSignupChk" v-model="signupSelf" type="checkbox"
-                class="w-4 h-4 rounded accent-indigo-600" />
+                class="w-4 h-4 rounded accent-indigo-600"
+                @change="onSignupSelfToggle($event.target.checked)" />
               <span class="text-sm text-gray-700 font-medium">{{ isZh ? '幫自己報名此場次' : 'Sign myself up' }}</span>
             </label>
             <!-- Google profile preview -->
@@ -399,6 +400,20 @@ const validationSummary = ref('');
 const signupSelf = ref(false);
 const selfGender = ref('');
 const selfGenderError = ref('');
+
+async function onSignupSelfToggle(checked) {
+  if (!checked || selfGender.value || !user.value) return;
+  // Pre-fill gender from the user's most recent signup
+  const { data } = await supabase
+    .from('signups')
+    .select('gender')
+    .eq('uid', user.value.id)
+    .not('gender', 'eq', '')
+    .order('signed_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (data?.gender) selfGender.value = data.gender;
+}
 const templateName = ref('');
 const templateNameError = ref('');
 const locationInputRef = ref(null);
