@@ -1,7 +1,7 @@
 <template>
   <div
     :class="[
-      'flex items-start gap-2 rounded-xl px-3 py-2',
+      'flex items-start gap-2 rounded-xl px-3 py-2 group',
       isWait ? 'opacity-60' : '',
       isOwn ? 'bg-indigo-50 border border-indigo-100' : 'bg-gray-50',
       genderBorder,
@@ -19,7 +19,27 @@
         <span v-for="tag in tags" :key="tag.text" class="tag" :style="tag.style">{{ tag.text }}</span>
       </div>
     </div>
-    <template v-if="isOwn">
+    <!-- Manager buttons (visible on hover) -->
+    <template v-if="isManager">
+      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button v-if="isWait"
+          @click="$emit('mgmt-confirm', signup)"
+          class="text-xs px-2 py-0.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition whitespace-nowrap">
+          {{ isZh ? '移到正取' : 'Confirm' }}
+        </button>
+        <button v-else
+          @click="$emit('mgmt-waitlist', signup)"
+          class="text-xs px-2 py-0.5 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition whitespace-nowrap">
+          {{ isZh ? '移到候補' : 'Waitlist' }}
+        </button>
+        <button @click="$emit('mgmt-remove', signup)"
+          class="text-xs px-2 py-0.5 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition whitespace-nowrap">
+          {{ isZh ? '移除' : 'Remove' }}
+        </button>
+      </div>
+    </template>
+    <!-- Own-user buttons -->
+    <template v-else-if="isOwn">
       <button @click="$emit('edit', signup)" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
       <button @click="$emit('cancel', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
     </template>
@@ -37,9 +57,10 @@ const props = defineProps({
   user: { type: Object, default: null },
   isZh: { type: Boolean, default: true },
   waitPrefix: { type: String, default: '候' },
+  isManager: { type: Boolean, default: false },
 });
 
-defineEmits(['edit', 'cancel']);
+defineEmits(['edit', 'cancel', 'mgmt-waitlist', 'mgmt-confirm', 'mgmt-remove']);
 
 const isOwn = computed(() => !!props.user && props.signup.uid === props.user.id);
 

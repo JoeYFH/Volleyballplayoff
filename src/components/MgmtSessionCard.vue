@@ -108,42 +108,20 @@
     </div>
 
     <!-- Signup list -->
-    <div class="border-t border-gray-50 px-4 py-3">
-      <div class="flex items-center justify-between mb-2">
-        <p class="text-xs font-semibold text-gray-500">{{ isZh ? '報名名單' : 'Sign-ups' }}</p>
-        <span class="text-xs bg-indigo-100 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">{{ signups.length }}</span>
-      </div>
-      <div v-if="!signups.length" class="text-center py-3 text-gray-400 text-xs">
-        {{ isZh ? '還沒有報名' : 'No signups yet' }}
-      </div>
-      <div v-else class="space-y-1 max-h-60 overflow-y-auto">
-        <div v-for="s in signups" :key="s.id"
-          :class="['flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs group', s.genderWait || isWaitlisted(s) ? 'bg-amber-50 text-amber-700' : 'bg-gray-50 text-gray-700']">
-          <span class="font-medium shrink-0 w-5 text-center">
-            <span v-if="s.genderWait || isWaitlisted(s)" class="text-amber-500">候</span>
-            <span v-else>{{ s.position }}</span>
-          </span>
-          <span class="flex-1 min-w-0 truncate font-medium">{{ s.forFriend || s.name }}</span>
-          <span v-if="s.forFriend" class="text-purple-500 shrink-0">代</span>
-          <span v-if="s.isLate" class="text-orange-400 shrink-0">晚</span>
-          <span v-if="s.gender === 'male'" class="text-blue-400 shrink-0">♂</span>
-          <span v-if="s.gender === 'female'" class="text-pink-400 shrink-0">♀</span>
-          <!-- Signup action buttons -->
-          <div class="flex items-center gap-1 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-            <button v-if="s.genderWait || isWaitlisted(s)"
-              @click="forceConfirmSignup(s)"
-              class="text-green-600 hover:bg-green-100 rounded px-1 py-0.5 leading-none transition"
-              :title="isZh ? '移到正取' : 'Move to confirmed'">✓</button>
-            <button v-else
-              @click="forceWaitlistSignup(s)"
-              class="text-amber-500 hover:bg-amber-100 rounded px-1 py-0.5 leading-none transition"
-              :title="isZh ? '移到候補' : 'Move to waitlist'">候</button>
-            <button @click="removeSignup(s.id)"
-              class="text-red-400 hover:bg-red-100 rounded px-1 py-0.5 leading-none transition"
-              :title="isZh ? '移除報名' : 'Remove signup'">✕</button>
-          </div>
-        </div>
-      </div>
+    <div class="max-h-96 overflow-y-auto">
+      <SignupList
+        :signups="signups"
+        :limit="session.limit"
+        :male-limit="session.maleLimit"
+        :female-limit="session.femaleLimit"
+        :type="session.type"
+        :user="user"
+        :is-zh="isZh"
+        :is-manager="true"
+        @mgmt-waitlist="forceWaitlistSignup"
+        @mgmt-confirm="forceConfirmSignup"
+        @mgmt-remove="s => removeSignup(s.id)"
+      />
     </div>
   </div>
 </template>
@@ -152,6 +130,7 @@
 import { computed } from 'vue';
 import { useSignups } from '@/composables/useSignups.js';
 import { supabase } from '@/lib/supabase.js';
+import SignupList from '@/components/SignupList.vue';
 
 const props = defineProps({
   session: { type: Object, required: true },
@@ -200,10 +179,6 @@ const femaleCount = computed(() => signups.value.filter(s => s.gender === 'femal
 const malePct = computed(() => props.session.maleLimit > 0 ? Math.round(Math.min(maleCount.value, props.session.maleLimit) / props.session.maleLimit * 100) : 0);
 const femalePct = computed(() => props.session.femaleLimit > 0 ? Math.round(Math.min(femaleCount.value, props.session.femaleLimit) / props.session.femaleLimit * 100) : 0);
 const totalPct = computed(() => props.session.limit > 0 ? Math.round(Math.min(signups.value.length, props.session.limit) / props.session.limit * 100) : 0);
-
-function isWaitlisted(s) {
-  return !s.forceConfirmed && (s.forceWaitlisted || (props.session.limit > 0 && s.position > props.session.limit));
-}
 
 async function removeSignup(id) {
   const msg = props.isZh ? '確定移除此報名？' : 'Remove this signup?';

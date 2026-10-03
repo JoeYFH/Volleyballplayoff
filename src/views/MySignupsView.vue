@@ -56,18 +56,6 @@
           </div>
         </div>
 
-        <!-- Main tabs: self / proxy -->
-        <div class="flex gap-1 bg-gray-100 rounded-xl p-1 mb-2">
-          <button @click="mainTab = 'self'"
-            :class="mainTab === 'self' ? 'flex-1 text-sm font-medium py-2 rounded-lg transition bg-white text-indigo-600 shadow-sm' : 'flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700'">
-            🙋 {{ isZh ? '我自己的' : 'My own' }}
-          </button>
-          <button @click="mainTab = 'proxy'"
-            :class="mainTab === 'proxy' ? 'flex-1 text-sm font-medium py-2 rounded-lg transition bg-white text-purple-600 shadow-sm' : 'flex-1 text-sm font-medium py-2 rounded-lg transition text-gray-500 hover:text-gray-700'">
-            👥 {{ isZh ? '我幫別人的' : 'For others' }}
-          </button>
-        </div>
-
         <!-- Sub tabs: waitlist / confirmed / past -->
         <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
           <button v-for="tab in subTabs" :key="tab.key" @click="subTab = tab.key"
@@ -113,9 +101,9 @@
         <!-- Cards -->
         <div v-else class="space-y-4">
           <MySignupCard
-            v-for="item in filteredItems"
-            :key="item.id"
-            :item="item"
+            v-for="group in filteredItems"
+            :key="group.sessionId"
+            :item="group"
             :is-zh="isZh"
             @cancel="cancelSignup"
             @share="shareSession"
@@ -170,7 +158,6 @@ const displayName = computed(() =>
 );
 
 // Tabs
-const mainTab = ref('self');
 const subTab = ref('confirmed');
 const sortType = ref('date');
 const sortDir = ref('asc');
@@ -283,34 +270,52 @@ watch(user, (u) => {
 
 onUnmounted(() => { if (signupsChannel) supabase.removeChannel(signupsChannel); });
 
+// Group signups by session
+const groupedSignups = computed(() => {
+  const map = new Map();
+  for (const s of mySignups.value) {
+    if (!map.has(s.sessionId)) {
+      map.set(s.sessionId, { sessionId: s.sessionId, session: s.session, signups: [] });
+    }
+    map.get(s.sessionId).signups.push(s);
+  }
+  return [...map.values()];
+});
+
 // Filtered & sorted
 const filteredItems = computed(() => {
   const today = new Date().toISOString().split('T')[0];
-  let list = mySignups.value.filter(s =>
-    mainTab.value === 'proxy' ? !!s.forFriend : !s.forFriend
-  );
+  let groups = groupedSignups.value;
+
   if (subTab.value === 'waitlist') {
-    list = list.filter(s => s.isWaitlisted && (s.session?.date || '') >= today);
+    // Sessions where at least one signup is waitlisted (and not yet past)
+    groups = groups.filter(g =>
+      (g.session?.date || '') >= today && g.signups.some(s => s.isWaitlisted)
+    );
   } else if (subTab.value === 'confirmed') {
-    list = list.filter(s => !s.isWaitlisted && (s.session?.date || '') >= today);
+    // Sessions where all signups are confirmed (and not yet past)
+    groups = groups.filter(g =>
+      (g.session?.date || '') >= today && g.signups.every(s => !s.isWaitlisted)
+    );
   } else {
-    list = list.filter(s => (s.session?.date || '') < today);
+    groups = groups.filter(g => (g.session?.date || '') < today);
   }
+
   const desc = sortDir.value === 'desc';
   if (sortType.value === 'signedAt') {
-    list = [...list].sort((a, b) => {
-      const aMs = a.signedAt ? new Date(a.signedAt).getTime() : 0;
-      const bMs = b.signedAt ? new Date(b.signedAt).getTime() : 0;
+    groups = [...groups].sort((a, b) => {
+      const aMs = Math.max(...a.signups.map(s => s.signedAt ? new Date(s.signedAt).getTime() : 0));
+      const bMs = Math.max(...b.signups.map(s => s.signedAt ? new Date(s.signedAt).getTime() : 0));
       return desc ? bMs - aMs : aMs - bMs;
     });
   } else {
-    list = [...list].sort((a, b) => {
+    groups = [...groups].sort((a, b) => {
       const ad = a.session?.date || '';
       const bd = b.session?.date || '';
       return desc ? bd.localeCompare(ad) : ad.localeCompare(bd);
     });
   }
-  return list;
+  return groups;
 });
 
 // Cancel
