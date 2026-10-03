@@ -154,7 +154,7 @@ test.describe.serial('建立場次功能', () => {
     await page.locator('input[type="time"]').fill('19:00');
 
     // 地點欄位
-    const locationInput = page.locator('input[placeholder*="地點"], input[placeholder*="address"], input[placeholder*="address"]').first();
+    const locationInput = page.locator('input[placeholder*="地址"], input[placeholder*="address"], input[placeholder*="venue"]').first();
     if (await locationInput.isVisible()) {
       await locationInput.fill('測試球館');
     }
