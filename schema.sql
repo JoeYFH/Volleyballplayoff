@@ -104,6 +104,7 @@ CREATE POLICY "templates_all" ON templates USING (auth.uid() = user_id);
 -- Feedback: 所有人可新增，管理員可讀取
 CREATE POLICY "feedback_insert" ON feedback FOR INSERT WITH CHECK (true);
 CREATE POLICY "feedback_select_admin" ON feedback FOR SELECT USING (
+  auth.jwt() ->> 'email' = 'abc8038570@gmail.com'
 );
 
 -- ========================================
