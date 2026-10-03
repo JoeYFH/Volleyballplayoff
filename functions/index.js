@@ -77,8 +77,13 @@ exports.og = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // Inject dynamic OG tags + preloaded session data right after <head>
-  // Placing them first ensures crawlers read dynamic values (first-match wins)
+  // Remove static OG/meta tags from template so dynamic ones are the only ones
+  html = html
+    .replace(/<title>[^<]*<\/title>/i, '')
+    .replace(/<meta\s[^>]*property="og:[^"]*"[^>]*\/?>/gi, '')
+    .replace(/<meta\s[^>]*name="twitter:[^"]*"[^>]*\/?>/gi, '')
+    .replace(/<meta\s[^>]*name="description"[^>]*\/?>/gi, '');
+
   const sessionScript = data
     ? `<script>window.__SESSION__=${JSON.stringify(data).replace(/</g, '\\u003c')};</script>`
     : '';
@@ -100,7 +105,8 @@ exports.og = functions.https.onRequest(async (req, res) => {
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">`;
 
-  html = html.replace('<head>', '<head>' + injected);
+  // Inject before </head> so dynamic tags are the last (and only) OG tags
+  html = html.replace('</head>', injected + '\n</head>');
 
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'no-cache');
