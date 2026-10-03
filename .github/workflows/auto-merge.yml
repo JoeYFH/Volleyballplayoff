@@ -51,7 +51,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx --yes firebase-tools@latest deploy --only functions --project volleyballplayoff
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx --yes firebase-tools@latest deploy --only functions --project volleyballplayoff --force
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
