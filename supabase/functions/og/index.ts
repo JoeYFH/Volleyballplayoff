@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
   }
 
   const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
+  const ogUrl = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${encodeURIComponent(sessionId)}`;
   const ua = req.headers.get('user-agent') || '';
 
   // 一般瀏覽器直接跳轉，不需要 HTML
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
   <meta charset="UTF-8">
   <title>${esc(title)}</title>
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${esc(mainUrl)}">
+  <meta property="og:url" content="${esc(ogUrl)}">
   <meta property="og:title" content="${esc(title)}">
   <meta property="og:description" content="${esc(description)}">
   <meta property="og:image" content="${esc(imageUrl)}">
