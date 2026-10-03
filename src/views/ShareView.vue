@@ -125,6 +125,32 @@ const typeStyle = computed(() => {
   return map[session.value?.type] || 'bg-gray-100 text-gray-600';
 });
 
+function setMeta(selector, attr, value) {
+  const el = document.querySelector(selector);
+  if (el) el.setAttribute(attr, value);
+}
+
+function updatePageMeta(data) {
+  const title = '🏐 ' + (data.title || (data.date + ' 臨打'));
+  const days = ['日','一','二','三','四','五','六'];
+  const dt = data.date ? new Date(data.date + 'T00:00:00') : null;
+  const parts = [];
+  if (dt) parts.push('📅 ' + `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()}（週${days[dt.getDay()]}）`);
+  if (data.time) parts.push('🕐 ' + data.time);
+  if (data.location) parts.push('📍 ' + data.location);
+  const typeMap = { mixed: '混排', male: '男生', female: '女生' };
+  if (typeMap[data.type]) parts.push(typeMap[data.type]);
+  if (data.creator_name) parts.push('👤 ' + data.creator_name);
+  const description = parts.join(' · ');
+
+  document.title = title;
+  setMeta('meta[property="og:title"]', 'content', title);
+  setMeta('meta[property="og:description"]', 'content', description);
+  setMeta('meta[property="og:url"]', 'content', window.location.href);
+  setMeta('meta[name="twitter:title"]', 'content', title);
+  setMeta('meta[name="twitter:description"]', 'content', description);
+}
+
 onMounted(async () => {
   if (!sessionId) {
     state.value = 'error';
@@ -141,6 +167,7 @@ onMounted(async () => {
     } else {
       session.value = data;
       state.value = 'loaded';
+      updatePageMeta(data);
     }
   } catch {
     state.value = 'error';
