@@ -116,9 +116,9 @@
       <div v-if="!signups.length" class="text-center py-3 text-gray-400 text-xs">
         {{ isZh ? '還沒有報名' : 'No signups yet' }}
       </div>
-      <div v-else class="space-y-1 max-h-48 overflow-y-auto">
+      <div v-else class="space-y-1 max-h-60 overflow-y-auto">
         <div v-for="s in signups" :key="s.id"
-          :class="['flex items-center gap-2 py-1 px-2 rounded-lg text-xs', s.genderWait || isWaitlisted(s) ? 'bg-amber-50 text-amber-700' : 'bg-gray-50 text-gray-700']">
+          :class="['flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs group', s.genderWait || isWaitlisted(s) ? 'bg-amber-50 text-amber-700' : 'bg-gray-50 text-gray-700']">
           <span class="font-medium shrink-0 w-5 text-center">
             <span v-if="s.genderWait || isWaitlisted(s)" class="text-amber-500">候</span>
             <span v-else>{{ s.position }}</span>
@@ -128,6 +128,20 @@
           <span v-if="s.isLate" class="text-orange-400 shrink-0">晚</span>
           <span v-if="s.gender === 'male'" class="text-blue-400 shrink-0">♂</span>
           <span v-if="s.gender === 'female'" class="text-pink-400 shrink-0">♀</span>
+          <!-- Signup action buttons -->
+          <div class="flex items-center gap-1 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+            <button v-if="s.genderWait || isWaitlisted(s)"
+              @click="forceConfirmSignup(s)"
+              class="text-green-600 hover:bg-green-100 rounded px-1 py-0.5 leading-none transition"
+              :title="isZh ? '移到正取' : 'Move to confirmed'">✓</button>
+            <button v-else
+              @click="forceWaitlistSignup(s)"
+              class="text-amber-500 hover:bg-amber-100 rounded px-1 py-0.5 leading-none transition"
+              :title="isZh ? '移到候補' : 'Move to waitlist'">候</button>
+            <button @click="removeSignup(s.id)"
+              class="text-red-400 hover:bg-red-100 rounded px-1 py-0.5 leading-none transition"
+              :title="isZh ? '移除報名' : 'Remove signup'">✕</button>
+          </div>
         </div>
       </div>
     </div>
@@ -137,6 +151,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useSignups } from '@/composables/useSignups.js';
+import { supabase } from '@/lib/supabase.js';
 
 const props = defineProps({
   session: { type: Object, required: true },
@@ -188,6 +203,21 @@ const totalPct = computed(() => props.session.limit > 0 ? Math.round(Math.min(si
 
 function isWaitlisted(s) {
   return !s.forceConfirmed && (s.forceWaitlisted || (props.session.limit > 0 && s.position > props.session.limit));
+}
+
+async function removeSignup(id) {
+  const msg = props.isZh ? '確定移除此報名？' : 'Remove this signup?';
+  if (!confirm(msg)) return;
+  await supabase.from('signups').delete().eq('id', id);
+  // Real-time subscription in useSignups refreshes the list automatically
+}
+
+async function forceWaitlistSignup(s) {
+  await supabase.from('signups').update({ force_waitlisted: true, force_confirmed: false }).eq('id', s.id);
+}
+
+async function forceConfirmSignup(s) {
+  await supabase.from('signups').update({ force_confirmed: true, force_waitlisted: false }).eq('id', s.id);
 }
 
 const signupTimeHtml = computed(() => {
