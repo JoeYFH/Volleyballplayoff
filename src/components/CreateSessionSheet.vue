@@ -61,6 +61,7 @@
                 {{ isZh ? '日期' : 'Date' }} <span class="text-red-400">*</span>
               </label>
               <input v-model="date" type="date"
+                :min="isEditTemplate ? undefined : today"
                 :class="inputClass(!!dateError)"
                 @change="dateError = ''" />
               <p v-if="dateError" class="mt-1 text-xs text-red-500">{{ dateError }}</p>
@@ -379,6 +380,7 @@ const timeError        = ref('');
 const locationError    = ref('');
 const genderLimitError = ref('');
 
+const today = new Date().toISOString().split('T')[0];
 const submitting = ref(false);
 const submitError = ref('');
 const validationSummary = ref('');
@@ -552,6 +554,9 @@ function validate() {
   }
   if (!date.value) {
     dateError.value = isZh.value ? '請選擇日期' : 'Date is required';
+    ok = false;
+  } else if (!isEditTemplate.value && date.value < today) {
+    dateError.value = isZh.value ? '不可選擇過去的日期' : 'Date cannot be in the past';
     ok = false;
   }
   if (!time.value) {
