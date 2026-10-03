@@ -30,8 +30,8 @@ Deno.serve(async (req) => {
     return Response.redirect(HOST, 302);
   }
 
-  const isSharePath = url.pathname.includes('/share/');
-  const mainUrl = isSharePath
+  const fromShare = url.searchParams.get('from') === 'share';
+  const mainUrl = fromShare
     ? `${HOST}/?session=${encodeURIComponent(sessionId)}`
     : `${HOST}/share/${encodeURIComponent(sessionId)}`;
 
