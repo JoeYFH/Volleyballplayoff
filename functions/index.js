@@ -1,6 +1,4 @@
 const functions = require('firebase-functions');
-const fs = require('fs');
-const path = require('path');
 
 const SUPABASE_URL = 'https://yjacbolmzmjutwvxowpe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYWNib2xtem1qdXR3dnhvd3BlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MDc4NTQsImV4cCI6MjEwNjM4Mzg1NH0.6iB-dXLssRMT7gxRVpX1GF5IKkKz1xfQiUfO13GH3pA';
@@ -64,13 +62,13 @@ exports.og = functions.https.onRequest(async (req, res) => {
     description = infoParts.join(' · ');
   }
 
-  // Read the Vue app template (copied from dist/index.html during CI build)
-  const templatePath = path.join(__dirname, 'template.html');
+  // Fetch current index.html from Firebase Hosting so asset hashes are always in sync
   let html;
   try {
-    html = fs.readFileSync(templatePath, 'utf8');
+    const r = await fetch(`${HOST}/index.html`, { headers: { 'Cache-Control': 'no-cache' } });
+    html = await r.text();
   } catch (e) {
-    console.error('template.html not found, falling back to minimal page', e);
+    console.error('Failed to fetch index.html:', e);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('Cache-Control', 'no-cache');
     res.status(503).send(`<!DOCTYPE html><html><head><title>${esc(title)}</title></head><body><p>Server error, please try again.</p></body></html>`);

@@ -43,9 +43,6 @@ jobs:
       - name: Install Firebase Functions dependencies
         run: npm ci --prefix functions
 
-      - name: Copy index.html template to functions
-        run: cp dist/index.html functions/template.html
-
       - name: Deploy Firebase Functions
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
