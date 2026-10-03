@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     return Response.redirect(HOST, 302);
   }
 
-  const mainUrl = `${HOST}/share/${encodeURIComponent(sessionId)}`;
+  const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
 
   // 一般瀏覽器直接 302 跳轉到報名頁，不回傳 HTML（避免 Supabase 用 text/plain 回傳導致顯示原始碼）
   if (isBrowser(req)) {
