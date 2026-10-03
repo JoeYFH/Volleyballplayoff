@@ -380,7 +380,8 @@ const timeError        = ref('');
 const locationError    = ref('');
 const genderLimitError = ref('');
 
-const today = new Date().toISOString().split('T')[0];
+const _now = new Date();
+const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
 const submitting = ref(false);
 const submitError = ref('');
 const validationSummary = ref('');
@@ -555,7 +556,7 @@ function validate() {
   if (!date.value) {
     dateError.value = isZh.value ? '請選擇日期' : 'Date is required';
     ok = false;
-  } else if (!isEditTemplate.value && date.value < today) {
+  } else if (!isEditTemplate.value && !isEdit.value && date.value < today) {
     dateError.value = isZh.value ? '不可選擇過去的日期' : 'Date cannot be in the past';
     ok = false;
   }
