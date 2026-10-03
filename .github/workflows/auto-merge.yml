@@ -57,12 +57,5 @@ jobs:
           SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
         run: |
           printenv SA_JSON > /tmp/firebase-sa.json
-          set -o pipefail
-          npx --yes firebase-tools deploy --only functions --project volleyballplayoff --non-interactive 2>&1 | tee /tmp/deploy-log.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          echo "### Firebase Functions Deploy" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -50 /tmp/deploy-log.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          npx --yes firebase-tools deploy --only functions --project volleyballplayoff --non-interactive
           rm /tmp/firebase-sa.json
-          exit $EXIT_CODE
