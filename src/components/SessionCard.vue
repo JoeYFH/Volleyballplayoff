@@ -40,8 +40,11 @@
         <div class="flex flex-wrap gap-x-4 gap-y-1">
           <div v-if="session.limit" class="flex items-center gap-1"><span>👥</span><span>{{ isZh ? '名額' : 'Limit' }} {{ session.limit }}{{ isZh ? '人' : '' }}</span></div>
           <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
-          <div v-if="session.equipment?.length" class="flex items-center gap-1 text-xs text-gray-500">
-            <span>🎒</span><span>{{ isZh ? '需自備：' : 'Bring: ' }}{{ session.equipment.join(isZh ? '、' : ', ') }}</span>
+          <div v-if="neededEquip.length" class="flex items-center gap-1 text-xs text-gray-500">
+            <span>🎒</span><span>{{ isZh ? '還需帶：' : 'Still need: ' }}{{ neededEquip.join(isZh ? '、' : ', ') }}</span>
+          </div>
+          <div v-else-if="session.equipment?.length" class="flex items-center gap-1 text-xs text-green-500">
+            <span>✅</span><span>{{ isZh ? '裝備已全部到位' : 'All equipment covered' }}</span>
           </div>
         </div>
         <!-- Note (organizer only) -->
@@ -192,6 +195,13 @@ const isOrganizer = computed(() =>
 const typeLabel = computed(() => {
   const map = { mixed: props.isZh ? '混排' : 'Mixed', male: props.isZh ? '男生' : 'Male', female: props.isZh ? '女生' : 'Female' };
   return map[props.session.type] || '';
+});
+
+const neededEquip = computed(() => {
+  const all = props.session.equipment || [];
+  if (!all.length) return [];
+  const covered = new Set(signups.value.flatMap(s => s.bringEquip || []));
+  return all.filter(item => !covered.has(item));
 });
 
 // Progress bar computations
