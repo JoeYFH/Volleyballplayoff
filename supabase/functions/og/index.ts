@@ -15,6 +15,11 @@ function fmtDate(d: string) {
   return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
 }
 
+function isCrawler(req: Request): boolean {
+  const ua = (req.headers.get('user-agent') || '').toLowerCase();
+  return /bot|crawl|spider|facebookexternalhit|line|whatsapp|twitter|discord|slack|telegram|linkedin|preview|og|meta-externalagent/i.test(ua);
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const sessionId = url.searchParams.get('id') || url.pathname.split('/').pop();
@@ -24,7 +29,14 @@ Deno.serve(async (req) => {
   }
 
   const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
-  const ogUrl = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${encodeURIComponent(sessionId)}&apikey=${SUPABASE_ANON_KEY}`;
+
+  // 一般瀏覽器直接跳轉，不顯示 HTML 原始碼
+  if (!isCrawler(req)) {
+    return Response.redirect(mainUrl, 302);
+  }
+
+  // 爬蟲才讀取活動資料並回傳 OG HTML
+  const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -68,19 +80,14 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${esc(mainUrl)}">
 </head>
-<body style="font-family:sans-serif;text-align:center;padding:40px;background:#f8f9fa">
-  <p style="color:#6b7280;margin-bottom:20px">${esc(description)}</p>
-  <a href="${esc(mainUrl)}" style="display:inline-block;padding:12px 28px;background:#4f46e5;color:white;border-radius:12px;text-decoration:none;font-weight:600;font-size:16px">前往報名頁面 →</a>
-</body></html>`;
+<body></body></html>`;
 
     return new Response(html, {
       status: 200,
       headers: {
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'no-cache',
-        'x-content-type-options': 'nosniff',
       },
     });
   } catch (e) {
