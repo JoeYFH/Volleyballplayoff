@@ -150,7 +150,7 @@ const showFeedback = ref(false);
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(session) {
-  shareUrl.value = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${session.id}`;
+  shareUrl.value = `https://volleyballplayoff.web.app/?session=${session.id}`;
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }
