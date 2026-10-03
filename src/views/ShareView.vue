@@ -60,12 +60,16 @@
           </div>
         </div>
 
-        <!-- CTA button -->
-        <a :href="joinUrl"
+        <!-- Signup button -->
+        <button v-if="effectivelyOpen" @click="showSignupModal = true"
           class="block w-full text-center text-white font-bold py-4 rounded-2xl shadow-md transition active:scale-95"
           style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 4px 16px rgba(99,102,241,0.3)">
-          🏐 {{ isZh ? '前往報名' : 'Sign Up Now' }}
-        </a>
+          🏐 {{ isZh ? '立即報名' : 'Sign Up Now' }}
+        </button>
+        <div v-else
+          class="block w-full text-center text-gray-400 font-semibold py-4 rounded-2xl bg-gray-100 text-sm">
+          {{ isZh ? '報名已截止' : 'Signup Closed' }}
+        </div>
 
         <!-- Share button -->
         <button @click="copyShareLink"
@@ -80,6 +84,15 @@
       </div>
 
     </div>
+
+    <!-- Signup Modal -->
+    <SignupModal
+      v-if="showSignupModal && mappedSession"
+      :session="mappedSession"
+      :signups="signups"
+      @close="showSignupModal = false"
+      @submitted="showSignupModal = false"
+    />
   </div>
 </template>
 
@@ -88,6 +101,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import { supabase, ogShareUrl } from '@/lib/supabase.js';
 import { useI18n } from '@/lib/i18n.js';
+import SignupModal from '@/components/SignupModal.vue';
+import { useSignups } from '@/composables/useSignups.js';
+import { mapSession } from '@/composables/useSessions.js';
 
 const route = useRoute();
 const { lang } = useI18n();
@@ -95,9 +111,42 @@ const { lang } = useI18n();
 const isZh = computed(() => lang.value === 'zh');
 const state = ref('loading'); // 'loading' | 'loaded' | 'error'
 const session = ref(null);
+const showSignupModal = ref(false);
 
 const sessionId = route.params.id;
 const copied = ref(false);
+
+// Parse preloaded data at setup time so useSignups can use initial limits
+function parsePreloaded() {
+  if (typeof window !== 'undefined' && window.__SESSION__) return window.__SESSION__;
+  try {
+    const d = new URLSearchParams(window.location.search).get('d');
+    if (!d) return null;
+    const bytes = Uint8Array.from(atob(d), c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
+const _preloaded = parsePreloaded();
+
+const { signups } = useSignups(sessionId || '__invalid__', {
+  limit: _preloaded?.limit_total || 0,
+  maleLimit: _preloaded?.male_limit || 0,
+  femaleLimit: _preloaded?.female_limit || 0,
+});
+
+const mappedSession = computed(() => session.value ? mapSession(session.value) : null);
+
+const effectivelyOpen = computed(() => {
+  if (!session.value) return false;
+  const isOpen = session.value.is_open ?? false;
+  const closeAt = session.value.close_at ?? null;
+  if (!isOpen) return false;
+  if (closeAt && new Date(closeAt).getTime() < Date.now()) return false;
+  return true;
+});
 
 async function copyShareLink() {
   const url = ogShareUrl(sessionId);
@@ -105,11 +154,6 @@ async function copyShareLink() {
   copied.value = true;
   setTimeout(() => { copied.value = false; }, 2000);
 }
-
-const joinUrl = computed(() => {
-  if (!sessionId) return '/';
-  return `/?session=${encodeURIComponent(sessionId)}`;
-});
 
 const formattedDate = computed(() => {
   if (!session.value?.date) return '—';
@@ -165,32 +209,16 @@ function updatePageMeta(data) {
   setMeta('meta[name="twitter:description"]', 'content', description);
 }
 
-function parsePreloaded() {
-  // Cloud Function injects window.__SESSION__ for instant data
-  if (window.__SESSION__) return window.__SESSION__;
-  // Fallback: ?d= base64 param from old redirect approach
-  try {
-    const d = new URLSearchParams(window.location.search).get('d');
-    if (!d) return null;
-    const bytes = Uint8Array.from(atob(d), c => c.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    return null;
-  }
-}
-
 onMounted(async () => {
   if (!sessionId) {
     state.value = 'error';
     return;
   }
 
-  // 優先使用 ?d= 預載資料，立即顯示不用 loading
-  const preloaded = parsePreloaded();
-  if (preloaded) {
-    session.value = preloaded;
+  if (_preloaded) {
+    session.value = _preloaded;
     state.value = 'loaded';
-    updatePageMeta(preloaded);
+    updatePageMeta(_preloaded);
   }
 
   try {
@@ -200,14 +228,14 @@ onMounted(async () => {
       .eq('id', sessionId)
       .single();
     if (error || !data) {
-      if (!preloaded) state.value = 'error';
+      if (!_preloaded) state.value = 'error';
     } else {
       session.value = data;
       state.value = 'loaded';
       updatePageMeta(data);
     }
   } catch {
-    if (!preloaded) state.value = 'error';
+    if (!_preloaded) state.value = 'error';
   }
 });
 </script>

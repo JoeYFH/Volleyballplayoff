@@ -1,7 +1,7 @@
 import { ref, readonly, onUnmounted } from 'vue';
 import { supabase } from '@/lib/supabase.js';
 
-function mapSession(row) {
+export function mapSession(row) {
   return {
     id: row.id, title: row.title, date: row.date, time: row.time,
     location: row.location, venue: row.venue, type: row.type || '',
