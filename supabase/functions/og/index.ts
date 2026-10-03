@@ -15,6 +15,13 @@ function fmtDate(d: string) {
   return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
 }
 
+function isBrowser(req: Request): boolean {
+  const ua = req.headers.get('user-agent') || '';
+  // 一般瀏覽器的 UA 以 Mozilla/ 開頭，且不含爬蟲關鍵字
+  return /^Mozilla\//i.test(ua) &&
+    !/bot|crawl|spider|facebookexternalhit|slack|discord|telegram|whatsapp|linkedin|preview|fetch|curl/i.test(ua);
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const sessionId = url.searchParams.get('id') || url.pathname.split('/').pop();
@@ -24,6 +31,11 @@ Deno.serve(async (req) => {
   }
 
   const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
+
+  // 一般瀏覽器直接 302 跳轉，不回傳 HTML（避免 Supabase 用 text/plain 回傳導致顯示原始碼）
+  if (isBrowser(req)) {
+    return Response.redirect(mainUrl, 302);
+  }
   const ogUrl = `https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og?id=${encodeURIComponent(sessionId)}&apikey=${SUPABASE_ANON_KEY}`;
 
   try {
