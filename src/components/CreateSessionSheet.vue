@@ -245,6 +245,29 @@
               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"></textarea>
           </div>
 
+          <!-- Self signup option (create mode only) -->
+          <div v-if="!isEdit && !isEditTemplate" class="bg-indigo-50/60 rounded-xl px-4 py-3">
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input id="selfSignupChk" v-model="signupSelf" type="checkbox"
+                class="w-4 h-4 rounded accent-indigo-600" />
+              <span class="text-sm text-gray-700 font-medium">{{ isZh ? '幫自己報名此場次' : 'Sign myself up' }}</span>
+            </label>
+            <div v-if="signupSelf && type === 'mixed'" class="mt-2.5 flex items-center gap-2">
+              <span class="text-xs text-gray-500">{{ isZh ? '我的性別：' : 'My gender:' }}</span>
+              <button @click="selfGender = 'male'"
+                :class="['text-xs px-3 py-1 rounded-lg font-medium transition',
+                  selfGender === 'male' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-blue-50']">
+                ♂ {{ isZh ? '男' : 'Male' }}
+              </button>
+              <button @click="selfGender = 'female'"
+                :class="['text-xs px-3 py-1 rounded-lg font-medium transition',
+                  selfGender === 'female' ? 'bg-pink-500 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-pink-50']">
+                ♀ {{ isZh ? '女' : 'Female' }}
+              </button>
+              <span v-if="selfGenderError" class="text-xs text-red-500">{{ selfGenderError }}</span>
+            </div>
+          </div>
+
           <!-- Save as template -->
           <template v-if="!isEdit && !isEditTemplate">
             <!-- 套用範本後：更新 or 另存新範本 -->
@@ -359,6 +382,9 @@ const genderLimitError = ref('');
 const submitting = ref(false);
 const submitError = ref('');
 const validationSummary = ref('');
+const signupSelf = ref(false);
+const selfGender = ref('');
+const selfGenderError = ref('');
 const templateName = ref('');
 const templateNameError = ref('');
 const locationInputRef = ref(null);
@@ -736,6 +762,11 @@ async function deleteTemplate(id) {
 async function submit() {
   submitError.value = '';
   validationSummary.value = '';
+  selfGenderError.value = '';
+  if (signupSelf.value && type.value === 'mixed' && !selfGender.value) {
+    selfGenderError.value = isZh.value ? '請選擇性別' : 'Please select gender';
+    return;
+  }
   if (!validate()) {
     const missing = [];
     if (templateNameError.value) missing.push(isZh.value ? '範本名稱' : 'Template name');
@@ -808,6 +839,26 @@ async function submit() {
         .select()
         .single();
       if (error) throw error;
+      if (signupSelf.value && row?.id) {
+        const name = user.value.user_metadata?.full_name
+          || user.value.user_metadata?.name
+          || user.value.email;
+        await supabase.from('signups').insert({
+          session_id: row.id,
+          uid: user.value.id,
+          name,
+          gender: type.value === 'mixed' ? selfGender.value : '',
+          is_late: false,
+          late_minutes: null,
+          is_friend: false,
+          friend_name: null,
+          pair: null,
+          bring_equip: [],
+          friend_gender: '',
+          force_confirmed: false,
+          force_waitlisted: false,
+        });
+      }
       emit('created', row);
       emit('close');
     }

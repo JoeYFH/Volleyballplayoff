@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS feedback (
   type text,
   urgency text,
   description text NOT NULL,
+  status text DEFAULT 'pending',  -- 'pending' | 'in_progress' | 'done'
   created_at timestamptz DEFAULT now()
 );
 
@@ -101,9 +102,15 @@ CREATE POLICY "signups_delete" ON signups FOR DELETE USING (
 -- Templates: 只有本人能操作
 CREATE POLICY "templates_all" ON templates USING (auth.uid() = user_id);
 
--- Feedback: 所有人可新增，管理員可讀取
+-- Feedback: 所有人可新增，管理員可讀取/更新/刪除
 CREATE POLICY "feedback_insert" ON feedback FOR INSERT WITH CHECK (true);
 CREATE POLICY "feedback_select_admin" ON feedback FOR SELECT USING (
+  auth.jwt() ->> 'email' IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
+);
+CREATE POLICY "feedback_update_admin" ON feedback FOR UPDATE USING (
+  auth.jwt() ->> 'email' IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
+);
+CREATE POLICY "feedback_delete_admin" ON feedback FOR DELETE USING (
   auth.jwt() ->> 'email' IN ('abc8038570@gmail.com', 'joehuangyf@gmail.com')
 );
 

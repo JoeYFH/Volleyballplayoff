@@ -94,24 +94,68 @@
       <!-- ── 意見回覆 ── -->
       <div class="flex items-center justify-between mb-3 mt-4 border-t border-gray-100 pt-4">
         <h2 class="font-bold text-gray-700">💬 {{ isZh ? '意見回覆' : 'Feedback' }}</h2>
-        <span v-if="feedbackList.length" class="text-xs bg-red-100 text-red-600 font-semibold px-2.5 py-1 rounded-full">{{ feedbackList.length }}</span>
+        <div class="flex items-center gap-2">
+          <span v-if="pendingCount" class="text-xs bg-red-100 text-red-600 font-semibold px-2.5 py-1 rounded-full">{{ pendingCount }}</span>
+          <button @click="fetchFeedback" class="text-xs text-gray-400 hover:text-indigo-500 transition" title="Refresh">↻</button>
+        </div>
       </div>
+
+      <!-- Feedback filter + sort -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <div class="flex gap-1">
+          <button v-for="f in fbFilters" :key="f.key" @click="fbFilter = f.key"
+            :class="['text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap transition',
+              fbFilter === f.key ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50']">
+            {{ f.label }}
+          </button>
+        </div>
+        <select v-model="fbSort" class="ml-auto text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-indigo-400 text-gray-600">
+          <option value="created_at">{{ isZh ? '建立日期' : 'Date' }}</option>
+          <option value="urgency">{{ isZh ? '緊急程度' : 'Urgency' }}</option>
+          <option value="type">{{ isZh ? '類別' : 'Type' }}</option>
+        </select>
+      </div>
+
       <div v-if="feedbackLoading" class="text-center py-8 text-gray-400 text-sm animate-pulse">{{ isZh ? '載入中…' : 'Loading…' }}</div>
-      <div v-else-if="!feedbackList.length" class="text-center py-8 text-gray-400">
+      <div v-else-if="!filteredFeedback.length" class="text-center py-8 text-gray-400">
         <div class="text-3xl mb-2">📭</div>
-        <p class="text-sm">{{ isZh ? '還沒有意見回饋' : 'No feedback yet' }}</p>
+        <p class="text-sm">{{ isZh ? '沒有符合條件的回饋' : 'No feedback in this category' }}</p>
       </div>
       <div v-else class="space-y-3">
-        <div v-for="fb in feedbackList" :key="fb.id" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div v-for="fb in filteredFeedback" :key="fb.id"
+          :class="['bg-white rounded-xl border shadow-sm p-4 transition',
+            fb.status === 'done' ? 'border-green-100 opacity-70' : fb.status === 'in_progress' ? 'border-amber-200' : 'border-gray-100']">
+          <!-- Header row -->
           <div class="flex items-start justify-between gap-2 mb-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', typeClass(fb.type)]">{{ typeLabel(fb.type) }}</span>
               <span :class="['text-xs px-2 py-0.5 rounded-full', urgencyClass(fb.urgency)]">{{ urgencyLabel(fb.urgency) }}</span>
+              <span :class="['text-xs px-2 py-0.5 rounded-full font-medium', fbStatusClass(fb.status)]">{{ fbStatusLabel(fb.status) }}</span>
             </div>
             <span class="text-xs text-gray-300 shrink-0">{{ fmtFbDate(fb.created_at) }}</span>
           </div>
+          <!-- Description -->
           <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{{ fb.description }}</p>
           <p v-if="fb.email" class="text-xs text-indigo-500 mt-1.5">📧 {{ fb.email }}</p>
+          <!-- Actions -->
+          <div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-gray-50 flex-wrap">
+            <button v-if="fb.status !== 'pending'" @click="updateFbStatus(fb.id, 'pending')"
+              class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+              {{ isZh ? '待處理' : 'Pending' }}
+            </button>
+            <button v-if="fb.status !== 'in_progress'" @click="updateFbStatus(fb.id, 'in_progress')"
+              class="text-xs px-2.5 py-1 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition">
+              {{ isZh ? '處理中' : 'In Progress' }}
+            </button>
+            <button v-if="fb.status !== 'done'" @click="updateFbStatus(fb.id, 'done')"
+              class="text-xs px-2.5 py-1 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition">
+              {{ isZh ? '已處理' : 'Done' }}
+            </button>
+            <button @click="deleteFb(fb.id)"
+              class="text-xs px-2.5 py-1 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition ml-auto">
+              🗑️ {{ isZh ? '刪除' : 'Delete' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -179,6 +223,8 @@ const shareUrl = ref('');
 const copiedShare = ref(false);
 const feedbackList = ref([]);
 const feedbackLoading = ref(false);
+const fbFilter = ref('pending');
+const fbSort = ref('created_at');
 const editingSession = ref(null);
 const showEditSheet = ref(false);
 
@@ -191,6 +237,34 @@ const filters = computed(() => [
   { key: 'closed',   label: isZh.value ? '已關閉' : 'Closed' },
   { key: 'past',     label: isZh.value ? '已結束' : 'Past' },
 ]);
+
+const fbFilters = computed(() => [
+  { key: 'pending',     label: isZh.value ? '尚未處理' : 'Pending' },
+  { key: 'in_progress', label: isZh.value ? '處理中' : 'In Progress' },
+  { key: 'done',        label: isZh.value ? '已處理' : 'Done' },
+  { key: 'all',         label: isZh.value ? '全部' : 'All' },
+]);
+
+const URGENCY_ORDER = { high: 0, medium: 1, low: 2 };
+const TYPE_ORDER = { bug: 0, idea: 1, other: 2 };
+
+const pendingCount = computed(() => feedbackList.value.filter(f => f.status === 'pending' || !f.status).length);
+
+const filteredFeedback = computed(() => {
+  let list = [...feedbackList.value];
+  if (fbFilter.value !== 'all') {
+    const key = fbFilter.value;
+    list = list.filter(f => (f.status || 'pending') === key);
+  }
+  if (fbSort.value === 'urgency') {
+    list.sort((a, b) => (URGENCY_ORDER[a.urgency] ?? 3) - (URGENCY_ORDER[b.urgency] ?? 3));
+  } else if (fbSort.value === 'type') {
+    list.sort((a, b) => (TYPE_ORDER[a.type] ?? 3) - (TYPE_ORDER[b.type] ?? 3));
+  } else {
+    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  return list;
+});
 
 const filteredSessions = computed(() => {
   let list = [...sessions.value];
@@ -288,6 +362,19 @@ async function fetchFeedback() {
   }
 }
 
+async function updateFbStatus(id, status) {
+  await supabase.from('feedback').update({ status }).eq('id', id);
+  const fb = feedbackList.value.find(f => f.id === id);
+  if (fb) fb.status = status;
+}
+
+async function deleteFb(id) {
+  const msg = isZh.value ? '確定刪除此回饋？' : 'Delete this feedback?';
+  if (!confirm(msg)) return;
+  await supabase.from('feedback').delete().eq('id', id);
+  feedbackList.value = feedbackList.value.filter(f => f.id !== id);
+}
+
 // Use watchEffect for reliable reactive re-evaluation
 watchEffect(() => {
   if (!authLoading.value && user.value && isAdmin()) {
@@ -371,6 +458,16 @@ function urgencyLabel(u) {
 function urgencyClass(u) {
   return u === 'high' ? 'bg-red-50 text-red-500' : u === 'medium' ? 'bg-amber-50 text-amber-500' : 'bg-gray-50 text-gray-400';
 }
+function fbStatusLabel(status) {
+  const s = status || 'pending';
+  if (!isZh.value) return s === 'done' ? 'Done' : s === 'in_progress' ? 'In Progress' : 'Pending';
+  return s === 'done' ? '✅ 已處理' : s === 'in_progress' ? '⏳ 處理中' : '🔴 待處理';
+}
+function fbStatusClass(status) {
+  const s = status || 'pending';
+  return s === 'done' ? 'bg-green-100 text-green-600' : s === 'in_progress' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-500';
+}
+
 function fmtFbDate(ts) {
   if (!ts) return '';
   const d = new Date(ts);
