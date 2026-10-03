@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   if (isBrowser(req)) {
     return Response.redirect(mainUrl, 302);
   }
-  const ogUrl = `${HOST}/share/${encodeURIComponent(sessionId)}`;
+  const ogUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
