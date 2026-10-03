@@ -80,8 +80,11 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">
+  <meta http-equiv="refresh" content="0;url=${esc(mainUrl)}">
 </head>
-<body></body></html>`;
+<body>
+  <a href="${esc(mainUrl)}">前往報名頁面</a>
+</body></html>`;
 
     return new Response(html, {
       status: 200,
