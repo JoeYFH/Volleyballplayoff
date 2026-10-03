@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import AppHeader from '@/components/AppHeader.vue';
 import FilterBar from '@/components/FilterBar.vue';
 import SessionCard from '@/components/SessionCard.vue';
@@ -78,6 +78,15 @@ const { sessions, loading } = useSessions();
 const { lang } = useI18n();
 const isZh = computed(() => lang.value === 'zh');
 
+// 從 URL 讀取 session 參數（讀完後會替換地址欄為 /og/SESSION_ID）
+const urlSessionId = ref(new URLSearchParams(window.location.search).get('session'));
+
+onMounted(() => {
+  if (urlSessionId.value) {
+    window.history.replaceState({}, '', `/og/${urlSessionId.value}`);
+  }
+});
+
 // Filters
 const statusFilter = ref('open');
 const genderFilter = ref('all');
@@ -87,11 +96,10 @@ const sortDir  = ref('asc');
 const filteredSessions = computed(() => {
   const today = new Date().toISOString().split('T')[0];
   const now = Date.now();
-  const urlSessionId = new URLSearchParams(window.location.search).get('session');
 
   let list = sessions.value.filter(s => {
     if (s.cancelled) return false;
-    if (s.isPrivate && s.id !== urlSessionId) return false;
+    if (s.isPrivate && s.id !== urlSessionId.value) return false;
     const isPast = (s.date || '') < today;
     const closeAtMs = s.closeAt ? new Date(s.closeAt).getTime() : null;
     const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
@@ -132,7 +140,7 @@ const showFeedback = ref(false);
 const shareUrl = ref('');
 const copiedShare = ref(false);
 function shareSession(session) {
-  shareUrl.value = `${location.origin}/?session=${session.id}`;
+  shareUrl.value = `${location.origin}/og/${session.id}`;
   copiedShare.value = false;
   navigator.clipboard.writeText(shareUrl.value).catch(() => {});
 }
