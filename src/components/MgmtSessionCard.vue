@@ -60,14 +60,14 @@
         <div class="flex items-center gap-1.5">
           <span class="text-xs text-blue-400 w-5 shrink-0">♂</span>
           <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-            <div :class="['h-2 rounded-full transition-all duration-500', malePct >= 100 ? 'bg-red-400' : 'bg-blue-400']" :style="{ width: Math.min(malePct, 100) + '%' }"></div>
+            <div class="h-2 rounded-full transition-all duration-500 bg-blue-400" :style="{ width: Math.min(malePct, 100) + '%' }"></div>
           </div>
           <span class="text-xs text-gray-400 w-10 text-right shrink-0">{{ maleCount }}/{{ session.maleLimit || '?' }}</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="text-xs text-pink-400 w-5 shrink-0">♀</span>
           <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-            <div :class="['h-2 rounded-full transition-all duration-500', femalePct >= 100 ? 'bg-red-400' : 'bg-pink-400']" :style="{ width: Math.min(femalePct, 100) + '%' }"></div>
+            <div class="h-2 rounded-full transition-all duration-500 bg-pink-400" :style="{ width: Math.min(femalePct, 100) + '%' }"></div>
           </div>
           <span class="text-xs text-gray-400 w-10 text-right shrink-0">{{ femaleCount }}/{{ session.femaleLimit || '?' }}</span>
         </div>
@@ -78,7 +78,7 @@
           <span>{{ Math.min(signups.length, session.limit) }} / {{ session.limit }}</span>
         </div>
         <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
-          <div :class="['h-2 rounded-full transition-all duration-500', totalPct >= 100 ? 'bg-red-400' : totalPct >= 75 ? 'bg-amber-400' : 'bg-indigo-400']" :style="{ width: Math.min(totalPct, 100) + '%' }"></div>
+          <div :class="['h-2 rounded-full transition-all duration-500', totalPct >= 75 ? 'bg-amber-400' : 'bg-indigo-400']" :style="{ width: Math.min(totalPct, 100) + '%' }"></div>
         </div>
       </div>
 
