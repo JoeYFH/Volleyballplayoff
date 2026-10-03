@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import AppHeader from '@/components/AppHeader.vue';
 import FilterBar from '@/components/FilterBar.vue';
 import SessionCard from '@/components/SessionCard.vue';
@@ -83,8 +83,15 @@ const urlSessionId = ref(new URLSearchParams(window.location.search).get('sessio
 
 onMounted(() => {
   if (urlSessionId.value) {
-    const el = document.getElementById(`card-${urlSessionId.value}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const tryScroll = () => {
+      const el = document.getElementById(`card-${urlSessionId.value}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    tryScroll();
+    // sessions 可能還沒載入，等載入後再 scroll
+    const stop = watch(loading, (v) => {
+      if (!v) { tryScroll(); stop(); }
+    });
   }
 });
 
@@ -101,6 +108,8 @@ const filteredSessions = computed(() => {
   let list = sessions.value.filter(s => {
     if (s.cancelled) return false;
     if (s.isPrivate && s.id !== urlSessionId.value) return false;
+    // 分享連結指定的活動一律顯示，不受篩選器影響
+    if (urlSessionId.value && s.id === urlSessionId.value) return true;
     const isPast = (s.date || '') < today;
     const closeAtMs = s.closeAt ? new Date(s.closeAt).getTime() : null;
     const effectivelyClosed = !s.isOpen || (closeAtMs && closeAtMs < now);
