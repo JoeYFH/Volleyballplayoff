@@ -1,7 +1,7 @@
 <template>
   <div
     :class="[
-      'flex items-start gap-2 rounded-xl px-3 py-2 group',
+      'flex items-start gap-2 rounded-xl px-3 py-2',
       isWait ? 'opacity-60' : '',
       isOwn ? 'bg-indigo-50 border border-indigo-100' : 'bg-gray-50',
       genderBorder,
@@ -21,7 +21,7 @@
     </div>
     <!-- Manager buttons (visible on hover) -->
     <template v-if="isManager">
-      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <div class="flex items-center gap-1 shrink-0">
         <button v-if="isWait"
           @click="$emit('mgmt-confirm', signup)"
           class="text-xs px-2 py-0.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition whitespace-nowrap">
