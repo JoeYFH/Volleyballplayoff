@@ -57,5 +57,7 @@ jobs:
           SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
         run: |
           printenv SA_JSON > /tmp/firebase-sa.json
-          npx --yes firebase-tools deploy --only functions --project volleyballplayoff --non-interactive
+          npx --yes firebase-tools deploy --only functions --project volleyballplayoff --non-interactive 2>&1
+          EXIT_CODE=$?
           rm /tmp/firebase-sa.json
+          exit $EXIT_CODE
