@@ -142,6 +142,7 @@ const props = defineProps({
   user: { type: Object, default: null },
   isAdmin: { type: Boolean, default: false },
   isZh: { type: Boolean, default: true },
+  autoOpenSignup: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['signup', 'share', 'edit-signup']);
@@ -172,7 +173,10 @@ const { signups } = useSignups(props.session.id, {
 // Time calculations
 const now = ref(Date.now());
 let timer = null;
-onMounted(() => { timer = setInterval(() => { now.value = Date.now(); }, 1000); });
+onMounted(() => {
+  timer = setInterval(() => { now.value = Date.now(); }, 1000);
+  if (props.autoOpenSignup && props.session.isOpen) openSignup();
+});
 onUnmounted(() => clearInterval(timer));
 
 const openAtMs  = computed(() => props.session.openAt  ? new Date(props.session.openAt).getTime()  : null);

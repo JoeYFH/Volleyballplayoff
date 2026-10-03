@@ -28,6 +28,7 @@
         :user="user"
         :is-admin="isAdmin()"
         :is-zh="isZh"
+        :auto-open-signup="session.id === urlSessionId"
         @signup="openSignupModal"
         @share="shareSession"
         @edit-signup="openEditSignupModal"
