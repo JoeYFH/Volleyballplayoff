@@ -107,10 +107,23 @@
             :is-zh="isZh"
             @cancel="cancelSignup"
             @share="shareSession"
+            @edit="openEditSignup"
           />
         </div>
       </div>
     </div>
+
+    <!-- Edit signup modal -->
+    <Teleport to="body">
+      <SignupModal
+        v-if="showEditModal && editSession"
+        :session="editSession"
+        :signups="[]"
+        :edit-signup="editSignupData"
+        @close="closeEditModal"
+        @submitted="closeEditModal"
+      />
+    </Teleport>
 
     <!-- Share modal -->
     <div v-if="shareUrl" class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center px-4" @click.self="shareUrl = ''">
@@ -140,6 +153,7 @@ import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
 import MySignupCard from '@/components/MySignupCard.vue';
+import SignupModal from '@/components/SignupModal.vue';
 
 const { lang, setLang } = useI18n();
 const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth();
@@ -181,6 +195,7 @@ async function mapSession(row) {
     isOpen: row.is_open, isPrivate: row.is_private, cancelled: row.cancelled,
     openAt: row.open_at, closeAt: row.close_at,
     createdBy: row.created_by, creatorName: row.creator_name, creatorPhoto: row.creator_photo,
+    equipment: row.equipment || [],
   };
 }
 
@@ -317,6 +332,22 @@ const filteredItems = computed(() => {
   }
   return groups;
 });
+
+// Edit signup
+const showEditModal = ref(false);
+const editSignupData = ref(null);
+const editSession = ref(null);
+
+function openEditSignup(signup) {
+  editSignupData.value = signup;
+  editSession.value = signup.session;
+  showEditModal.value = true;
+}
+function closeEditModal() {
+  showEditModal.value = false;
+  editSignupData.value = null;
+  editSession.value = null;
+}
 
 // Cancel
 async function cancelSignup({ signupId }) {

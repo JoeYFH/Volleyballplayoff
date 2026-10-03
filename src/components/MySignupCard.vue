@@ -31,24 +31,34 @@
     <!-- Signups list (one row per person) -->
     <div class="space-y-1.5 mb-3">
       <div v-for="s in item.signups" :key="s.id"
-        :class="['flex items-center gap-2 rounded-xl px-3 py-2 text-xs', s.isWaitlisted ? 'bg-amber-50' : 'bg-gray-50']">
+        :class="['flex items-start gap-2 rounded-xl px-3 py-2 text-xs', s.isWaitlisted ? 'bg-amber-50' : 'bg-gray-50']">
         <!-- Type badge -->
-        <span :class="['px-2 py-0.5 rounded-full font-medium shrink-0', s.forFriend ? 'bg-purple-100 text-purple-700' : 'bg-indigo-50 text-indigo-600']">
+        <span :class="['px-2 py-0.5 rounded-full font-medium shrink-0 mt-0.5', s.forFriend ? 'bg-purple-100 text-purple-700' : 'bg-indigo-50 text-indigo-600']">
           {{ s.forFriend ? (isZh ? '👥 代' : '👥 Proxy') : (isZh ? '🙋 本人' : '🙋 Self') }}
         </span>
-        <!-- Name -->
-        <span class="font-semibold text-gray-800 flex-1 min-w-0 truncate">{{ s.forFriend || s.name }}</span>
-        <!-- Tags -->
-        <span v-if="s.isLate" class="text-orange-400 shrink-0">晚</span>
-        <span v-if="s.gender === 'male'" class="text-blue-400 shrink-0">♂</span>
-        <span v-if="s.gender === 'female'" class="text-pink-400 shrink-0">♀</span>
-        <!-- Waitlist badge -->
-        <span v-if="s.isWaitlisted" class="text-amber-600 font-medium shrink-0">⏳ {{ waitlistLabel(s) }}</span>
+        <!-- Name + tags -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="font-semibold text-gray-800">{{ s.forFriend || s.name }}</span>
+            <span v-if="s.gender === 'male'" class="text-blue-400">♂</span>
+            <span v-if="s.gender === 'female'" class="text-pink-400">♀</span>
+            <span v-if="s.isWaitlisted" class="text-amber-600 font-medium">⏳ {{ waitlistLabel(s) }}</span>
+          </div>
+          <div v-if="signupTags(s).length" class="flex gap-1 flex-wrap mt-0.5">
+            <span v-for="tag in signupTags(s)" :key="tag.text"
+              :class="['px-1.5 py-0.5 rounded-md', tag.style || 'bg-gray-100 text-gray-500']">
+              {{ tag.text }}
+            </span>
+          </div>
+        </div>
+        <!-- Edit -->
+        <button v-if="!isPast" @click="$emit('edit', s)"
+          class="text-gray-300 hover:text-indigo-400 shrink-0 px-1 py-0.5 transition leading-none mt-0.5"
+          :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
         <!-- Cancel -->
         <button v-if="!isPast" @click="$emit('cancel', { signupId: s.id })"
-          class="text-red-400 hover:text-red-600 shrink-0 px-1.5 py-0.5 rounded-lg hover:bg-red-100 transition leading-none">
-          ✕
-        </button>
+          class="text-red-300 hover:text-red-500 shrink-0 px-1 py-0.5 hover:bg-red-50 rounded transition leading-none mt-0.5"
+          :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
       </div>
     </div>
 
@@ -84,7 +94,7 @@ const props = defineProps({
   isZh: { type: Boolean, default: true },
 });
 
-defineEmits(['cancel', 'share']);
+defineEmits(['cancel', 'share', 'edit']);
 
 const sess = computed(() => props.item.session);
 const isPast = computed(() => {
@@ -97,6 +107,17 @@ const title = computed(() => {
   if (sess.value?.date) return sess.value.date + (props.isZh ? ' 臨打' : ' Pickup');
   return '—';
 });
+
+function signupTags(s) {
+  const tags = [];
+  const lateUnit = props.isZh ? '分鐘' : 'mins';
+  if (s.isLate) tags.push({ text: (props.isZh ? '晚到' : 'Late') + (s.lateTime ? ' +' + s.lateTime + lateUnit : '') });
+  if (s.pairWith) tags.push({ text: (props.isZh ? '搭檔' : 'Pair') + ': ' + s.pairWith });
+  if (s.bringEquip?.length) {
+    s.bringEquip.forEach(e => tags.push({ text: '🎒 ' + e, style: 'bg-green-50 text-green-700' }));
+  }
+  return tags;
+}
 
 function waitlistLabel(s) {
   const pos = s.waitlistPosition;

@@ -19,7 +19,7 @@
         <span v-for="tag in tags" :key="tag.text" class="tag" :style="tag.style">{{ tag.text }}</span>
       </div>
     </div>
-    <!-- Manager buttons (visible on hover) -->
+    <!-- Manager buttons -->
     <template v-if="isManager">
       <div class="flex items-center gap-1 shrink-0">
         <button v-if="isWait"
@@ -32,6 +32,9 @@
           class="text-xs px-2 py-0.5 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition whitespace-nowrap">
           {{ isZh ? '移到候補' : 'Waitlist' }}
         </button>
+        <button @click="$emit('edit', signup)"
+          class="text-xs px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-100 transition whitespace-nowrap"
+          :title="isZh ? '修改報名' : 'Edit signup'">✏️</button>
         <button @click="$emit('mgmt-remove', signup)"
           class="text-xs px-2 py-0.5 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition whitespace-nowrap">
           {{ isZh ? '移除' : 'Remove' }}

@@ -121,16 +121,30 @@
         @mgmt-waitlist="forceWaitlistSignup"
         @mgmt-confirm="forceConfirmSignup"
         @mgmt-remove="s => removeSignup(s.id)"
+        @edit="openEditModal"
       />
     </div>
   </div>
+
+  <!-- Edit signup modal -->
+  <Teleport to="body">
+    <SignupModal
+      v-if="showEditModal"
+      :session="session"
+      :signups="signups"
+      :edit-signup="editSignupData"
+      @close="closeEditModal"
+      @submitted="closeEditModal"
+    />
+  </Teleport>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useSignups } from '@/composables/useSignups.js';
 import { supabase } from '@/lib/supabase.js';
 import SignupList from '@/components/SignupList.vue';
+import SignupModal from '@/components/SignupModal.vue';
 
 const props = defineProps({
   session: { type: Object, required: true },
@@ -180,6 +194,18 @@ const malePct = computed(() => props.session.maleLimit > 0 ? Math.round(Math.min
 const femalePct = computed(() => props.session.femaleLimit > 0 ? Math.round(Math.min(femaleCount.value, props.session.femaleLimit) / props.session.femaleLimit * 100) : 0);
 const totalPct = computed(() => props.session.limit > 0 ? Math.round(Math.min(signups.value.length, props.session.limit) / props.session.limit * 100) : 0);
 
+const showEditModal = ref(false);
+const editSignupData = ref(null);
+
+function openEditModal(signup) {
+  editSignupData.value = signup;
+  showEditModal.value = true;
+}
+function closeEditModal() {
+  showEditModal.value = false;
+  editSignupData.value = null;
+}
+
 async function removeSignup(id) {
   const msg = props.isZh ? '確定移除此報名？' : 'Remove this signup?';
   if (!confirm(msg)) return;
@@ -192,6 +218,28 @@ async function forceWaitlistSignup(s) {
 }
 
 async function forceConfirmSignup(s) {
+  // Warn if confirming would exceed the limit
+  if (hasMixedLimits.value && (s.gender === 'male' || s.gender === 'female')) {
+    const gLimit = s.gender === 'male' ? props.session.maleLimit : props.session.femaleLimit;
+    if (gLimit > 0) {
+      const currentConfirmed = signups.value.filter(x => x.gender === s.gender && !x.genderWait && !x.forceWaitlisted).length;
+      if (currentConfirmed >= gLimit) {
+        const gLabel = props.isZh ? (s.gender === 'male' ? '男生' : '女生') : (s.gender === 'male' ? 'Male' : 'Female');
+        const msg = props.isZh
+          ? `⚠️ ${gLabel}名額已達上限（${currentConfirmed}/${gLimit}），確定要強制移到正取？`
+          : `⚠️ ${gLabel} limit reached (${currentConfirmed}/${gLimit}). Force confirm anyway?`;
+        if (!confirm(msg)) return;
+      }
+    }
+  } else if (props.session.limit > 0) {
+    const currentConfirmed = signups.value.filter(x => !x.forceWaitlisted && (x.forceConfirmed || x.position <= props.session.limit)).length;
+    if (currentConfirmed >= props.session.limit) {
+      const msg = props.isZh
+        ? `⚠️ 名額已達上限（${currentConfirmed}/${props.session.limit}），確定要強制移到正取？`
+        : `⚠️ Limit reached (${currentConfirmed}/${props.session.limit}). Force confirm anyway?`;
+      if (!confirm(msg)) return;
+    }
+  }
   await supabase.from('signups').update({ force_confirmed: true, force_waitlisted: false }).eq('id', s.id);
 }
 

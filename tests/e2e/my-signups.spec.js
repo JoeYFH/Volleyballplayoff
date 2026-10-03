@@ -29,10 +29,7 @@ test.describe.serial('我的報名頁面', () => {
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('h1:has-text("我的報名"), h1:has-text("My Sign-ups")')).toBeVisible({ timeout: 10000 });
-    // 主分頁
-    await expect(page.locator('button:has-text("我自己的"), button:has-text("My own")')).toBeVisible();
-    await expect(page.locator('button:has-text("我幫別人的"), button:has-text("For others")')).toBeVisible();
-    // 子分頁
+    // 分頁
     await expect(page.locator('button:has-text("確認"), button:has-text("Confirmed")')).toBeVisible();
     await expect(page.locator('button:has-text("候補"), button:has-text("Waitlist")')).toBeVisible();
     await expect(page.locator('button:has-text("過去"), button:has-text("Past")')).toBeVisible();
@@ -66,7 +63,7 @@ test.describe.serial('我的報名頁面', () => {
     await expect(content.first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('我幫別人的分頁顯示代報名記錄', async ({ page }) => {
+  test('代報名記錄顯示在同一場次卡片中', async ({ page }) => {
     // 報名一筆代報名
     await loginAsTestUser(page);
     await page.goto('/');
@@ -80,14 +77,13 @@ test.describe.serial('我的報名頁面', () => {
     await fillSignupForm(page, { forFriend: true, friendName: '我幫的朋友Z' });
     await expect(page.locator('div.fixed.inset-0.z-40')).toBeHidden({ timeout: 8000 });
 
-    // 前往我的報名，切到「我幫別人的」
+    // 前往我的報名（不用切分頁，代報名和本人報名顯示在同一場次卡）
     await page.goto('/my-signups');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('h1:has-text("我的報名"), h1:has-text("My Sign-ups")')).toBeVisible({ timeout: 10000 });
     await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-
-    await page.locator('button:has-text("我幫別人的"), button:has-text("For others")').click();
     await page.waitForTimeout(500);
+
     await expect(page.locator('text=我幫的朋友Z')).toBeVisible({ timeout: 8000 });
   });
 

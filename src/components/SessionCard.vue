@@ -30,10 +30,10 @@
           <div class="flex items-center gap-1"><span>🕐</span><span>{{ session.time || '—' }}</span></div>
         </div>
         <!-- Row 2: location + venue on same line -->
-        <div class="flex items-start gap-1 flex-wrap">
+        <div class="flex items-center gap-1 flex-wrap">
           <span>📍</span>
           <a :href="`https://maps.google.com/?q=${encodeURIComponent(session.location || '')}`" target="_blank" class="text-indigo-500 hover:underline">{{ session.location || '—' }}</a>
-          <span v-if="session.venue" class="text-gray-400 text-xs self-center">·</span>
+          <span v-if="session.venue" class="text-gray-400 text-xs">·</span>
           <span v-if="session.venue" class="text-xs text-gray-500">{{ session.venue }}</span>
         </div>
         <!-- Row 3: limit, type, equipment -->
@@ -200,7 +200,7 @@ const typeLabel = computed(() => {
 const neededEquip = computed(() => {
   const all = props.session.equipment || [];
   if (!all.length) return [];
-  const covered = new Set(signups.value.flatMap(s => s.bringEquip || []));
+  const covered = new Set(signups.value.filter(s => !isWaitlisted(s)).flatMap(s => s.bringEquip || []));
   return all.filter(item => !covered.has(item));
 });
 
