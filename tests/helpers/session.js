@@ -105,3 +105,37 @@ export async function deleteTestTemplates() {
     console.error(`[afterAll] 清理測試範本失敗：${e.message}`);
   }
 }
+
+/**
+ * 建立測試回饋，回傳 feedback id
+ * feedback 允許任何人新增（RLS insert policy: true）
+ */
+export async function createTestFeedback(description = '[自動測試] 測試回饋', options = {}) {
+  const { supabase } = await getClient();
+  const { data, error } = await supabase
+    .from('feedback')
+    .insert({
+      description,
+      type: options.type || 'other',
+      urgency: options.urgency || 'low',
+      status: options.status || 'pending',
+      email: options.email || '',
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`建立測試回饋失敗：${error.message}`);
+  return data.id;
+}
+
+/**
+ * 刪除測試回饋（需 admin 權限的 RLS，測試帳號需為 admin）
+ */
+export async function deleteTestFeedbacks(ids) {
+  if (!ids?.length) return;
+  try {
+    const { supabase } = await getClient();
+    await supabase.from('feedback').delete().in('id', ids);
+  } catch (e) {
+    console.error(`[afterAll] 清理測試回饋失敗：${e.message}`);
+  }
+}
