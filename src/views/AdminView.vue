@@ -122,12 +122,26 @@
         <p class="text-sm">{{ isZh ? '沒有符合條件的回饋' : 'No feedback in this category' }}</p>
       </div>
       <div v-else class="space-y-3">
+        <!-- Bulk action bar -->
+        <div v-if="selectedFbIds.size" class="sticky top-0 z-20 bg-indigo-600 text-white rounded-xl px-4 py-2.5 flex items-center gap-2 flex-wrap shadow-lg">
+          <span class="text-xs font-semibold">{{ isZh ? `已選 ${selectedFbIds.size} 筆` : `${selectedFbIds.size} selected` }}</span>
+          <button @click="bulkMoveFb('pending')" class="text-xs px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition">{{ isZh ? '待處理' : 'Pending' }}</button>
+          <button @click="bulkMoveFb('in_progress')" class="text-xs px-2.5 py-1 rounded-lg bg-amber-400/80 hover:bg-amber-400 transition">{{ isZh ? '處理中' : 'In Progress' }}</button>
+          <button @click="bulkMoveFb('done')" class="text-xs px-2.5 py-1 rounded-lg bg-green-400/80 hover:bg-green-400 transition">{{ isZh ? '已處理' : 'Done' }}</button>
+          <button @click="bulkDeleteFb" class="text-xs px-2.5 py-1 rounded-lg bg-red-400/80 hover:bg-red-400 transition">🗑️ {{ isZh ? '刪除' : 'Delete' }}</button>
+          <button @click="selectedFbIds = new Set()" class="text-xs px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition ml-auto">✕</button>
+        </div>
+
         <div v-for="fb in filteredFeedback" :key="fb.id"
-          :class="['bg-white rounded-xl border shadow-sm p-4 transition',
+          @click.self="toggleFbSelect(fb.id)"
+          :class="['bg-white rounded-xl border shadow-sm p-4 transition cursor-pointer',
+            selectedFbIds.has(fb.id) ? 'border-indigo-400 ring-2 ring-indigo-200' :
             fb.status === 'done' ? 'border-green-100 opacity-70' : fb.status === 'in_progress' ? 'border-amber-200' : 'border-gray-100']">
           <!-- Header row -->
-          <div class="flex items-start justify-between gap-2 mb-1">
+          <div class="flex items-start justify-between gap-2 mb-1" @click="toggleFbSelect(fb.id)">
             <div class="flex items-center gap-2 flex-wrap">
+              <input type="checkbox" :checked="selectedFbIds.has(fb.id)" @click.stop @change="toggleFbSelect(fb.id)"
+                class="rounded border-gray-300 text-indigo-600 shrink-0" />
               <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', typeClass(fb.type)]">{{ typeLabel(fb.type) }}</span>
               <span :class="['text-xs px-2 py-0.5 rounded-full', urgencyClass(fb.urgency)]">{{ urgencyLabel(fb.urgency) }}</span>
               <span :class="['text-xs px-2 py-0.5 rounded-full font-medium', fbStatusClass(fb.status)]">{{ fbStatusLabel(fb.status) }}</span>
@@ -135,23 +149,23 @@
             <span class="text-xs text-gray-300 shrink-0">{{ fmtFbDate(fb.created_at) }}</span>
           </div>
           <!-- Description -->
-          <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{{ fb.description }}</p>
-          <p v-if="fb.email" class="text-xs text-indigo-500 mt-1.5">📧 {{ fb.email }}</p>
+          <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap" @click="toggleFbSelect(fb.id)">{{ fb.description }}</p>
+          <p v-if="fb.email" class="text-xs text-indigo-500 mt-1.5" @click="toggleFbSelect(fb.id)">📧 {{ fb.email }}</p>
           <!-- Actions -->
           <div class="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-gray-50 flex-wrap">
-            <button v-if="fb.status !== 'pending'" @click="updateFbStatus(fb.id, 'pending')"
+            <button v-if="fb.status !== 'pending'" @click.stop="updateFbStatus(fb.id, 'pending')"
               class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
               {{ isZh ? '待處理' : 'Pending' }}
             </button>
-            <button v-if="fb.status !== 'in_progress'" @click="updateFbStatus(fb.id, 'in_progress')"
+            <button v-if="fb.status !== 'in_progress'" @click.stop="updateFbStatus(fb.id, 'in_progress')"
               class="text-xs px-2.5 py-1 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition">
               {{ isZh ? '處理中' : 'In Progress' }}
             </button>
-            <button v-if="fb.status !== 'done'" @click="updateFbStatus(fb.id, 'done')"
+            <button v-if="fb.status !== 'done'" @click.stop="updateFbStatus(fb.id, 'done')"
               class="text-xs px-2.5 py-1 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition">
               {{ isZh ? '已處理' : 'Done' }}
             </button>
-            <button @click="deleteFb(fb.id)"
+            <button @click.stop="deleteFb(fb.id)"
               class="text-xs px-2.5 py-1 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition ml-auto">
               🗑️ {{ isZh ? '刪除' : 'Delete' }}
             </button>
@@ -225,6 +239,7 @@ const feedbackList = ref([]);
 const feedbackLoading = ref(false);
 const fbFilter = ref('pending');
 const fbSort = ref('created_at');
+const selectedFbIds = ref(new Set());
 const editingSession = ref(null);
 const showEditSheet = ref(false);
 
@@ -374,6 +389,32 @@ async function deleteFb(id) {
   const { error } = await supabase.from('feedback').delete().eq('id', id);
   if (error) { alert(isZh.value ? `刪除失敗：${error.message}` : `Delete failed: ${error.message}`); return; }
   feedbackList.value = feedbackList.value.filter(f => f.id !== id);
+  const s = new Set(selectedFbIds.value); s.delete(id); selectedFbIds.value = s;
+}
+
+function toggleFbSelect(id) {
+  const s = new Set(selectedFbIds.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  selectedFbIds.value = s;
+}
+
+async function bulkMoveFb(status) {
+  const ids = [...selectedFbIds.value];
+  if (!ids.length) return;
+  await Promise.all(ids.map(id => supabase.from('feedback').update({ status }).eq('id', id)));
+  ids.forEach(id => { const fb = feedbackList.value.find(f => f.id === id); if (fb) fb.status = status; });
+  selectedFbIds.value = new Set();
+}
+
+async function bulkDeleteFb() {
+  const ids = [...selectedFbIds.value];
+  if (!ids.length) return;
+  const msg = isZh.value ? `確定刪除 ${ids.length} 筆回饋？` : `Delete ${ids.length} feedback items?`;
+  if (!confirm(msg)) return;
+  const { error } = await supabase.from('feedback').delete().in('id', ids);
+  if (error) { alert(isZh.value ? `刪除失敗：${error.message}` : `Delete failed: ${error.message}`); return; }
+  feedbackList.value = feedbackList.value.filter(f => !ids.includes(f.id));
+  selectedFbIds.value = new Set();
 }
 
 // Use watchEffect for reliable reactive re-evaluation
