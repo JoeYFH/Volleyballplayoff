@@ -165,11 +165,31 @@ function updatePageMeta(data) {
   setMeta('meta[name="twitter:description"]', 'content', description);
 }
 
+function parsePreloaded() {
+  try {
+    const d = new URLSearchParams(window.location.search).get('d');
+    if (!d) return null;
+    const bytes = Uint8Array.from(atob(d), c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
 onMounted(async () => {
   if (!sessionId) {
     state.value = 'error';
     return;
   }
+
+  // 優先使用 ?d= 預載資料，立即顯示不用 loading
+  const preloaded = parsePreloaded();
+  if (preloaded) {
+    session.value = preloaded;
+    state.value = 'loaded';
+    updatePageMeta(preloaded);
+  }
+
   try {
     const { data, error } = await supabase
       .from('sessions')
@@ -177,14 +197,14 @@ onMounted(async () => {
       .eq('id', sessionId)
       .single();
     if (error || !data) {
-      state.value = 'error';
+      if (!preloaded) state.value = 'error';
     } else {
       session.value = data;
       state.value = 'loaded';
       updatePageMeta(data);
     }
   } catch {
-    state.value = 'error';
+    if (!preloaded) state.value = 'error';
   }
 });
 </script>

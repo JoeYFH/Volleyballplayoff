@@ -17,9 +17,15 @@ function fmtDate(d: string) {
 
 function isBrowser(req: Request): boolean {
   const ua = req.headers.get('user-agent') || '';
-  // 一般瀏覽器的 UA 以 Mozilla/ 開頭，且不含爬蟲關鍵字
   return /^Mozilla\//i.test(ua) &&
     !/bot|crawl|spider|facebookexternalhit|slack|discord|telegram|whatsapp|linkedin|preview|fetch|curl/i.test(ua);
+}
+
+function toBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
 Deno.serve(async (req) => {
@@ -30,13 +36,7 @@ Deno.serve(async (req) => {
     return Response.redirect(HOST, 302);
   }
 
-  const mainUrl = `${HOST}/share/${encodeURIComponent(sessionId)}`;
-
-  // 一般瀏覽器直接 302 跳轉到報名頁，不回傳 HTML（避免 Supabase 用 text/plain 回傳導致顯示原始碼）
-  if (isBrowser(req)) {
-    return Response.redirect(mainUrl, 302);
-  }
-  const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
+  const shareUrl = `${HOST}/share/${encodeURIComponent(sessionId)}`;
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -46,6 +46,24 @@ Deno.serve(async (req) => {
       .eq('id', sessionId)
       .single();
 
+    if (isBrowser(req)) {
+      if (data) {
+        const encoded = toBase64(JSON.stringify({
+          title: data.title,
+          date: data.date,
+          time: data.time,
+          location: data.location,
+          type: data.type,
+          limit_total: data.limit_total,
+          creator_name: data.creator_name,
+        }));
+        return Response.redirect(`${shareUrl}?d=${encoded}`, 302);
+      }
+      return Response.redirect(shareUrl, 302);
+    }
+
+    // Bot/crawler: serve OG HTML
+    const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
     let title = '🏐 排球臨打報名';
     let description = '快來報名這週的排球臨打！';
     const imageUrl = `${HOST}/og-image.png`;
@@ -80,21 +98,18 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${esc(mainUrl)}">
+  <meta http-equiv="refresh" content="0;url=${esc(shareUrl)}">
 </head>
 <body>
-  <a href="${esc(mainUrl)}">前往報名頁面</a>
+  <a href="${esc(shareUrl)}">前往報名頁面</a>
 </body></html>`;
 
     return new Response(html, {
       status: 200,
-      headers: {
-        'content-type': 'text/html; charset=utf-8',
-        'cache-control': 'no-cache',
-      },
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
     });
   } catch (e) {
     console.error('og error', e);
-    return Response.redirect(mainUrl, 302);
+    return Response.redirect(shareUrl, 302);
   }
 });
