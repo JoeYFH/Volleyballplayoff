@@ -51,10 +51,11 @@ jobs:
           channelId: live
           projectId: volleyballplayoff
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
-
       - name: Deploy Firebase Functions
-        run: npx --yes firebase-tools deploy --only functions --project volleyballplayoff
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
+        run: |
+          printenv SA_JSON > /tmp/firebase-sa.json
+          npx --yes firebase-tools deploy --only functions --project volleyballplayoff --non-interactive
+          rm /tmp/firebase-sa.json
