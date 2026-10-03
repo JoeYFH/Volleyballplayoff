@@ -30,11 +30,11 @@ Deno.serve(async (req) => {
     return Response.redirect(HOST, 302);
   }
 
-  const shareUrl = `${HOST}/share/${encodeURIComponent(sessionId)}`;
+  const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
 
-  // 一般瀏覽器直接 302 跳轉到分享頁，不回傳 HTML（避免 Supabase 用 text/plain 回傳導致顯示原始碼）
+  // 一般瀏覽器直接 302 跳轉到報名頁，不回傳 HTML（避免 Supabase 用 text/plain 回傳導致顯示原始碼）
   if (isBrowser(req)) {
-    return Response.redirect(shareUrl, 302);
+    return Response.redirect(mainUrl, 302);
   }
   const ogUrl = `${HOST}/share/${encodeURIComponent(sessionId)}`;
 
@@ -80,10 +80,10 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${esc(shareUrl)}">
+  <meta http-equiv="refresh" content="0;url=${esc(mainUrl)}">
 </head>
 <body>
-  <a href="${esc(shareUrl)}">前往報名頁面</a>
+  <a href="${esc(mainUrl)}">前往報名頁面</a>
 </body></html>`;
 
     return new Response(html, {
@@ -95,6 +95,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('og error', e);
-    return Response.redirect(shareUrl, 302);
+    return Response.redirect(mainUrl, 302);
   }
 });
