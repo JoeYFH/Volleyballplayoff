@@ -40,8 +40,10 @@ test.describe.serial('建立場次功能', () => {
     // 點擊送出
     await page.locator('button:has-text("建立場次"), button:has-text("Create Session")').last().click();
 
-    // 應出現驗證摘要（amber 方塊）或日期錯誤訊息
-    await expect(page.locator('text=/過去|past|日期/i')).toBeVisible({ timeout: 5000 });
+    // 應出現日期錯誤訊息
+    await expect(
+      page.locator('text=不可選擇過去的日期').or(page.locator('text=past date'))
+    ).toBeVisible({ timeout: 5000 });
   });
 
   test('日期輸入框 min 屬性為今天（不允許選過去日期）', async ({ page }) => {
