@@ -16,7 +16,7 @@
       },
       {
         "source": "/share/:id",
-        "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og/:id?from=share",
+        "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og-share/:id",
         "type": 302
       }
     ],

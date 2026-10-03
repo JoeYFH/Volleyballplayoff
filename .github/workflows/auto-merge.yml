@@ -51,4 +51,6 @@ jobs:
       - name: Deploy Supabase Edge Functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: npx --yes supabase functions deploy og --project-ref yjacbolmzmjutwvxowpe --no-verify-jwt
+        run: |
+          npx --yes supabase functions deploy og --project-ref yjacbolmzmjutwvxowpe --no-verify-jwt
+          npx supabase functions deploy og-share --project-ref yjacbolmzmjutwvxowpe --no-verify-jwt
