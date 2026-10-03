@@ -15,11 +15,6 @@ function fmtDate(d: string) {
   return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
 }
 
-function isCrawler(req: Request): boolean {
-  const ua = (req.headers.get('user-agent') || '').toLowerCase();
-  return /bot|crawl|spider|facebookexternalhit|line|whatsapp|twitter|discord|slack|telegram|linkedin|preview|og|meta-externalagent/i.test(ua);
-}
-
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const sessionId = url.searchParams.get('id') || url.pathname.split('/').pop();
@@ -29,13 +24,6 @@ Deno.serve(async (req) => {
   }
 
   const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
-
-  // 一般瀏覽器直接跳轉，不顯示 HTML 原始碼
-  if (!isCrawler(req)) {
-    return Response.redirect(mainUrl, 302);
-  }
-
-  // 爬蟲才讀取活動資料並回傳 OG HTML
   const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
 
   try {
