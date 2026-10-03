@@ -19,50 +19,64 @@
 
       <!-- Mixed: gender sections -->
       <template v-if="isMixed">
-        <div v-if="males.length" class="mb-1">
+        <div v-if="males.length" class="mb-2">
           <div class="text-xs font-semibold text-blue-500 px-1 mt-2 mb-1">
             ♂ {{ isZh ? '男生' : 'Male' }}{{ maleLimit > 0 ? ` (${confirmedMales.length}/${maleLimit})` : ` (${males.length})` }}
           </div>
-          <SignupItem v-for="(s, i) in confirmedMales" :key="s.id" :signup="{ ...s, position: i + 1 }" :is-wait="false" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          <div class="space-y-1">
+            <SignupItem v-for="(s, i) in confirmedMales" :key="s.id" :signup="{ ...s, position: i + 1 }" :is-wait="false" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          </div>
           <template v-if="waitingMales.length">
-            <div class="flex items-center gap-2 my-1">
+            <div class="flex items-center gap-2 my-1.5">
               <div class="flex-1 h-px bg-gray-200"></div>
               <span class="text-xs text-gray-400 shrink-0">{{ isZh ? '候補' : 'Waitlist' }}</span>
               <div class="flex-1 h-px bg-gray-200"></div>
             </div>
-            <SignupItem v-for="(s, i) in waitingMales" :key="s.id" :signup="s" :is-wait="true" :pos-label="waitPrefix + (i + 1)" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+            <div class="space-y-1">
+              <SignupItem v-for="(s, i) in waitingMales" :key="s.id" :signup="s" :is-wait="true" :pos-label="waitPrefix + (i + 1)" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+            </div>
           </template>
         </div>
-        <div v-if="females.length" class="mb-1">
+        <div v-if="females.length" class="mb-2">
           <div class="text-xs font-semibold text-pink-500 px-1 mt-2 mb-1">
             ♀ {{ isZh ? '女生' : 'Female' }}{{ femaleLimit > 0 ? ` (${confirmedFemales.length}/${femaleLimit})` : ` (${females.length})` }}
           </div>
-          <SignupItem v-for="(s, i) in confirmedFemales" :key="s.id" :signup="{ ...s, position: i + 1 }" :is-wait="false" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          <div class="space-y-1">
+            <SignupItem v-for="(s, i) in confirmedFemales" :key="s.id" :signup="{ ...s, position: i + 1 }" :is-wait="false" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          </div>
           <template v-if="waitingFemales.length">
-            <div class="flex items-center gap-2 my-1">
+            <div class="flex items-center gap-2 my-1.5">
               <div class="flex-1 h-px bg-gray-200"></div>
               <span class="text-xs text-gray-400 shrink-0">{{ isZh ? '候補' : 'Waitlist' }}</span>
               <div class="flex-1 h-px bg-gray-200"></div>
             </div>
-            <SignupItem v-for="(s, i) in waitingFemales" :key="s.id" :signup="s" :is-wait="true" :pos-label="waitPrefix + (i + 1)" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+            <div class="space-y-1">
+              <SignupItem v-for="(s, i) in waitingFemales" :key="s.id" :signup="s" :is-wait="true" :pos-label="waitPrefix + (i + 1)" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+            </div>
           </template>
         </div>
-        <div v-if="others.length">
+        <div v-if="others.length" class="mb-2">
           <div class="text-xs font-semibold text-gray-400 px-1 mt-2 mb-1">{{ isZh ? '不限' : 'Other' }}</div>
-          <SignupItem v-for="s in others" :key="s.id" :signup="s" :is-wait="limit > 0 && s.position > limit" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          <div class="space-y-1">
+            <SignupItem v-for="s in others" :key="s.id" :signup="s" :is-wait="limit > 0 && s.position > limit" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          </div>
         </div>
       </template>
 
       <!-- Non-mixed: flat confirmed + waitlist -->
       <template v-else>
-        <SignupItem v-for="(s, i) in confirmed" :key="s.id" :signup="{ ...s, position: i + 1 }" :is-wait="false" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+        <div class="space-y-1">
+          <SignupItem v-for="(s, i) in confirmed" :key="s.id" :signup="{ ...s, position: i + 1 }" :is-wait="false" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+        </div>
         <template v-if="waitlist.length">
           <div class="flex items-center gap-2 my-1.5">
             <div class="flex-1 h-px bg-gray-200"></div>
             <span class="text-xs text-gray-400 shrink-0">{{ isZh ? '候補' : 'Waitlist' }}</span>
             <div class="flex-1 h-px bg-gray-200"></div>
           </div>
-          <SignupItem v-for="(s, i) in waitlist" :key="s.id" :signup="s" :is-wait="true" :pos-label="waitPrefix + (i + 1)" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          <div class="space-y-1">
+            <SignupItem v-for="(s, i) in waitlist" :key="s.id" :signup="s" :is-wait="true" :pos-label="waitPrefix + (i + 1)" :signups="signups" :user="user" :is-zh="isZh" :wait-prefix="waitPrefix" :is-manager="isManager" @edit="$emit('edit', $event)" @cancel="$emit('cancel', $event)" @mgmt-waitlist="$emit('mgmt-waitlist', $event)" @mgmt-confirm="$emit('mgmt-confirm', $event)" @mgmt-remove="$emit('mgmt-remove', $event)" />
+          </div>
         </template>
       </template>
     </template>
