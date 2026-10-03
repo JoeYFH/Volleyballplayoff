@@ -704,7 +704,13 @@ function currentFormData() {
 function onTemplateSelect() {
   if (!loadedTemplateId.value) return;
   const tpl = templates.value.find(t => t.id === loadedTemplateId.value);
-  if (tpl) loadTemplate(tpl);
+  if (!tpl) return;
+  loadTemplate(tpl);
+  // Highlight required fields that are still empty after applying the template
+  titleError.value    = !title.value.trim()    ? (isZh.value ? '請填入場次名稱' : 'Title is required')    : '';
+  dateError.value     = !date.value            ? (isZh.value ? '請選擇日期'     : 'Date is required')     : '';
+  timeError.value     = !time.value            ? (isZh.value ? '請選擇時間'     : 'Time is required')     : '';
+  locationError.value = !location.value.trim() ? (isZh.value ? '請填入地點'     : 'Location is required') : '';
 }
 
 async function saveTemplate() {
