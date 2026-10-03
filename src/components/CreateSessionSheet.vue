@@ -85,7 +85,8 @@
             <input ref="locationInputRef" v-model="location" type="text" maxlength="300"
               :placeholder="isZh ? '輸入完整地址或場館名稱' : 'Enter full address or venue name'"
               :class="inputClass(!!locationError)"
-              @input="locationError = ''" />
+              @input="locationError = ''"
+              @focus="onLocationFocus" />
             <p v-if="locationError" class="mt-1 text-xs text-red-500">{{ locationError }}</p>
           </div>
 
@@ -686,6 +687,16 @@ async function initGooglePlaces(apiKey, inputEl) {
   }
 }
 
+function onLocationFocus() {
+  // If the original input was un-hidden (after template load), switch back to PlaceAutocompleteElement
+  if (placesAutocomplete && placesAutocomplete.tagName?.toLowerCase() === 'gmp-place-autocomplete'
+    && locationInputRef.value && locationInputRef.value.style.display !== 'none') {
+    locationInputRef.value.style.display = 'none';
+    placesAutocomplete.style.display = '';
+    placesAutocomplete.querySelector('input')?.focus();
+  }
+}
+
 function onMaleLimitChange() {
   if (limit.value > 0 && maleLimit.value >= 0) {
     femaleLimit.value = Math.max(0, limit.value - maleLimit.value);
@@ -759,10 +770,26 @@ function loadTemplate(tpl) {
   const d = tpl.data;
   title.value        = d.title || '';
   location.value     = d.location || '';
-  // Google Places Autocomplete manages the input's display independently from v-model,
-  // so force the DOM value after Vue finishes its reactive update.
   nextTick(() => {
-    if (locationInputRef.value) locationInputRef.value.value = d.location || '';
+    const loc = d.location || '';
+    if (!loc) return;
+    if (placesAutocomplete && placesAutocomplete.tagName?.toLowerCase() === 'gmp-place-autocomplete') {
+      // New API: try to reach the inner input (light DOM first, then shadow DOM)
+      const inner = placesAutocomplete.querySelector('input')
+        || placesAutocomplete.shadowRoot?.querySelector('input');
+      if (inner) {
+        inner.value = loc;
+      } else {
+        // Shadow DOM not accessible — show the original hidden input instead
+        placesAutocomplete.style.display = 'none';
+        if (locationInputRef.value) {
+          locationInputRef.value.style.display = '';
+          locationInputRef.value.value = loc;
+        }
+      }
+    } else if (locationInputRef.value) {
+      locationInputRef.value.value = loc;
+    }
   });
   venue.value        = d.venue || '';
   limit.value        = d.limit ?? 0;
