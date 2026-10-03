@@ -166,6 +166,9 @@ function updatePageMeta(data) {
 }
 
 function parsePreloaded() {
+  // Cloud Function injects window.__SESSION__ for instant data
+  if (window.__SESSION__) return window.__SESSION__;
+  // Fallback: ?d= base64 param from old redirect approach
   try {
     const d = new URLSearchParams(window.location.search).get('d');
     if (!d) return null;

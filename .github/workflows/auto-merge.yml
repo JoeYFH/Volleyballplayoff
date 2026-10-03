@@ -40,6 +40,19 @@ jobs:
         env:
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
 
+      - name: Install Firebase Functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Copy index.html template to functions
+        run: cp dist/index.html functions/template.html
+
+      - name: Deploy Firebase Functions
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/sa.json
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx --yes firebase-tools@latest deploy --only functions --project volleyballplayoff
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -47,10 +60,3 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
           channelId: live
           projectId: volleyballplayoff
-
-      - name: Deploy Supabase Edge Functions
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          npx --yes supabase functions deploy og --project-ref yjacbolmzmjutwvxowpe --no-verify-jwt
-          npx supabase functions deploy og-share --project-ref yjacbolmzmjutwvxowpe --no-verify-jwt

@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "source": "functions"
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -8,14 +11,8 @@
       "**/.gitignore",
       "**/README.md"
     ],
-    "redirects": [
-      {
-        "source": "/og/:id",
-        "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og/:id",
-        "type": 302
-      }
-    ],
     "rewrites": [
+      { "source": "/og/**", "function": "og" },
       { "source": "**", "destination": "/index.html" }
     ]
   }

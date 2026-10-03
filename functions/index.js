@@ -1,4 +1,6 @@
 const functions = require('firebase-functions');
+const fs = require('fs');
+const path = require('path');
 
 const SUPABASE_URL = 'https://yjacbolmzmjutwvxowpe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYWNib2xtem1qdXR3dnhvd3BlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MDc4NTQsImV4cCI6MjEwNjM4Mzg1NH0.6iB-dXLssRMT7gxRVpX1GF5IKkKz1xfQiUfO13GH3pA';
@@ -12,7 +14,7 @@ function fmtDate(d) {
   if (!d) return '';
   const dt = new Date(d + 'T00:00:00');
   const days = ['日','一','二','三','四','五','六'];
-  return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
+  return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()}（週${days[dt.getDay()]}）`;
 }
 
 async function fetchSession(sessionId) {
@@ -27,46 +29,66 @@ async function fetchSession(sessionId) {
   return Array.isArray(data) && data[0] ? data[0] : null;
 }
 
-// ── /og/SESSION_ID → HTML with OG meta tags + redirect ──────────
 exports.og = functions.https.onRequest(async (req, res) => {
   const parts = req.path.split('/').filter(Boolean);
   const sessionId = parts[parts.length - 1];
-  const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
 
   if (!sessionId || sessionId === 'og') {
-    res.redirect('/');
+    res.redirect(302, HOST);
     return;
   }
 
+  const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
+
+  let data = null;
   try {
-    const s = await fetchSession(sessionId);
+    data = await fetchSession(sessionId);
+  } catch (e) {
+    console.error('Supabase fetch error:', e);
+  }
 
-    let title = '🏐 排球臨打報名';
-    let description = '快來報名這週的排球臨打！';
-    const imageUrl = `${HOST}/og-image.png`;
+  let title = '🏐 排球臨打報名';
+  let description = '快來報名這週的排球臨打！';
+  const imageUrl = `${HOST}/og-image.png`;
 
-    if (s) {
-      title = '🏐 ' + (s.title || (s.date + ' 臨打'));
-      const infoParts = [];
-      if (s.date) infoParts.push('📅 ' + fmtDate(s.date));
-      if (s.time) infoParts.push('🕐 ' + s.time);
-      if (s.location) infoParts.push('📍 ' + s.location);
-      const typeMap = { mixed: '混排', male: '男生', female: '女生' };
-      if (typeMap[s.type]) infoParts.push(typeMap[s.type]);
-      if (s.limit_total) infoParts.push('上限 ' + s.limit_total + ' 人');
-      if (s.creator_name) infoParts.push('👤 ' + s.creator_name);
-      description = infoParts.join(' · ');
-    }
+  if (data) {
+    title = '🏐 ' + (data.title || (data.date + ' 臨打'));
+    const infoParts = [];
+    if (data.date) infoParts.push('📅 ' + fmtDate(data.date));
+    if (data.time) infoParts.push('🕐 ' + data.time);
+    if (data.location) infoParts.push('📍 ' + data.location);
+    const typeMap = { mixed: '混排', male: '男生', female: '女生' };
+    if (typeMap[data.type]) infoParts.push(typeMap[data.type]);
+    if (data.limit_total) infoParts.push('上限 ' + data.limit_total + ' 人');
+    if (data.creator_name) infoParts.push('👤 ' + data.creator_name);
+    description = infoParts.join(' · ');
+  }
 
-    res.set('Cache-Control', 'public, max-age=300, s-maxage=300');
+  // Read the Vue app template (copied from dist/index.html during CI build)
+  const templatePath = path.join(__dirname, 'template.html');
+  let html;
+  try {
+    html = fs.readFileSync(templatePath, 'utf8');
+  } catch (e) {
+    console.error('template.html not found, falling back to minimal page', e);
     res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send(`<!DOCTYPE html>
-<html lang="zh-TW"><head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+    res.set('Cache-Control', 'no-cache');
+    res.status(503).send(`<!DOCTYPE html><html><head><title>${esc(title)}</title></head><body><p>Server error, please try again.</p></body></html>`);
+    return;
+  }
+
+  // Inject dynamic OG tags + preloaded session data right after <head>
+  // Placing them first ensures crawlers read dynamic values (first-match wins)
+  const sessionScript = data
+    ? `<script>window.__SESSION__=${JSON.stringify(data).replace(/</g, '\\u003c')};</script>`
+    : '';
+
+  const injected = `
+  ${sessionScript}
   <title>${esc(title)}</title>
+  <meta name="description" content="${esc(description)}">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${esc(mainUrl)}">
+  <meta property="og:url" content="${esc(ogUrl)}">
   <meta property="og:title" content="${esc(title)}">
   <meta property="og:description" content="${esc(description)}">
   <meta property="og:image" content="${esc(imageUrl)}">
@@ -76,18 +98,11 @@ exports.og = functions.https.onRequest(async (req, res) => {
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
-  <meta name="twitter:image" content="${esc(imageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${esc(mainUrl)}">
-</head>
-<body style="font-family:sans-serif;text-align:center;padding:40px;background:#f8f9fa">
-  <div style="font-size:48px;margin-bottom:16px">🏐</div>
-  <h2 style="color:#4f46e5">${esc(title)}</h2>
-  <p style="color:#6b7280">${esc(description)}</p>
-  <a href="${esc(mainUrl)}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#4f46e5;color:white;border-radius:12px;text-decoration:none;font-weight:600">前往報名頁面 →</a>
-  <script>window.location.replace(${JSON.stringify(mainUrl)});<\/script>
-</body></html>`);
-  } catch (e) {
-    console.error('og error', e);
-    res.redirect('/');
-  }
+  <meta name="twitter:image" content="${esc(imageUrl)}">`;
+
+  html = html.replace('<head>', '<head>' + injected);
+
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.set('Cache-Control', 'no-cache');
+  res.status(200).send(html);
 });
