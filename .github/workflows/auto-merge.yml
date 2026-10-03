@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install functions dependencies
+        run: cd functions && npm install
+
       - name: Build
         run: npm run build
         env:
@@ -47,3 +50,10 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}
           channelId: live
           projectId: volleyballplayoff
+
+      - name: Deploy Firebase Functions
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOLLEYBALLPLAYOFF }}' > /tmp/firebase-sa.json
+          npx --yes firebase-tools deploy --only functions --project volleyballplayoff
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
