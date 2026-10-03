@@ -15,6 +15,10 @@ function fmtDate(d: string) {
   return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
 }
 
+function isCrawler(ua: string): boolean {
+  return /facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Discordbot|Slackbot|Googlebot|bingbot|Applebot|Line\/|LIFF|iframely|prerender|headlesschrome/i.test(ua);
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const sessionId = url.searchParams.get('id') || url.pathname.split('/').pop();
@@ -24,7 +28,14 @@ Deno.serve(async (req) => {
   }
 
   const mainUrl = `${HOST}/?session=${encodeURIComponent(sessionId)}`;
+  const ua = req.headers.get('user-agent') || '';
 
+  // 一般瀏覽器直接跳轉，不需要 HTML
+  if (!isCrawler(ua)) {
+    return Response.redirect(mainUrl, 302);
+  }
+
+  // 爬蟲（LINE/FB）才回傳 OG meta tags HTML
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data } = await supabase
@@ -53,7 +64,6 @@ Deno.serve(async (req) => {
     const html = `<!DOCTYPE html>
 <html lang="zh-TW"><head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${esc(title)}</title>
   <meta property="og:type" content="website">
   <meta property="og:url" content="${esc(mainUrl)}">
@@ -67,24 +77,14 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${esc(mainUrl)}">
 </head>
-<body style="font-family:sans-serif;text-align:center;padding:40px;background:#f8f9fa">
-  <div style="font-size:48px;margin-bottom:16px">🏐</div>
-  <h2 style="color:#4f46e5">${esc(title)}</h2>
-  <p style="color:#6b7280">${esc(description)}</p>
-  <a href="${esc(mainUrl)}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#4f46e5;color:white;border-radius:12px;text-decoration:none;font-weight:600">前往報名頁面 →</a>
-  <script>window.location.replace(${JSON.stringify(mainUrl)});<\/script>
-</body></html>`;
+<body></body></html>`;
 
     return new Response(html, {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=300',
-      },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   } catch (e) {
     console.error('og error', e);
-    return Response.redirect(HOST, 302);
+    return Response.redirect(mainUrl, 302);
   }
 });
