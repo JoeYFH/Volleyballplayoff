@@ -253,8 +253,18 @@
                 class="w-4 h-4 rounded accent-indigo-600" />
               <span class="text-sm text-gray-700 font-medium">{{ isZh ? '幫自己報名此場次' : 'Sign myself up' }}</span>
             </label>
-            <div v-if="signupSelf && type === 'mixed'" class="mt-2.5 flex items-center gap-2">
-              <span class="text-xs text-gray-500">{{ isZh ? '我的性別：' : 'My gender:' }}</span>
+            <!-- Google profile preview -->
+            <div v-if="signupSelf && user" class="mt-2.5 flex items-center gap-2">
+              <img v-if="user.user_metadata?.avatar_url || user.user_metadata?.picture"
+                :src="user.user_metadata?.avatar_url || user.user_metadata?.picture"
+                class="w-7 h-7 rounded-full object-cover border border-white shadow-sm" />
+              <span class="text-xs text-gray-600 font-medium">
+                {{ user.user_metadata?.full_name || user.user_metadata?.name || user.email }}
+              </span>
+            </div>
+            <!-- Gender selector (mixed sessions only) -->
+            <div v-if="signupSelf && type === 'mixed'" class="mt-2 flex items-center gap-2">
+              <span class="text-xs text-gray-500">{{ isZh ? '性別：' : 'Gender:' }}</span>
               <button @click="selfGender = 'male'"
                 :class="['text-xs px-3 py-1 rounded-lg font-medium transition',
                   selfGender === 'male' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:bg-blue-50']">
@@ -323,7 +333,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
@@ -749,9 +759,11 @@ function loadTemplate(tpl) {
   const d = tpl.data;
   title.value        = d.title || '';
   location.value     = d.location || '';
-  // Google Places Autocomplete overrides the input's displayed value,
-  // so we must also update the DOM element directly.
-  if (locationInputRef.value) locationInputRef.value.value = d.location || '';
+  // Google Places Autocomplete manages the input's display independently from v-model,
+  // so force the DOM value after Vue finishes its reactive update.
+  nextTick(() => {
+    if (locationInputRef.value) locationInputRef.value.value = d.location || '';
+  });
   venue.value        = d.venue || '';
   limit.value        = d.limit ?? 0;
   type.value         = d.type || 'mixed';
