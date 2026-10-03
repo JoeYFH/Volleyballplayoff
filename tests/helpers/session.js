@@ -112,19 +112,20 @@ export async function deleteTestTemplates() {
  */
 export async function createTestFeedback(description = '[自動測試] 測試回饋', options = {}) {
   const { supabase } = await getClient();
-  const { data, error } = await supabase
+  // Generate UUID client-side: avoids RETURNING which is blocked by admin-only SELECT RLS
+  const id = crypto.randomUUID();
+  const { error } = await supabase
     .from('feedback')
     .insert({
+      id,
       description,
       type: options.type || 'other',
       urgency: options.urgency || 'low',
       status: options.status || 'pending',
       email: options.email || '',
-    })
-    .select('id')
-    .single();
+    });
   if (error) throw new Error(`建立測試回饋失敗：${error.message}`);
-  return data.id;
+  return id;
 }
 
 /**
