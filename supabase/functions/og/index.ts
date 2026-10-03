@@ -15,12 +15,6 @@ function fmtDate(d: string) {
   return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} (週${days[dt.getDay()]})`;
 }
 
-function isBrowser(req: Request): boolean {
-  const ua = req.headers.get('user-agent') || '';
-  return /^Mozilla\//i.test(ua) &&
-    !/bot|crawl|spider|facebook|facebot|slack|discord|telegram|whatsapp|linkedin|preview|fetch|curl/i.test(ua);
-}
-
 function toBase64(str: string): string {
   const bytes = new TextEncoder().encode(str);
   let binary = '';
@@ -46,27 +40,13 @@ Deno.serve(async (req) => {
       .eq('id', sessionId)
       .single();
 
-    if (isBrowser(req)) {
-      if (data) {
-        const encoded = toBase64(JSON.stringify({
-          title: data.title,
-          date: data.date,
-          time: data.time,
-          location: data.location,
-          type: data.type,
-          limit_total: data.limit_total,
-          creator_name: data.creator_name,
-        }));
-        return Response.redirect(`${shareUrl}?d=${encoded}`, 302);
-      }
-      return Response.redirect(shareUrl, 302);
-    }
-
-    // Bot/crawler: serve OG HTML
-    const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
     let title = '🏐 排球臨打報名';
     let description = '快來報名這週的排球臨打！';
     const imageUrl = `${HOST}/og-image.png`;
+    const ogUrl = `${HOST}/og/${encodeURIComponent(sessionId)}`;
+
+    // 瀏覽器 redirect 目標，帶入預載資料
+    let browserDest = shareUrl;
 
     if (data) {
       title = '🏐 ' + (data.title || (data.date + ' 臨打'));
@@ -79,8 +59,17 @@ Deno.serve(async (req) => {
       if (data.limit_total) parts.push('上限 ' + data.limit_total + ' 人');
       if (data.creator_name) parts.push('👤 ' + data.creator_name);
       description = parts.join(' · ');
+
+      const encoded = toBase64(JSON.stringify({
+        title: data.title, date: data.date, time: data.time,
+        location: data.location, type: data.type,
+        limit_total: data.limit_total, creator_name: data.creator_name,
+      }));
+      browserDest = `${shareUrl}?d=${encoded}`;
     }
 
+    // 所有訪客（爬蟲＋瀏覽器）都回傳同一份 HTML
+    // 瀏覽器透過 meta refresh 跳轉，爬蟲只讀 OG meta tags
     const html = `<!DOCTYPE html>
 <html lang="zh-TW"><head>
   <meta charset="UTF-8">
@@ -98,10 +87,10 @@ Deno.serve(async (req) => {
   <meta name="twitter:title" content="${esc(title)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${esc(imageUrl)}">
-  <meta http-equiv="refresh" content="0;url=${esc(shareUrl)}">
+  <meta http-equiv="refresh" content="0;url=${esc(browserDest)}">
 </head>
 <body>
-  <a href="${esc(shareUrl)}">前往報名頁面</a>
+  <a href="${esc(browserDest)}">前往報名頁面</a>
 </body></html>`;
 
     return new Response(html, {
