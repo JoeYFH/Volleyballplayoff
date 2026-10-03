@@ -175,7 +175,7 @@ const now = ref(Date.now());
 let timer = null;
 onMounted(() => {
   timer = setInterval(() => { now.value = Date.now(); }, 1000);
-  if (props.autoOpenSignup && props.session.isOpen) openSignup();
+  if (props.autoOpenSignup && effectivelyOpen.value) openSignup();
 });
 onUnmounted(() => clearInterval(timer));
 
