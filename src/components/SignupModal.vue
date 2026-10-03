@@ -59,8 +59,8 @@
             <p v-if="genderError" class="mt-1 text-xs text-red-500">{{ genderError }}</p>
           </div>
 
-          <!-- For friend checkbox -->
-          <div class="flex items-center gap-2">
+          <!-- For friend checkbox (logged-in only) -->
+          <div v-if="user" class="flex items-center gap-2">
             <input type="checkbox" id="modalFriendChk" v-model="forFriend" :disabled="isEdit && !!editSignup?.forFriend" class="w-4 h-4" />
             <label for="modalFriendChk" class="text-sm text-gray-600">{{ t('forFriend') }}</label>
           </div>
