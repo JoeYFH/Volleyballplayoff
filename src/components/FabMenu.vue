@@ -2,18 +2,18 @@
   <div class="fixed bottom-6 right-4 flex flex-col items-end gap-2 z-30">
     <!-- My Signups: directly visible when logged in -->
     <button v-if="user" @click="$router.push('/my-signups')"
-      class="bg-white border border-green-200 text-green-700 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-green-50 active:scale-95 transition">
+      class="bg-white border border-green-200 text-green-700 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-green-50 active:scale-95 transition min-w-[9rem] text-center">
       ✅ {{ isZh ? '我的報名' : 'My Signups' }}
     </button>
 
     <!-- Speed dial menu -->
     <div v-show="menuOpen && user" class="flex flex-col items-end gap-2 mb-1">
       <button @click="$emit('create'); menuOpen = false"
-        class="bg-indigo-600 text-white rounded-xl px-5 py-3 text-sm font-semibold shadow-lg hover:bg-indigo-700 active:scale-95 transition">
+        class="bg-indigo-600 text-white rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg hover:bg-indigo-700 active:scale-95 transition min-w-[9rem] text-center">
         {{ isZh ? '+ 建立場次' : '+ Create Session' }}
       </button>
       <button @click="$router.push('/my-sessions'); menuOpen = false"
-        class="bg-white border border-indigo-200 text-indigo-600 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-95 transition">
+        class="bg-white border border-indigo-200 text-indigo-600 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-md hover:bg-indigo-50 active:scale-95 transition min-w-[9rem] text-center">
         📋 {{ isZh ? '我的開場' : 'My Sessions' }}
       </button>
     </div>

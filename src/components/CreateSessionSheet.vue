@@ -265,6 +265,12 @@
             </button>
           </template>
 
+          <!-- Validation summary (shown after clicking submit with missing fields) -->
+          <div v-if="validationSummary" class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+            <span class="shrink-0 mt-0.5">⚠️</span>
+            <span>{{ validationSummary }}</span>
+          </div>
+
           <!-- Submit error -->
           <div v-if="submitError" class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
             <span class="shrink-0 mt-0.5">❌</span>
@@ -352,6 +358,7 @@ const genderLimitError = ref('');
 
 const submitting = ref(false);
 const submitError = ref('');
+const validationSummary = ref('');
 const templateName = ref('');
 const templateNameError = ref('');
 const locationInputRef = ref(null);
@@ -728,7 +735,20 @@ async function deleteTemplate(id) {
 // ── Submit ─────────────────────────────────────────────────────────────────────
 async function submit() {
   submitError.value = '';
-  if (!validate()) return;
+  validationSummary.value = '';
+  if (!validate()) {
+    const missing = [];
+    if (templateNameError.value) missing.push(isZh.value ? '範本名稱' : 'Template name');
+    if (titleError.value) missing.push(isZh.value ? '場次名稱' : 'Session title');
+    if (dateError.value) missing.push(isZh.value ? '日期' : 'Date');
+    if (timeError.value) missing.push(isZh.value ? '時間' : 'Time');
+    if (locationError.value) missing.push(isZh.value ? '地點' : 'Location');
+    if (genderLimitError.value) missing.push(isZh.value ? '男女人數配置' : 'Gender limits');
+    validationSummary.value = isZh.value
+      ? `請補填：${missing.join('、')}`
+      : `Please fill in: ${missing.join(', ')}`;
+    return;
+  }
 
   submitting.value = true;
   try {
