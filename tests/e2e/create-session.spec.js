@@ -73,8 +73,8 @@ test.describe.serial('建立場次功能', () => {
     // 不填任何欄位直接送出
     await page.locator('button:has-text("建立場次"), button:has-text("Create Session")').last().click();
 
-    // 應出現 amber 驗證摘要方塊（含 ⚠️ 圖示）
-    const summary = page.locator('.bg-amber-50.border-amber-200');
+    // 應出現 amber 驗證摘要方塊（含 ⚠️ 圖示，rounded-xl 區分 note 與 summary）
+    const summary = page.locator('.bg-amber-50.border-amber-200.rounded-xl');
     await expect(summary).toBeVisible({ timeout: 5000 });
     await expect(summary).toContainText('⚠️');
   });
