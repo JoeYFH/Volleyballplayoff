@@ -13,11 +13,6 @@
         "source": "/og/:id",
         "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og/:id",
         "type": 302
-      },
-      {
-        "source": "/share/:id",
-        "destination": "https://yjacbolmzmjutwvxowpe.supabase.co/functions/v1/og/:id",
-        "type": 302
       }
     ],
     "rewrites": [
