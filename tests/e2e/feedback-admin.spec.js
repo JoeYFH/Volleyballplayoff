@@ -58,10 +58,10 @@ test.describe.serial('意見回饋管理（Admin）', () => {
     const visible = await goToFeedbackSection(page);
     test.skip(!visible, '非 admin 帳號，跳過 feedback 測試');
 
-    await expect(page.locator('button:has-text("尚未處理"), button:has-text("Pending")')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('button:has-text("處理中"), button:has-text("In Progress")')).toBeVisible();
-    await expect(page.locator('button:has-text("已處理"), button:has-text("Done")')).toBeVisible();
-    await expect(page.locator('button:has-text("全部"), button:has-text("All")')).toBeVisible();
+    await expect(page.locator('button:has-text("尚未處理"), button:has-text("Pending")').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("處理中"), button:has-text("In Progress")').first()).toBeVisible();
+    await expect(page.locator('button:has-text("已處理"), button:has-text("Done")').first()).toBeVisible();
+    await expect(page.locator('button:has-text("全部"), button:has-text("All")').first()).toBeVisible();
   });
 
   test('切換到「全部」tab 顯示所有測試回饋', async ({ page }) => {
