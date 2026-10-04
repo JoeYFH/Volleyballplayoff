@@ -100,7 +100,9 @@ test.describe.serial('建立場次功能', () => {
     await setLangZh(page);
     await openCreateSheet(page);
 
-    await expect(page.locator('text=幫自己報名此場次, text=Sign myself up')).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.locator('text=幫自己報名此場次').or(page.locator('text=Sign myself up'))
+    ).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#selfSignupChk')).toBeVisible();
   });
 
