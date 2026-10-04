@@ -129,6 +129,18 @@ export async function createTestFeedback(description = '[自動測試] 測試回
 }
 
 /**
+ * 清除所有以 [自動測試] 開頭的回饋（避免上輪測試遺留資料干擾）
+ */
+export async function cleanupAllTestFeedbacks() {
+  try {
+    const { supabase } = await getClient();
+    await supabase.from('feedback').delete().ilike('description', '[自動測試]%');
+  } catch (e) {
+    console.warn(`[beforeAll] 清理遺留測試回饋失敗：${e.message}`);
+  }
+}
+
+/**
  * 刪除測試回饋（需 admin 權限的 RLS，測試帳號需為 admin）
  */
 export async function deleteTestFeedbacks(ids) {

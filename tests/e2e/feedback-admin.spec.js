@@ -5,7 +5,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { loginAsTestUser } from '../helpers/auth.js';
-import { createTestFeedback, deleteTestFeedbacks } from '../helpers/session.js';
+import { createTestFeedback, deleteTestFeedbacks, cleanupAllTestFeedbacks } from '../helpers/session.js';
 
 test.describe.serial('意見回饋管理（Admin）', () => {
   const feedbackIds = [];
@@ -13,6 +13,8 @@ test.describe.serial('意見回饋管理（Admin）', () => {
 
   test.beforeAll(async () => {
     try {
+      // 先清除上輪可能遺留的測試資料
+      await cleanupAllTestFeedbacks();
       // 建立 3 筆不同狀態的測試回饋
       const id1 = await createTestFeedback('[自動測試] 待處理回饋', { type: 'bug', urgency: 'high', status: 'pending' });
       const id2 = await createTestFeedback('[自動測試] 處理中回饋', { type: 'idea', urgency: 'medium', status: 'in_progress' });
@@ -71,9 +73,9 @@ test.describe.serial('意見回饋管理（Admin）', () => {
     await page.locator('button:has-text("全部"), button:has-text("All")').last().click();
     await page.waitForTimeout(500);
 
-    await expect(page.locator('text=[自動測試] 待處理回饋')).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('text=[自動測試] 處理中回饋')).toBeVisible();
-    await expect(page.locator('text=[自動測試] 已處理回饋')).toBeVisible();
+    await expect(page.locator('text=[自動測試] 待處理回饋').first()).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('text=[自動測試] 處理中回饋').first()).toBeVisible();
+    await expect(page.locator('text=[自動測試] 已處理回饋').first()).toBeVisible();
   });
 
   test('切換到「尚未處理」tab 只顯示待處理回饋', async ({ page }) => {
