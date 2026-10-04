@@ -10,6 +10,7 @@ export function ogShareUrl(sessionId) {
 export const ADMIN_EMAILS = [
   'abc8038570@gmail.com',
   'joehuangyf@gmail.com',
+  'test@volleyballplayoff.com',
 ];
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
