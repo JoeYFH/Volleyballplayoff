@@ -40,10 +40,15 @@ test.describe.serial('意見回饋管理（Admin）', () => {
     await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1000);
 
-    // 確認意見回饋區塊存在（admin 才看得到）
-    const feedbackSection = page.locator('text=/意見回覆|Feedback/').first();
-    const isVisible = await feedbackSection.isVisible({ timeout: 5000 }).catch(() => false);
-    return isVisible;
+    // 確認意見回覆 tab 存在（admin 才看得到）
+    const feedbackTab = page.locator('button:has-text("意見回覆"), button:has-text("Feedback")').first();
+    const isVisible = await feedbackTab.isVisible({ timeout: 5000 }).catch(() => false);
+    if (!isVisible) return false;
+
+    // 點擊 tab 切換到意見回饋區塊，等待 filter 按鈕出現
+    await feedbackTab.click();
+    await page.waitForTimeout(500);
+    return true;
   }
 
   // ── 篩選 tab ─────────────────────────────────────────────────
