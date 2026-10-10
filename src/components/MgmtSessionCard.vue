@@ -48,7 +48,18 @@
             <span v-if="session.type === 'mixed' && (session.maleLimit || session.femaleLimit)" class="text-xs text-gray-400">(♂{{ session.maleLimit || 0 }} ♀{{ session.femaleLimit || 0 }})</span>
           </div>
           <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
-          <div v-if="session.venueCost" class="flex items-center gap-1"><span>💰</span><span>{{ isZh ? '租場' : 'Venue' }} ${{ session.venueCost }}</span></div>
+        </div>
+        <!-- 場租費用明細 -->
+        <div v-if="session.venueCost" class="mt-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs text-amber-800 space-y-0.5">
+          <div class="flex items-center gap-1 font-semibold">💰 {{ isZh ? '場租' : 'Venue Cost' }}: ${{ session.venueCost }}</div>
+          <div v-if="session.limit" class="flex items-center gap-1 text-amber-600">
+            <span>{{ isZh ? `📊 報名滿 ${session.limit} 人，每人應付：` : `📊 Full (${session.limit} players), per person:` }}</span>
+            <strong>${{ Math.ceil(session.venueCost / session.limit) }}</strong>
+          </div>
+          <div v-if="confirmedSignups.length" class="flex items-center gap-1 text-amber-700">
+            <span>{{ isZh ? `👥 目前 ${confirmedSignups.length} 人報名，每人應付：` : `👥 Currently ${confirmedSignups.length} confirmed, per person:` }}</span>
+            <strong>${{ Math.ceil(session.venueCost / confirmedSignups.length) }}</strong>
+          </div>
         </div>
         <!-- 報名時間 -->
         <div v-if="signupTimeHtml" class="text-xs text-gray-500" v-html="signupTimeHtml"></div>
