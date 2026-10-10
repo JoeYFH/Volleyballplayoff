@@ -149,8 +149,6 @@ const showCreateSheet = ref(false);
 const showFeedback = ref(false);
 
 // Share
-const copiedShare = ref(false);
-// Share
 const shareUrl = ref('');
 const copiedShare = ref(false);
 async function shareSession(session) {
