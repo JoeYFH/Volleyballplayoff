@@ -48,12 +48,17 @@
     <!-- Feedback modal -->
     <FeedbackModal v-if="showFeedback" :is-zh="isZh" @close="showFeedback = false" />
 
-    <!-- Copy toast -->
-    <Transition enter-from-class="opacity-0 translate-y-2" enter-active-class="transition duration-200" leave-to-class="opacity-0 translate-y-2" leave-active-class="transition duration-200">
-      <div v-if="copiedShare" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm font-medium px-5 py-2.5 rounded-full shadow-lg">
-        ✅ {{ isZh ? '已複製連結！' : 'Link copied!' }}
+    <!-- Share modal -->
+    <div v-if="shareUrl" class="fixed inset-0 bg-black/40 z-40 flex items-center justify-center px-4" @click.self="shareUrl = ''">
+      <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+        <h3 class="font-bold text-gray-800 mb-4">{{ isZh ? '分享活動連結' : 'Share Link' }}</h3>
+        <input :value="shareUrl" readonly class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 mb-3" />
+        <button @click="copyShareUrl" class="w-full bg-indigo-600 text-white rounded-xl py-2.5 font-semibold text-sm mb-2">
+          {{ copiedShare ? (isZh ? '✅ 已複製！' : '✅ Copied!') : (isZh ? '📋 複製連結' : '📋 Copy Link') }}
+        </button>
+        <button @click="shareUrl = ''" class="w-full text-gray-400 text-sm py-1">{{ isZh ? '關閉' : 'Close' }}</button>
       </div>
-    </Transition>
+    </div>
   </div>
 </template>
 
@@ -145,15 +150,21 @@ const showFeedback = ref(false);
 
 // Share
 const copiedShare = ref(false);
+// Share
+const shareUrl = ref('');
+const copiedShare = ref(false);
 async function shareSession(session) {
   const url = ogShareUrl(session.id);
+  shareUrl.value = url;
+  copiedShare.value = false;
   try {
     await navigator.clipboard.writeText(url);
     copiedShare.value = true;
-    setTimeout(() => { copiedShare.value = false; }, 2000);
-  } catch {
-    // Fallback: prompt to copy manually
-    window.prompt(isZh.value ? '複製以下連結：' : 'Copy the link:', url);
-  }
+  } catch { /* clipboard unavailable, modal still shows */ }
+}
+async function copyShareUrl() {
+  await navigator.clipboard.writeText(shareUrl.value).catch(() => {});
+  copiedShare.value = true;
+  setTimeout(() => { copiedShare.value = false; }, 2000);
 }
 </script>
