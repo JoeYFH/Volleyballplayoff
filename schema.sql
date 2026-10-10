@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS signups (
 CREATE TABLE IF NOT EXISTS templates (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  name text NOT NULL,
+  name text NOT NULL DEFAULT '',
   title text DEFAULT '',
   location text DEFAULT '',
   venue text DEFAULT '',
