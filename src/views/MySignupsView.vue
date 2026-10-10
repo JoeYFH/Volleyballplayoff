@@ -308,9 +308,9 @@ const filteredItems = computed(() => {
       (g.session?.date || '') >= today && g.signups.some(s => s.isWaitlisted)
     );
   } else if (subTab.value === 'confirmed') {
-    // Sessions where all signups are confirmed (and not yet past)
+    // Sessions where at least one signup is confirmed (and not yet past)
     groups = groups.filter(g =>
-      (g.session?.date || '') >= today && g.signups.every(s => !s.isWaitlisted)
+      (g.session?.date || '') >= today && g.signups.some(s => !s.isWaitlisted)
     );
   } else {
     groups = groups.filter(g => (g.session?.date || '') < today);
