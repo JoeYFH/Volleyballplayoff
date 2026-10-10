@@ -64,6 +64,41 @@
           </div>
         </div>
 
+        <!-- Signup progress -->
+        <div v-if="mappedSession && (mappedSession.limit || mappedSession.maleLimit || mappedSession.femaleLimit)" class="mb-4">
+          <!-- Mixed gender bars -->
+          <template v-if="mappedSession.type === 'mixed' && (mappedSession.maleLimit || mappedSession.femaleLimit)">
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>{{ isZh ? '報名進度' : 'Progress' }}</span>
+              <span>{{ confirmedCount }} / {{ mappedSession.maleLimit + mappedSession.femaleLimit }}</span>
+            </div>
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="text-xs text-blue-400 w-5 shrink-0">♂</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div class="h-2 rounded-full bg-blue-400 transition-all duration-500" :style="{ width: malePct + '%' }"></div>
+              </div>
+              <span class="text-xs text-gray-400 w-10 text-right shrink-0">{{ maleCount }}/{{ mappedSession.maleLimit || '?' }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-pink-400 w-5 shrink-0">♀</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div class="h-2 rounded-full bg-pink-400 transition-all duration-500" :style="{ width: femalePct + '%' }"></div>
+              </div>
+              <span class="text-xs text-gray-400 w-10 text-right shrink-0">{{ femaleCount }}/{{ mappedSession.femaleLimit || '?' }}</span>
+            </div>
+          </template>
+          <!-- Total limit bar -->
+          <template v-else-if="mappedSession.limit">
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>{{ isZh ? '報名進度' : 'Progress' }}</span>
+              <span>{{ confirmedCount }} / {{ mappedSession.limit }}</span>
+            </div>
+            <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden">
+              <div :class="['h-2.5 rounded-full transition-all duration-500', totalPct >= 75 ? 'bg-amber-400' : 'bg-indigo-400']" :style="{ width: totalPct + '%' }"></div>
+            </div>
+          </template>
+        </div>
+
         <!-- Signup button -->
         <button v-if="effectivelyOpen" @click="showSignupModal = true"
           class="block w-full text-center text-white font-bold py-4 rounded-2xl shadow-md transition active:scale-95"
@@ -141,6 +176,18 @@ const { signups } = useSignups(sessionId || '__invalid__', {
 });
 
 const mappedSession = computed(() => session.value ? mapSession(session.value) : null);
+
+const isWaitlisted = (s) => {
+  const lim = mappedSession.value?.limit || 0;
+  return !s.forceConfirmed && (s.forceWaitlisted || s.genderWait || (lim > 0 && s.position > lim));
+};
+const confirmedSignups = computed(() => signups.value.filter(s => !isWaitlisted(s)));
+const confirmedCount  = computed(() => confirmedSignups.value.length);
+const maleCount       = computed(() => confirmedSignups.value.filter(s => s.gender === 'male').length);
+const femaleCount     = computed(() => confirmedSignups.value.filter(s => s.gender === 'female').length);
+const malePct   = computed(() => (mappedSession.value?.maleLimit   || 0) > 0 ? Math.round(Math.min(maleCount.value,   mappedSession.value.maleLimit)   / mappedSession.value.maleLimit   * 100) : 0);
+const femalePct = computed(() => (mappedSession.value?.femaleLimit || 0) > 0 ? Math.round(Math.min(femaleCount.value, mappedSession.value.femaleLimit) / mappedSession.value.femaleLimit * 100) : 0);
+const totalPct  = computed(() => (mappedSession.value?.limit       || 0) > 0 ? Math.round(Math.min(confirmedCount.value, mappedSession.value.limit)    / mappedSession.value.limit       * 100) : 0);
 
 const sessionDuration = computed(() => {
   const s = session.value;
