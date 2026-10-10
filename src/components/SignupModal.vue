@@ -314,9 +314,12 @@ async function submit() {
     }
   }
 
-  const name = user.value
-    ? (user.value.user_metadata?.full_name || user.value.user_metadata?.name || user.value.email)
-    : nameInput.value.trim();
+  // In edit mode, preserve the original registrant's name (don't overwrite with the current user's name)
+  const name = isEdit.value
+    ? props.editSignup.name
+    : user.value
+      ? (user.value.user_metadata?.full_name || user.value.user_metadata?.name || user.value.email)
+      : nameInput.value.trim();
   if (!name) {
     nameError.value = t('enterName');
     return;
@@ -355,7 +358,7 @@ async function submit() {
 
   const payload = {
     sessionId: props.session.id,
-    uid: user.value?.id || null,
+    uid: isEdit.value ? props.editSignup.uid : (user.value?.id || null),
     name,
     isLate: isLate.value,
     lateTime: lateTime.value.trim(),
