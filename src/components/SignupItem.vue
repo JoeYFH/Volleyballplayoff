@@ -106,7 +106,11 @@ const tags = computed(() => {
     result.push({ text: (props.isZh ? '搭檔' : 'Pair') + ':' + name, style: '' });
   }
   if (s.bringEquip?.length) {
-    s.bringEquip.forEach(e => result.push({ text: '🎒' + e, style: 'background:#d1fae5;color:#065f46' }));
+    const EQUIP_EN = { '標竿': 'Poles', '音響': 'Speaker', '球': 'Ball' };
+    s.bringEquip.forEach(e => {
+      const label = props.isZh ? e : (EQUIP_EN[e] || e);
+      result.push({ text: '🎒' + label, style: 'background:#d1fae5;color:#065f46' });
+    });
   }
   return result;
 });

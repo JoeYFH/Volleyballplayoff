@@ -109,7 +109,7 @@ const waitPrefix = computed(() => props.isZh ? '候' : 'W');
 const isMixed = computed(() => props.type === 'mixed');
 
 const isWaitlisted = (s) =>
-  !s.forceConfirmed && (s.forceWaitlisted || (props.limit > 0 && s.position > props.limit)) || !!s.genderWait;
+  !s.forceConfirmed && (s.forceWaitlisted || (props.limit > 0 && s.position > props.limit) || !!s.genderWait);
 
 const confirmed = computed(() => props.signups.filter(s => !isWaitlisted(s)));
 const waitlist  = computed(() => props.signups.filter(s =>  isWaitlisted(s)));
@@ -118,7 +118,8 @@ const males   = computed(() => props.signups.filter(s => s.gender === 'male'));
 const females = computed(() => props.signups.filter(s => s.gender === 'female'));
 const others  = computed(() => props.signups.filter(s => s.gender !== 'male' && s.gender !== 'female'));
 
-const isGenderWaiting = (s) => s.genderWait || (s.forceWaitlisted && !s.forceConfirmed);
+const isGenderWaiting = (s) =>
+  !s.forceConfirmed && (s.genderWait || s.forceWaitlisted || (props.limit > 0 && s.position > props.limit));
 const confirmedMales  = computed(() => males.value.filter(s => !isGenderWaiting(s)));
 const waitingMales    = computed(() => males.value.filter(s =>  isGenderWaiting(s)));
 const confirmedFemales = computed(() => females.value.filter(s => !isGenderWaiting(s)));

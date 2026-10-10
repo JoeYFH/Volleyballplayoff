@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   end_time text,
   location text,
   venue text,
+  venue_cost integer DEFAULT 0,
   type text DEFAULT '',          -- '', 'mixed', 'male', 'female'
   limit_total integer DEFAULT 0,
   male_limit integer DEFAULT 0,

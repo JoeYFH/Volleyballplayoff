@@ -48,6 +48,7 @@
             <span v-if="session.type === 'mixed' && (session.maleLimit || session.femaleLimit)" class="text-xs text-gray-400">(♂{{ session.maleLimit || 0 }} ♀{{ session.femaleLimit || 0 }})</span>
           </div>
           <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
+          <div v-if="session.venueCost" class="flex items-center gap-1"><span>💰</span><span>{{ isZh ? '租場' : 'Venue' }} ${{ session.venueCost }}</span></div>
         </div>
         <!-- 報名時間 -->
         <div v-if="signupTimeHtml" class="text-xs text-gray-500" v-html="signupTimeHtml"></div>

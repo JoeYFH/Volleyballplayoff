@@ -345,8 +345,8 @@ let channel = null;
 
 function mapSession(row) {
   return {
-    id: row.id, title: row.title, date: row.date, time: row.time,
-    location: row.location, venue: row.venue, type: row.type || '',
+    id: row.id, title: row.title, date: row.date, time: row.time, endTime: row.end_time || '',
+    location: row.location, venue: row.venue, venueCost: row.venue_cost || 0, type: row.type || '',
     limit: row.limit_total || 0, maleLimit: row.male_limit || 0, femaleLimit: row.female_limit || 0,
     equipment: row.equipment || [], note: row.note,
     isOpen: row.is_open, isPrivate: row.is_private, cancelled: row.cancelled,

@@ -99,7 +99,7 @@
             <p v-if="locationError" class="mt-1 text-xs text-red-500">{{ locationError }}</p>
           </div>
 
-          <!-- 5. Venue Details -->
+          <!-- 5. Venue Details + Cost -->
           <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">
               {{ isZh ? '場地說明（選填）' : 'Venue Details (optional)' }}
@@ -107,6 +107,16 @@
             <input v-model="venue" type="text" maxlength="300"
               :placeholder="isZh ? '例：B1 室內球場4號場' : 'e.g. Court B1, Indoor Hall'"
               :class="inputClass(false)" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">
+              {{ isZh ? '租場費用（選填）' : 'Venue Cost (optional)' }}
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <input v-model.number="venueCost" type="number" min="0" placeholder="0"
+                :class="[...inputClass(false), '!pl-7']" />
+            </div>
           </div>
 
           <!-- 6. Player Limit -->
@@ -377,6 +387,7 @@ const time         = ref('');
 const endTime      = ref('');
 const location     = ref('');
 const venue        = ref('');
+const venueCost    = ref(0);
 const limit        = ref(0);
 const type         = ref('mixed');
 const maleLimit    = ref(0);
@@ -460,6 +471,7 @@ if (props.editSession) {
   endTime.value    = s.endTime     || '';
   location.value   = s.location    || '';
   venue.value      = s.venue       || '';
+  venueCost.value  = s.venueCost   ?? 0;
   limit.value      = s.limit       ?? 0;
   type.value       = s.type        || 'mixed';
   maleLimit.value  = s.maleLimit   ?? 0;
@@ -739,7 +751,7 @@ function onFemaleLimitChange() {
 
 function currentFormData() {
   return {
-    title: title.value, location: location.value, venue: venue.value,
+    title: title.value, location: location.value, venue: venue.value, venueCost: venueCost.value,
     limit: limit.value, type: type.value,
     maleLimit: maleLimit.value, femaleLimit: femaleLimit.value,
     equipment: [...equipment.value], customEquipItems: [...customEquipItems.value],
@@ -818,6 +830,7 @@ function loadTemplate(tpl) {
     }
   });
   venue.value        = d.venue || '';
+  venueCost.value    = d.venueCost ?? 0;
   limit.value        = d.limit ?? 0;
   type.value         = d.type || 'mixed';
   maleLimit.value    = d.maleLimit ?? 0;
@@ -885,6 +898,7 @@ async function submit() {
       endTime:  endTime.value || null,
       location: location.value.trim(),
       venue:    venue.value.trim() || null,
+      venueCost: venueCost.value || null,
       limit:    limit.value || 0,
       type:     type.value,
       maleLimit:   type.value === 'mixed' ? (maleLimit.value || 0) : 0,

@@ -43,6 +43,7 @@
         <div class="flex flex-wrap gap-x-4 gap-y-1">
           <div v-if="session.limit" class="flex items-center gap-1"><span>👥</span><span>{{ isZh ? '名額' : 'Limit' }} {{ session.limit }}{{ isZh ? '人' : '' }}</span></div>
           <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
+          <div v-if="session.venueCost" class="flex items-center gap-1"><span>💰</span><span>{{ isZh ? '租場' : 'Venue' }} ${{ session.venueCost }}</span></div>
           <div v-if="neededEquip.length" class="flex items-center gap-1 text-xs text-gray-500">
             <span>🎒</span><span>{{ isZh ? '還需帶：' : 'Still need: ' }}{{ neededEquip.join(isZh ? '、' : ', ') }}</span>
           </div>
@@ -200,11 +201,14 @@ const typeLabel = computed(() => {
   return map[props.session.type] || '';
 });
 
+const EQUIP_EN = { '標竿': 'Poles', '音響': 'Speaker', '球': 'Ball' };
+const equipLabel = (item) => props.isZh ? item : (EQUIP_EN[item] || item);
+
 const neededEquip = computed(() => {
   const all = props.session.equipment || [];
   if (!all.length) return [];
   const covered = new Set(signups.value.filter(s => !isWaitlisted(s)).flatMap(s => s.bringEquip || []));
-  return all.filter(item => !covered.has(item));
+  return all.filter(item => !covered.has(item)).map(equipLabel);
 });
 
 // Progress bar computations
@@ -219,7 +223,7 @@ const totalPct  = computed(() => props.session.limit       > 0 ? Math.round(Math
 
 // Own signup state
 const isWaitlisted = (s) =>
-  !s.forceConfirmed && (s.forceWaitlisted || (props.session.limit > 0 && s.position > props.session.limit)) || !!s.genderWait;
+  !s.forceConfirmed && (s.forceWaitlisted || (props.session.limit > 0 && s.position > props.session.limit) || !!s.genderWait);
 
 const ownSignup = computed(() => props.user ? signups.value.find(s => s.uid === props.user.id) : null);
 const ownIsWaitlisted = computed(() => ownSignup.value ? isWaitlisted(ownSignup.value) : false);

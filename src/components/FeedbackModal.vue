@@ -34,7 +34,7 @@
           class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:border-indigo-400 placeholder-gray-300">
         </textarea>
 
-        <input v-model="form.email" type="text" :placeholder="isZh ? '聯絡信箱（選填）' : 'Your email (optional)'"
+        <input v-model="form.email" type="email" :placeholder="isZh ? '聯絡信箱' : 'Your email'" required
           :class="['w-full text-sm border rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-400 placeholder-gray-300', emailError ? 'border-red-400' : 'border-gray-200']" />
 
         <p v-if="error || emailError" class="text-xs text-red-500">{{ error || emailError }}</p>
@@ -67,7 +67,11 @@ async function submit() {
   error.value = '';
   emailError.value = '';
   const emailTrimmed = form.email.trim();
-  if (emailTrimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+  if (!emailTrimmed) {
+    emailError.value = props.isZh ? '請輸入聯絡信箱' : 'Please enter your email';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
     emailError.value = props.isZh ? '請輸入有效的電子信箱格式' : 'Please enter a valid email address';
     return;
   }
