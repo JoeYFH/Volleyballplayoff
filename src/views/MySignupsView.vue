@@ -303,15 +303,13 @@ const filteredItems = computed(() => {
   let groups = groupedSignups.value;
 
   if (subTab.value === 'waitlist') {
-    // Sessions where at least one signup is waitlisted (and not yet past)
-    groups = groups.filter(g =>
-      (g.session?.date || '') >= today && g.signups.some(s => s.isWaitlisted)
-    );
+    groups = groups
+      .filter(g => (g.session?.date || '') >= today && g.signups.some(s => s.isWaitlisted))
+      .map(g => ({ ...g, signups: g.signups.filter(s => s.isWaitlisted) }));
   } else if (subTab.value === 'confirmed') {
-    // Sessions where at least one signup is confirmed (and not yet past)
-    groups = groups.filter(g =>
-      (g.session?.date || '') >= today && g.signups.some(s => !s.isWaitlisted)
-    );
+    groups = groups
+      .filter(g => (g.session?.date || '') >= today && g.signups.some(s => !s.isWaitlisted))
+      .map(g => ({ ...g, signups: g.signups.filter(s => !s.isWaitlisted) }));
   } else {
     groups = groups.filter(g => (g.session?.date || '') < today);
   }
