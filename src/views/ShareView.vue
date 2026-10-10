@@ -41,14 +41,18 @@
             <span class="text-base mt-0.5">⏰</span>
             <div>
               <p class="text-xs text-gray-400 font-medium">{{ isZh ? '時間' : 'Time' }}</p>
-              <p class="text-sm text-gray-800 font-semibold">{{ session.time || '—' }}{{ session.end_time ? ' – ' + session.end_time : '' }}</p>
+              <p class="text-sm text-gray-800 font-semibold">
+                {{ session.time || '—' }}{{ session.end_time ? ' – ' + session.end_time : '' }}
+                <span v-if="sessionDuration" class="ml-1.5 text-xs font-semibold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">⏱ {{ sessionDuration }}</span>
+              </p>
             </div>
           </div>
           <div class="flex items-start gap-3 bg-indigo-50/60 rounded-xl px-4 py-3">
             <span class="text-base mt-0.5">📍</span>
             <div>
               <p class="text-xs text-gray-400 font-medium">{{ isZh ? '地點' : 'Location' }}</p>
-              <p class="text-sm text-gray-800 font-semibold">{{ session.location || '—' }}</p>
+              <a v-if="session.location" :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(session.location)" target="_blank" rel="noopener" class="text-sm text-indigo-600 font-semibold hover:underline">{{ session.location }} ↗</a>
+              <p v-else class="text-sm text-gray-800 font-semibold">—</p>
             </div>
           </div>
           <div class="flex items-start gap-3 bg-indigo-50/60 rounded-xl px-4 py-3">
@@ -138,6 +142,17 @@ const { signups } = useSignups(sessionId || '__invalid__', {
 });
 
 const mappedSession = computed(() => session.value ? mapSession(session.value) : null);
+
+const sessionDuration = computed(() => {
+  const s = session.value;
+  if (!s?.time || !s?.end_time) return null;
+  const [sh, sm] = s.time.split(':').map(Number);
+  const [eh, em] = s.end_time.split(':').map(Number);
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) return null;
+  const hrs = mins / 60;
+  return (hrs % 1 === 0 ? hrs.toString() : hrs.toFixed(1)) + (isZh.value ? ' 小時' : 'h');
+});
 
 const effectivelyOpen = computed(() => {
   if (!session.value) return false;

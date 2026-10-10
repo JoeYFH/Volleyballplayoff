@@ -31,6 +31,7 @@
           <div v-if="session.time" class="flex items-center gap-1">
             <span>🕐</span>
             <span>{{ session.time }}{{ session.endTime ? ' – ' + session.endTime : '' }}</span>
+            <span v-if="sessionDuration" class="ml-1 text-xs font-semibold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full">⏱ {{ sessionDuration }}</span>
           </div>
         </div>
         <!-- Row 2: 地點 · 場館 同行 -->
@@ -258,6 +259,16 @@ const signupTimeHtml = computed(() => {
   if (closeMs) return `📋 ${props.isZh ? '報名截止' : 'Closes'}: ${fmtTs(closeMs)}`;
   if (openMs) return `📋 ${props.isZh ? '報名開始' : 'Opens'}: ${fmtTs(openMs)}`;
   return '';
+});
+
+const sessionDuration = computed(() => {
+  if (!props.session.time || !props.session.endTime) return null;
+  const [sh, sm] = props.session.time.split(':').map(Number);
+  const [eh, em] = props.session.endTime.split(':').map(Number);
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) return null;
+  const hrs = mins / 60;
+  return (hrs % 1 === 0 ? hrs.toString() : hrs.toFixed(1)) + (props.isZh ? ' 小時' : 'h');
 });
 
 function formatDate(d) {

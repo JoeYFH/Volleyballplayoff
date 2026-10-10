@@ -13,8 +13,13 @@
 
     <template v-else>
       <!-- Own waitlist notice -->
-      <div v-if="ownIsWaitlisted" class="text-xs text-center text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-1">
-        {{ isZh ? '⏳ 你目前在候補名單，有人取消時會自動候補' : '⏳ You are on the waitlist — you will be promoted if a spot opens' }}
+      <div v-if="ownIsWaitlisted" class="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-1">
+        <template v-if="isZh">
+          ⏳ 您報名的：<strong>{{ ownWaitlistedNames.join('、') }}</strong> 在候補名單，有人取消時會自動候補
+        </template>
+        <template v-else>
+          ⏳ Your signup(s) <strong>{{ ownWaitlistedNames.join(', ') }}</strong> are on the waitlist — you will be promoted if a spot opens
+        </template>
       </div>
 
       <!-- Mixed: gender sections -->
@@ -121,4 +126,11 @@ const waitingFemales   = computed(() => females.value.filter(s =>  s.genderWait)
 const ownIsWaitlisted = computed(() =>
   !!props.user && props.signups.some(s => s.uid === props.user.id && isWaitlisted(s))
 );
+
+const ownWaitlistedNames = computed(() => {
+  if (!props.user) return [];
+  return props.signups
+    .filter(s => s.uid === props.user.id && isWaitlisted(s))
+    .map(s => s.name);
+});
 </script>
