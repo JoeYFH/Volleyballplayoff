@@ -135,6 +135,7 @@
             <select v-model="pairWith"
               class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
               <option value="">{{ isZh ? '— 不指定 —' : '— No preference —' }}</option>
+              <option v-if="pairWith && !pairOptions.some(s => (s.forFriend || s.name) === pairWith)" :value="pairWith">{{ pairWith }}</option>
               <option v-for="s in pairOptions" :key="s.id" :value="s.forFriend || s.name">
                 {{ s.forFriend || s.name }}
               </option>
