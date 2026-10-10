@@ -67,23 +67,18 @@
           </div>
 
           <!-- 3. Start Time + End Time -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                {{ isZh ? '開始時間' : 'Start Time' }} <span class="text-red-400">*</span>
-              </label>
-              <input v-model="time" type="time"
-                :class="inputClass(!!timeError)"
-                @change="timeError = ''" />
-              <p v-if="timeError" class="mt-1 text-xs text-red-500">{{ timeError }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                {{ isZh ? '結束時間（選填）' : 'End Time (optional)' }}
-              </label>
-              <input v-model="endTime" type="time"
-                :class="inputClass(false)" />
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">
+              {{ isZh ? '開始時間' : 'Start Time' }} <span class="text-red-400">*</span>
+            </label>
+            <TimePicker v-model="time" :is-zh="isZh" @update:modelValue="timeError = ''" />
+            <p v-if="timeError" class="mt-1 text-xs text-red-500">{{ timeError }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">
+              {{ isZh ? '結束時間（選填）' : 'End Time (optional)' }}
+            </label>
+            <TimePicker v-model="endTime" :is-zh="isZh" />
           </div>
 
           <!-- 4. Location -->
@@ -359,6 +354,7 @@ import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
 import { sessionToRow } from '@/composables/useSessions.js';
+import TimePicker from '@/components/TimePicker.vue';
 
 // ── Props & Emits ──────────────────────────────────────────────────────────────
 const props = defineProps({
