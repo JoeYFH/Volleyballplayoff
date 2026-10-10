@@ -118,10 +118,11 @@ const males   = computed(() => props.signups.filter(s => s.gender === 'male'));
 const females = computed(() => props.signups.filter(s => s.gender === 'female'));
 const others  = computed(() => props.signups.filter(s => s.gender !== 'male' && s.gender !== 'female'));
 
-const confirmedMales  = computed(() => males.value.filter(s => !s.genderWait));
-const waitingMales    = computed(() => males.value.filter(s =>  s.genderWait));
-const confirmedFemales = computed(() => females.value.filter(s => !s.genderWait));
-const waitingFemales   = computed(() => females.value.filter(s =>  s.genderWait));
+const isGenderWaiting = (s) => s.genderWait || (s.forceWaitlisted && !s.forceConfirmed);
+const confirmedMales  = computed(() => males.value.filter(s => !isGenderWaiting(s)));
+const waitingMales    = computed(() => males.value.filter(s =>  isGenderWaiting(s)));
+const confirmedFemales = computed(() => females.value.filter(s => !isGenderWaiting(s)));
+const waitingFemales   = computed(() => females.value.filter(s =>  isGenderWaiting(s)));
 
 const ownIsWaitlisted = computed(() =>
   !!props.user && props.signups.some(s => s.uid === props.user.id && isWaitlisted(s))

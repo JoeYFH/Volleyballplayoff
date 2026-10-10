@@ -59,7 +59,7 @@
       <div v-if="hasMixedLimits" class="mb-3 space-y-1.5">
         <div class="flex justify-between text-xs text-gray-400 mb-0.5">
           <span>{{ isZh ? '報名進度' : 'Progress' }}</span>
-          <span>{{ signups.length }} / {{ effectiveLimit }}</span>
+          <span>{{ confirmedSignups.length }} / {{ effectiveLimit }}</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="text-xs text-blue-400 w-5 shrink-0">♂</span>
@@ -79,7 +79,7 @@
       <div v-else-if="session.limit" class="mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
           <span>{{ isZh ? '報名進度' : 'Progress' }}</span>
-          <span>{{ signups.length }} / {{ session.limit }}</span>
+          <span>{{ confirmedSignups.length }} / {{ session.limit }}</span>
         </div>
         <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
           <div :class="['h-2 rounded-full transition-all duration-500', totalPct >= 75 ? 'bg-amber-400' : 'bg-indigo-400']" :style="{ width: Math.min(totalPct, 100) + '%' }"></div>
@@ -192,11 +192,13 @@ const hasMixedLimits = computed(() =>
 const effectiveLimit = computed(() =>
   props.session.limit || (hasMixedLimits.value ? (props.session.maleLimit || 0) + (props.session.femaleLimit || 0) : 0)
 );
-const maleCount = computed(() => signups.value.filter(s => s.gender === 'male').length);
-const femaleCount = computed(() => signups.value.filter(s => s.gender === 'female').length);
+const isWaitlisted = (s) => (s.forceWaitlisted || s.genderWait) && !s.forceConfirmed;
+const confirmedSignups = computed(() => signups.value.filter(s => !isWaitlisted(s)));
+const maleCount = computed(() => confirmedSignups.value.filter(s => s.gender === 'male').length);
+const femaleCount = computed(() => confirmedSignups.value.filter(s => s.gender === 'female').length);
 const malePct = computed(() => props.session.maleLimit > 0 ? Math.round(Math.min(maleCount.value, props.session.maleLimit) / props.session.maleLimit * 100) : 0);
 const femalePct = computed(() => props.session.femaleLimit > 0 ? Math.round(Math.min(femaleCount.value, props.session.femaleLimit) / props.session.femaleLimit * 100) : 0);
-const totalPct = computed(() => props.session.limit > 0 ? Math.round(Math.min(signups.value.length, props.session.limit) / props.session.limit * 100) : 0);
+const totalPct = computed(() => props.session.limit > 0 ? Math.round(Math.min(confirmedSignups.value.length, props.session.limit) / props.session.limit * 100) : 0);
 
 const showEditModal = ref(false);
 const editSignupData = ref(null);
