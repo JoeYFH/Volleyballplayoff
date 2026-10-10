@@ -141,13 +141,21 @@
             <div v-for="tpl in templates" :key="tpl.id" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <div class="flex items-start justify-between gap-2">
                 <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-gray-800 text-sm truncate">{{ tpl.name }}</p>
+                  <!-- Inline rename -->
+                  <div v-if="renamingTemplateId === tpl.id" class="flex gap-1.5 mb-1">
+                    <input v-model="renamingValue" @keyup.enter="confirmRename(tpl)" @keyup.escape="renamingTemplateId = null"
+                      class="flex-1 text-sm border border-indigo-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-0" />
+                    <button @click="confirmRename(tpl)" class="text-xs px-2 py-1 bg-indigo-600 text-white rounded-lg shrink-0">✓</button>
+                    <button @click="renamingTemplateId = null" class="text-xs px-2 py-1 bg-gray-100 text-gray-500 rounded-lg shrink-0">✕</button>
+                  </div>
+                  <p v-else class="font-semibold text-gray-800 text-sm truncate cursor-pointer hover:text-indigo-600 transition"
+                    @click="startRename(tpl)" :title="isZh ? '點擊改名' : 'Click to rename'">{{ tpl.name }}</p>
                   <div class="text-xs text-gray-400 mt-0.5 space-y-0.5">
-                    <div v-if="tpl.data?.location">📍 {{ tpl.data.location }}</div>
-                    <div v-if="tpl.data?.limit">👥 {{ tpl.data.limit }}{{ isZh ? '人' : '' }}
-                      <span v-if="tpl.data.type === 'mixed' && (tpl.data.maleLimit || tpl.data.femaleLimit)"> (♂{{ tpl.data.maleLimit || 0 }} ♀{{ tpl.data.femaleLimit || 0 }})</span>
+                    <div v-if="tpl.location">📍 {{ tpl.location }}</div>
+                    <div v-if="tpl.limit_total">👥 {{ tpl.limit_total }}{{ isZh ? '人' : '' }}
+                      <span v-if="tpl.type === 'mixed' && (tpl.male_limit || tpl.female_limit)"> (♂{{ tpl.male_limit || 0 }} ♀{{ tpl.female_limit || 0 }})</span>
                     </div>
-                    <div v-if="tpl.data?.type">🏷️ {{ tpl.data.type === 'mixed' ? (isZh ? '混排' : 'Mixed') : tpl.data.type === 'male' ? (isZh ? '男生' : 'Male') : (isZh ? '女生' : 'Female') }}</div>
+                    <div v-if="tpl.type">🏷️ {{ tpl.type === 'mixed' ? (isZh ? '混排' : 'Mixed') : tpl.type === 'male' ? (isZh ? '男生' : 'Male') : (isZh ? '女生' : 'Female') }}</div>
                   </div>
                 </div>
                 <div class="flex gap-1.5 shrink-0">
@@ -619,7 +627,7 @@ async function loadTemplates() {
 function loadTemplateCreate(tpl) {
   editingSession.value = null;
   editingTemplate.value = null;
-  templatePreload.value = tpl.data;
+  templatePreload.value = tpl;
   showCreateSheet.value = true;
 }
 
@@ -641,6 +649,23 @@ async function deleteTemplate(id) {
   if (!confirm(msg)) return;
   await supabase.from('templates').delete().eq('id', id);
   templates.value = templates.value.filter(t => t.id !== id);
+}
+
+const renamingTemplateId = ref(null);
+const renamingValue = ref('');
+
+function startRename(tpl) {
+  renamingTemplateId.value = tpl.id;
+  renamingValue.value = tpl.name;
+}
+
+async function confirmRename(tpl) {
+  const name = renamingValue.value.trim();
+  if (!name) return;
+  const { error } = await supabase.from('templates').update({ name }).eq('id', tpl.id);
+  if (error) { alert('Error: ' + error.message); return; }
+  templates.value = templates.value.map(t => t.id === tpl.id ? { ...t, name } : t);
+  renamingTemplateId.value = null;
 }
 
 function openEdit(session) {

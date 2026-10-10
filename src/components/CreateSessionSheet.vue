@@ -652,12 +652,12 @@ onMounted(async () => {
 
   if (!user.value) return;
   if (props.editTemplate) {
-    loadTemplate({ data: props.editTemplate.data });
+    loadTemplate(props.editTemplate);
     templateName.value = props.editTemplate.name;
     return;
   }
   if (props.preloadData) {
-    loadTemplate({ data: props.preloadData });
+    loadTemplate(props.preloadData);
     return;
   }
   const { data } = await supabase.from('templates').select('*')
@@ -745,15 +745,15 @@ function onFemaleLimitChange() {
   }
 }
 
-function currentFormData() {
+function templateToRow() {
   return {
-    title: title.value, location: location.value, venue: venue.value, venueCost: venueCost.value,
-    limit: limit.value, type: type.value,
-    maleLimit: maleLimit.value, femaleLimit: femaleLimit.value,
-    equipment: [...equipment.value], customEquipItems: [...customEquipItems.value],
-    note: note.value, isPrivate: isPrivate.value, time: time.value, endTime: endTime.value,
-    openWhen: openWhen.value, openOffset: openOffset.value,
-    closeWhen: closeWhen.value, closeOffset: closeOffset.value,
+    title: title.value, location: location.value, venue: venue.value, venue_cost: venueCost.value,
+    limit_total: limit.value, type: type.value,
+    male_limit: maleLimit.value, female_limit: femaleLimit.value,
+    equipment: [...equipment.value], custom_equip_items: [...customEquipItems.value],
+    note: note.value, is_private: isPrivate.value, time: time.value, end_time: endTime.value,
+    open_when: openWhen.value, open_offset: openOffset.value,
+    close_when: closeWhen.value, close_offset: closeOffset.value,
   };
 }
 
@@ -781,7 +781,7 @@ async function saveTemplate() {
   const { data, error } = await supabase.from('templates').insert({
     user_id: user.value.id,
     name: name.trim(),
-    data: currentFormData(),
+    ...templateToRow(),
   }).select().single();
   if (error) { alert('Error: ' + error.message); return; }
   templates.value = [data, ...templates.value];
@@ -790,31 +790,29 @@ async function saveTemplate() {
 
 async function updateLoadedTemplate() {
   if (!user.value || !loadedTemplateId.value) return;
+  const row = templateToRow();
   const { error } = await supabase.from('templates')
-    .update({ data: currentFormData() })
+    .update(row)
     .eq('id', loadedTemplateId.value);
   if (error) { alert('Error: ' + error.message); return; }
   templates.value = templates.value.map(t =>
-    t.id === loadedTemplateId.value ? { ...t, data: currentFormData() } : t
+    t.id === loadedTemplateId.value ? { ...t, ...row } : t
   );
   alert(isZh.value ? '✅ 範本已更新' : '✅ Template updated');
 }
 
 function loadTemplate(tpl) {
-  const d = tpl.data;
-  title.value        = d.title || '';
-  location.value     = d.location || '';
+  title.value        = tpl.title || '';
+  location.value     = tpl.location || '';
   nextTick(() => {
-    const loc = d.location || '';
+    const loc = tpl.location || '';
     if (!loc) return;
     if (placesAutocomplete && placesAutocomplete.tagName?.toLowerCase() === 'gmp-place-autocomplete') {
-      // New API: try to reach the inner input (light DOM first, then shadow DOM)
       const inner = placesAutocomplete.querySelector('input')
         || placesAutocomplete.shadowRoot?.querySelector('input');
       if (inner) {
         inner.value = loc;
       } else {
-        // Shadow DOM not accessible — show the original hidden input instead
         placesAutocomplete.style.display = 'none';
         if (locationInputRef.value) {
           locationInputRef.value.style.display = '';
@@ -825,22 +823,22 @@ function loadTemplate(tpl) {
       locationInputRef.value.value = loc;
     }
   });
-  venue.value        = d.venue || '';
-  venueCost.value    = d.venueCost ?? 0;
-  limit.value        = d.limit ?? 0;
-  type.value         = d.type || 'mixed';
-  maleLimit.value    = d.maleLimit ?? 0;
-  femaleLimit.value  = d.femaleLimit ?? 0;
-  equipment.value    = [...(d.equipment || [])];
-  customEquipItems.value = [...(d.customEquipItems || [])];
-  note.value         = d.note || '';
-  isPrivate.value    = !!d.isPrivate;
-  if (d.time) time.value = d.time;
-  endTime.value = d.endTime || '';
-  if (d.openWhen) openWhen.value = d.openWhen;
-  if (d.openOffset) openOffset.value = d.openOffset;
-  if (d.closeWhen) closeWhen.value = d.closeWhen;
-  if (d.closeOffset) closeOffset.value = d.closeOffset;
+  venue.value        = tpl.venue || '';
+  venueCost.value    = tpl.venue_cost ?? 0;
+  limit.value        = tpl.limit_total ?? 0;
+  type.value         = tpl.type || 'mixed';
+  maleLimit.value    = tpl.male_limit ?? 0;
+  femaleLimit.value  = tpl.female_limit ?? 0;
+  equipment.value    = [...(tpl.equipment || [])];
+  customEquipItems.value = [...(tpl.custom_equip_items || [])];
+  note.value         = tpl.note || '';
+  isPrivate.value    = !!tpl.is_private;
+  if (tpl.time) time.value = tpl.time;
+  endTime.value = tpl.end_time || '';
+  if (tpl.open_when) openWhen.value = tpl.open_when;
+  if (tpl.open_offset) openOffset.value = tpl.open_offset;
+  if (tpl.close_when) closeWhen.value = tpl.close_when;
+  if (tpl.close_offset) closeOffset.value = tpl.close_offset;
 }
 
 async function deleteTemplate(id) {
@@ -876,7 +874,7 @@ async function submit() {
     if (isEditTemplate.value) {
       // Template edit mode
       const { error } = await supabase.from('templates')
-        .update({ name: templateName.value.trim(), data: currentFormData() })
+        .update({ name: templateName.value.trim(), ...templateToRow() })
         .eq('id', props.editTemplate.id);
       if (error) throw error;
       emit('templateUpdated', props.editTemplate.id);
