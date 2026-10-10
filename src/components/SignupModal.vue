@@ -10,10 +10,21 @@
 
       <!-- Success screen -->
       <div v-if="submitted" class="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center gap-4">
-        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl">✅</div>
+        <div :class="['w-16 h-16 rounded-full flex items-center justify-center text-3xl', signupStatus === 'waitlisted' ? 'bg-amber-100' : 'bg-green-100']">
+          {{ signupStatus === 'waitlisted' ? '⏳' : '✅' }}
+        </div>
         <div>
           <p class="text-lg font-bold text-gray-800 mb-1">{{ isZh ? '報名成功！' : 'Signed up!' }}</p>
-          <p class="text-sm text-gray-500">{{ props.session.title }}</p>
+          <p class="text-sm text-gray-500 mb-2">{{ props.session.title }}</p>
+          <!-- Status badge -->
+          <span v-if="signupStatus === 'confirmed'"
+            class="inline-block text-sm font-semibold px-4 py-1.5 rounded-full bg-green-100 text-green-700">
+            ✅ {{ isZh ? '正取' : 'Confirmed' }}
+          </span>
+          <span v-else-if="signupStatus === 'waitlisted'"
+            class="inline-block text-sm font-semibold px-4 py-1.5 rounded-full bg-amber-100 text-amber-700">
+            ⏳ {{ isZh ? '候補' : 'Waitlisted' }}
+          </span>
         </div>
         <div class="flex flex-col gap-2 w-full mt-2">
           <button @click="goHome"
@@ -202,6 +213,7 @@ const bringEquip = ref(new Set());
 const submitting = ref(false);
 const successMsg = ref('');
 const submitted = ref(false);
+const signupStatus = ref(''); // 'confirmed' | 'waitlisted'
 
 // Validation errors
 const nameError = ref('');
@@ -376,6 +388,21 @@ async function submit() {
       if (error) throw error;
       successMsg.value = isZh.value ? '✅ 已更新！' : '✅ Updated!';
     } else {
+      // Capture waitlist status before insert (signups list hasn't updated yet)
+      const { limit, maleLimit, femaleLimit, type } = props.session;
+      let waitlisted = false;
+      if (type === 'mixed' && (maleLimit > 0 || femaleLimit > 0)) {
+        const g = forFriend.value ? friendGender.value : selfGender.value;
+        const gLimit = g === 'male' ? (maleLimit || 0) : (femaleLimit || 0);
+        if (gLimit > 0) {
+          const gCount = props.signups.filter(s => s.gender === g && !s.forceWaitlisted && !s.genderWait).length;
+          waitlisted = gCount >= gLimit;
+        }
+      } else if (limit > 0) {
+        waitlisted = isSessionFull.value;
+      }
+      signupStatus.value = waitlisted ? 'waitlisted' : 'confirmed';
+
       const { error } = await supabase.from('signups').insert(signupToRow(payload));
       if (error) throw error;
       successMsg.value = t('successMsg');

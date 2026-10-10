@@ -174,4 +174,100 @@ test.describe.serial('建立場次功能', () => {
     // Sheet 應關閉（建立成功）
     await expect(page.locator('h2:has-text("建立新場次"), h2:has-text("Create Session")')).toBeHidden({ timeout: 10000 });
   });
+
+  // ── 日期 / 時間欄位版面 ──────────────────────────────────────
+
+  test('日期欄位獨立一行（不與時間並排）', async ({ page }) => {
+    await loginAsTestUser(page);
+    await setLangZh(page);
+    await openCreateSheet(page);
+
+    const dateInput = page.locator('input[type="date"]').first();
+    const timeInputs = page.locator('input[type="time"]');
+
+    await expect(dateInput).toBeVisible({ timeout: 5000 });
+    await expect(timeInputs.first()).toBeVisible();
+
+    // 日期和第一個時間輸入框應有不同的 Y 位置（日期在上，時間在下）
+    const dateBox = await dateInput.boundingBox();
+    const timeBox = await timeInputs.first().boundingBox();
+    expect(dateBox).toBeTruthy();
+    expect(timeBox).toBeTruthy();
+    // 日期在時間的上方
+    expect(dateBox.y).toBeLessThan(timeBox.y);
+  });
+
+  test('開始時間與結束時間並排顯示', async ({ page }) => {
+    await loginAsTestUser(page);
+    await setLangZh(page);
+    await openCreateSheet(page);
+
+    const timeInputs = page.locator('input[type="time"]');
+    // 應有 2 個時間輸入框（開始 + 結束）
+    await expect(timeInputs.nth(0)).toBeVisible({ timeout: 5000 });
+    await expect(timeInputs.nth(1)).toBeVisible();
+
+    // 兩者 Y 座標相近（在同一行）
+    const box0 = await timeInputs.nth(0).boundingBox();
+    const box1 = await timeInputs.nth(1).boundingBox();
+    expect(box0).toBeTruthy();
+    expect(box1).toBeTruthy();
+    // 垂直差距應小於 20px（同一行）
+    expect(Math.abs(box0.y - box1.y)).toBeLessThan(20);
+  });
+
+  test('結束時間為選填，空白仍可送出', async ({ page }) => {
+    await loginAsTestUser(page);
+    await setLangZh(page);
+    await openCreateSheet(page);
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
+    await page.locator('input[placeholder*="第15週"], input[placeholder*="Week 15"]').first().fill('[測試] 結束時間選填');
+    await page.locator('input[type="date"]').fill(dateStr);
+    await page.locator('input[type="time"]').first().fill('19:00');
+    // 結束時間留空
+    const locationInput = page.locator('input[placeholder*="地址"], input[placeholder*="address"], input[placeholder*="venue"]').first();
+    if (await locationInput.isVisible()) await locationInput.fill('測試球館');
+
+    await page.locator('button:has-text("建立場次"), button:has-text("Create Session")').last().click();
+
+    // 不應出現驗證錯誤（結束時間為選填）
+    await expect(page.locator('.bg-amber-50.border-amber-200.rounded-xl')).toBeHidden({ timeout: 3000 }).catch(() => {});
+    // Sheet 關閉代表成功
+    await expect(page.locator('h2:has-text("建立新場次"), h2:has-text("Create Session")')).toBeHidden({ timeout: 10000 });
+  });
+
+  // ── 管理員按鈕版面 ───────────────────────────────────────────
+
+  test('管理員按鈕在小螢幕不會被截斷（換行顯示）', async ({ page }) => {
+    await loginAsTestUser(page);
+    // 模擬窄螢幕
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/my-sessions');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('h1:has-text("我的開場"), h1:has-text("My Sessions")')).toBeVisible({ timeout: 10000 });
+    await page.locator('.animate-bounce').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(800);
+
+    // 找到任何包含管理員按鈕的卡片
+    const waitlistBtn = page.locator('button:has-text("移到候補"), button:has-text("Waitlist")').first();
+    const confirmBtn = page.locator('button:has-text("移到正取"), button:has-text("Confirm")').first();
+    const hasButtons = await waitlistBtn.isVisible({ timeout: 3000 }).catch(() => false)
+      || await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false);
+
+    if (!hasButtons) {
+      // 沒有場次資料，跳過但不失敗
+      return;
+    }
+
+    const btn = await waitlistBtn.isVisible() ? waitlistBtn : confirmBtn;
+    const box = await btn.boundingBox();
+    // 按鈕應在 viewport 內（不被截斷）
+    expect(box).toBeTruthy();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(376);
+  });
 });

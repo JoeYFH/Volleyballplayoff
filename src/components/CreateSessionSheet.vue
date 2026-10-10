@@ -54,18 +54,20 @@
             <p v-if="titleError" class="mt-1 text-xs text-red-500">{{ titleError }}</p>
           </div>
 
-          <!-- 2 & 3. Date + Time + End Time -->
+          <!-- 2. Date -->
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">
+              {{ isZh ? '日期' : 'Date' }} <span class="text-red-400">*</span>
+            </label>
+            <input v-model="date" type="date"
+              :min="isEditTemplate ? undefined : today"
+              :class="inputClass(!!dateError)"
+              @change="dateError = ''" />
+            <p v-if="dateError" class="mt-1 text-xs text-red-500">{{ dateError }}</p>
+          </div>
+
+          <!-- 3. Start Time + End Time -->
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                {{ isZh ? '日期' : 'Date' }} <span class="text-red-400">*</span>
-              </label>
-              <input v-model="date" type="date"
-                :min="isEditTemplate ? undefined : today"
-                :class="inputClass(!!dateError)"
-                @change="dateError = ''" />
-              <p v-if="dateError" class="mt-1 text-xs text-red-500">{{ dateError }}</p>
-            </div>
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
                 {{ isZh ? '開始時間' : 'Start Time' }} <span class="text-red-400">*</span>

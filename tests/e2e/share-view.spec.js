@@ -71,8 +71,9 @@ test.describe.serial('分享頁面 /share/:id 與 /og/:id', () => {
     await expect(page.locator('div.fixed.inset-0.z-40')).toBeVisible({ timeout: 8000 });
   });
 
-  test('可以在分享頁面完成報名（需登入）', async ({ page }) => {
+  test('可以在分享頁面完成報名並顯示成功畫面（需登入）', async ({ page }) => {
     await loginAsTestUser(page);
+    await setLangZh(page);
     await page.goto(`/share/${sessionId}`);
     await waitForShareCard(page);
 
@@ -81,8 +82,56 @@ test.describe.serial('分享頁面 /share/:id 與 /og/:id', () => {
 
     await fillSignupForm(page, { gender: 'male' });
 
-    // Modal 關閉代表報名成功
-    await expect(page.locator('div.fixed.inset-0.z-40')).toBeHidden({ timeout: 10000 });
+    // 成功畫面出現（modal 停在成功狀態，不自動關閉）
+    const modal = page.locator('div.fixed.inset-0.z-40');
+    await expect(
+      modal.locator('text=報名成功！').or(modal.locator('text=Signed up!'))
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test('報名成功後顯示正取或候補狀態', async ({ page }) => {
+    await loginAsTestUser(page);
+    await setLangZh(page);
+    await page.goto(`/share/${sessionId}`);
+    await waitForShareCard(page);
+
+    await page.locator('button:has-text("立即報名"), button:has-text("Sign Up Now")').click();
+    await expect(page.locator('div.fixed.inset-0.z-40')).toBeVisible({ timeout: 8000 });
+
+    await fillSignupForm(page, { gender: 'male' });
+
+    const modal = page.locator('div.fixed.inset-0.z-40');
+    await expect(
+      modal.locator('text=報名成功！').or(modal.locator('text=Signed up!'))
+    ).toBeVisible({ timeout: 10000 });
+
+    // 應顯示正取或候補狀態 badge
+    await expect(
+      modal.locator('text=正取').or(modal.locator('text=候補'))
+        .or(modal.locator('text=Confirmed')).or(modal.locator('text=Waitlisted'))
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test('報名成功畫面有「回到首頁」按鈕', async ({ page }) => {
+    await loginAsTestUser(page);
+    await setLangZh(page);
+    await page.goto(`/share/${sessionId}`);
+    await waitForShareCard(page);
+
+    await page.locator('button:has-text("立即報名"), button:has-text("Sign Up Now")').click();
+    await expect(page.locator('div.fixed.inset-0.z-40')).toBeVisible({ timeout: 8000 });
+
+    await fillSignupForm(page, { gender: 'female' });
+
+    const modal = page.locator('div.fixed.inset-0.z-40');
+    await expect(
+      modal.locator('text=報名成功！').or(modal.locator('text=Signed up!'))
+    ).toBeVisible({ timeout: 10000 });
+
+    // 有「回到首頁」按鈕
+    await expect(
+      modal.locator('button:has-text("回到首頁")').or(modal.locator('button:has-text("Back to Home")'))
+    ).toBeVisible({ timeout: 3000 });
   });
 
   // ── 錯誤與導航 ───────────────────────────────────────────────
