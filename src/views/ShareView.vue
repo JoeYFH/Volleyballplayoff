@@ -95,7 +95,6 @@
       :session="mappedSession"
       :signups="signups"
       @close="showSignupModal = false"
-      @submitted="showSignupModal = false"
     />
   </div>
 </template>
