@@ -152,6 +152,10 @@ import { mapSession } from '@/composables/useSessions.js';
 const route = useRoute();
 const { lang, setLang } = useI18n();
 
+// ShareView defaults to browser language (ignores app's stored preference)
+const _bl = (navigator.language || '').toLowerCase();
+setLang(_bl.startsWith('zh') ? 'zh' : 'en');
+
 const isZh = computed(() => lang.value === 'zh');
 const state = ref('loading'); // 'loading' | 'loaded' | 'error'
 const session = ref(null);
