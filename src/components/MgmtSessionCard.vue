@@ -193,7 +193,8 @@ const hasMixedLimits = computed(() =>
 const effectiveLimit = computed(() =>
   props.session.limit || (hasMixedLimits.value ? (props.session.maleLimit || 0) + (props.session.femaleLimit || 0) : 0)
 );
-const isWaitlisted = (s) => (s.forceWaitlisted || s.genderWait) && !s.forceConfirmed;
+const isWaitlisted = (s) =>
+  !s.forceConfirmed && (s.forceWaitlisted || s.genderWait || (props.session.limit > 0 && s.position > props.session.limit));
 const confirmedSignups = computed(() => signups.value.filter(s => !isWaitlisted(s)));
 const maleCount = computed(() => confirmedSignups.value.filter(s => s.gender === 'male').length);
 const femaleCount = computed(() => confirmedSignups.value.filter(s => s.gender === 'female').length);
