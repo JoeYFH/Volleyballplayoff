@@ -82,6 +82,28 @@ export async function updateTestSession(sessionId, fields) {
 /**
  * 刪除測試場次（CASCADE 處理 signups）
  */
+/**
+ * 直接在 DB 新增一筆報名（不走 UI）
+ */
+export async function createTestSignup(sessionId, opts = {}) {
+  const { supabase, user } = await getClient();
+  const { data, error } = await supabase
+    .from('signups')
+    .insert({
+      session_id: sessionId,
+      name:     opts.name     ?? '測試報名人',
+      gender:   opts.gender   ?? 'male',
+      uid:      opts.uid      ?? user.id,
+      position: opts.position ?? 1,
+      force_waitlisted: opts.forceWaitlisted ?? false,
+      force_confirmed:  opts.forceConfirmed  ?? false,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`建立測試報名失敗：${error.message}`);
+  return data.id;
+}
+
 export async function deleteTestSession(sessionId) {
   if (!sessionId) return;
   try {

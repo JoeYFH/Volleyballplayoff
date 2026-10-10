@@ -132,6 +132,6 @@ const ownWaitlistedNames = computed(() => {
   if (!props.user) return [];
   return props.signups
     .filter(s => s.uid === props.user.id && isWaitlisted(s))
-    .map(s => s.name);
+    .map(s => s.forFriend || s.name); // 代報名顯示朋友名字，非代報名顯示自己名字
 });
 </script>
