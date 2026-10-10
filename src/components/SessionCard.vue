@@ -49,11 +49,11 @@
           <div class="flex items-center gap-1 font-semibold">💰 {{ isZh ? '場租' : 'Venue Cost' }}: ${{ session.venueCost }}</div>
           <div v-if="session.limit" class="flex items-center gap-1 text-amber-600">
             <span>{{ isZh ? `📊 報名滿 ${session.limit} 人，每人應付：` : `📊 Full (${session.limit} players), per person:` }}</span>
-            <strong>${{ Math.ceil(session.venueCost / session.limit) }}</strong>
+            <strong>${{ (session.venueCost / session.limit).toFixed(2) }}</strong>
           </div>
           <div v-if="confirmedCount" class="flex items-center gap-1 text-amber-700">
             <span>{{ isZh ? `👥 目前 ${confirmedCount} 人報名，每人應付：` : `👥 Currently ${confirmedCount} confirmed, per person:` }}</span>
-            <strong>${{ Math.ceil(session.venueCost / confirmedCount) }}</strong>
+            <strong>${{ (session.venueCost / confirmedCount).toFixed(2) }}</strong>
           </div>
         </div>
         <!-- Row 3b: equipment -->
