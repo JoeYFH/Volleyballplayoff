@@ -14,7 +14,10 @@
           {{ signupStatus === 'waitlisted' ? '⏳' : '✅' }}
         </div>
         <div>
-          <p class="text-lg font-bold text-gray-800 mb-1">{{ isZh ? '報名成功！' : 'Signed up!' }}</p>
+          <p class="text-lg font-bold text-gray-800 mb-1">
+            <template v-if="signupStatus === 'waitlisted'">{{ isZh ? '已加入候補！' : 'Added to Waitlist!' }}</template>
+            <template v-else>{{ isZh ? '報名成功！' : 'Signed up!' }}</template>
+          </p>
           <p class="text-sm text-gray-500 mb-2">{{ props.session.title }}</p>
           <!-- Status badge -->
           <span v-if="signupStatus === 'confirmed'"
