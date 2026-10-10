@@ -43,7 +43,21 @@
         <div class="flex flex-wrap gap-x-4 gap-y-1">
           <div v-if="session.limit" class="flex items-center gap-1"><span>👥</span><span>{{ isZh ? '名額' : 'Limit' }} {{ session.limit }}{{ isZh ? '人' : '' }}</span></div>
           <div v-if="session.type" class="flex items-center gap-1"><span>🏷️</span><span>{{ typeLabel }}</span></div>
-          <div v-if="session.venueCost" class="flex items-center gap-1"><span>💰</span><span>{{ isZh ? '租場' : 'Venue' }} ${{ session.venueCost }}</span></div>
+        </div>
+        <!-- 場租費用明細 -->
+        <div v-if="session.venueCost" class="mt-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs text-amber-800 space-y-0.5">
+          <div class="flex items-center gap-1 font-semibold">💰 {{ isZh ? '場租' : 'Venue Cost' }}: ${{ session.venueCost }}</div>
+          <div v-if="session.limit" class="flex items-center gap-1 text-amber-600">
+            <span>{{ isZh ? `📊 報名滿 ${session.limit} 人，每人應付：` : `📊 Full (${session.limit} players), per person:` }}</span>
+            <strong>${{ Math.ceil(session.venueCost / session.limit) }}</strong>
+          </div>
+          <div v-if="confirmedCount" class="flex items-center gap-1 text-amber-700">
+            <span>{{ isZh ? `👥 目前 ${confirmedCount} 人報名，每人應付：` : `👥 Currently ${confirmedCount} confirmed, per person:` }}</span>
+            <strong>${{ Math.ceil(session.venueCost / confirmedCount) }}</strong>
+          </div>
+        </div>
+        <!-- Row 3b: equipment -->
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
           <div v-if="neededEquip.length" class="flex items-center gap-1 text-xs text-gray-500">
             <span>🎒</span><span>{{ isZh ? '還需帶：' : 'Still need: ' }}{{ neededEquip.join(isZh ? '、' : ', ') }}</span>
           </div>
