@@ -50,10 +50,14 @@ exports.og = functions.https.onRequest(async (req, res) => {
   const imageUrl = `${HOST}/og-image.png`;
 
   if (data) {
-    title = '🏐 ' + (data.title || (data.date + ' 臨打'));
+    // Title: date + time first (always visible even if truncated), then session name
+    const titleParts = [];
+    if (data.date) titleParts.push(fmtDate(data.date));
+    if (data.time) titleParts.push(data.time);
+    const sessionName = data.title || (data.date + ' 臨打');
+    title = '🏐 ' + (titleParts.length ? titleParts.join(' ') + ' · ' + sessionName : sessionName);
+
     const infoParts = [];
-    if (data.date) infoParts.push('📅 ' + fmtDate(data.date));
-    if (data.time) infoParts.push('🕐 ' + data.time);
     if (data.location) infoParts.push('📍 ' + data.location);
     const typeMap = { mixed: '混排', male: '男生', female: '女生' };
     if (typeMap[data.type]) infoParts.push(typeMap[data.type]);
