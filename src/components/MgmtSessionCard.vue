@@ -28,7 +28,10 @@
         <!-- Row 1: 日期 + 時間 -->
         <div class="flex flex-wrap gap-x-4 gap-y-0.5">
           <div v-if="session.date" class="flex items-center gap-1"><span>📅</span><span>{{ formatDate(session.date) }}</span></div>
-          <div v-if="session.time" class="flex items-center gap-1"><span>🕐</span><span>{{ session.time }}</span></div>
+          <div v-if="session.time" class="flex items-center gap-1">
+            <span>🕐</span>
+            <span>{{ session.time }}{{ session.endTime ? ' – ' + session.endTime : '' }}</span>
+          </div>
         </div>
         <!-- Row 2: 地點 · 場館 同行 -->
         <div v-if="session.location" class="flex items-start gap-1 flex-wrap">

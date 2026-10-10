@@ -54,7 +54,7 @@
             <p v-if="titleError" class="mt-1 text-xs text-red-500">{{ titleError }}</p>
           </div>
 
-          <!-- 2 & 3. Date + Time -->
+          <!-- 2 & 3. Date + Time + End Time -->
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
@@ -68,12 +68,19 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
-                {{ isZh ? '時間' : 'Time' }} <span class="text-red-400">*</span>
+                {{ isZh ? '開始時間' : 'Start Time' }} <span class="text-red-400">*</span>
               </label>
               <input v-model="time" type="time"
                 :class="inputClass(!!timeError)"
                 @change="timeError = ''" />
               <p v-if="timeError" class="mt-1 text-xs text-red-500">{{ timeError }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">
+                {{ isZh ? '結束時間（選填）' : 'End Time (optional)' }}
+              </label>
+              <input v-model="endTime" type="time"
+                :class="inputClass(false)" />
             </div>
           </div>
 
@@ -365,6 +372,7 @@ function equipLabel(item) { return isZh.value ? item : (EQUIP_EN[item] || item);
 const title        = ref('');
 const date         = ref('');
 const time         = ref('');
+const endTime      = ref('');
 const location     = ref('');
 const venue        = ref('');
 const limit        = ref(0);
@@ -447,6 +455,7 @@ if (props.editSession) {
   title.value      = s.title       || '';
   date.value       = s.date        || '';
   time.value       = s.time        || '';
+  endTime.value    = s.endTime     || '';
   location.value   = s.location    || '';
   venue.value      = s.venue       || '';
   limit.value      = s.limit       ?? 0;
@@ -732,7 +741,7 @@ function currentFormData() {
     limit: limit.value, type: type.value,
     maleLimit: maleLimit.value, femaleLimit: femaleLimit.value,
     equipment: [...equipment.value], customEquipItems: [...customEquipItems.value],
-    note: note.value, isPrivate: isPrivate.value, time: time.value,
+    note: note.value, isPrivate: isPrivate.value, time: time.value, endTime: endTime.value,
     openWhen: openWhen.value, openOffset: openOffset.value,
     closeWhen: closeWhen.value, closeOffset: closeOffset.value,
   };
@@ -816,6 +825,7 @@ function loadTemplate(tpl) {
   note.value         = d.note || '';
   isPrivate.value    = !!d.isPrivate;
   if (d.time) time.value = d.time;
+  endTime.value = d.endTime || '';
   if (d.openWhen) openWhen.value = d.openWhen;
   if (d.openOffset) openOffset.value = d.openOffset;
   if (d.closeWhen) closeWhen.value = d.closeWhen;
@@ -870,6 +880,7 @@ async function submit() {
       title:    title.value.trim(),
       date:     date.value,
       time:     time.value,
+      endTime:  endTime.value || null,
       location: location.value.trim(),
       venue:    venue.value.trim() || null,
       limit:    limit.value || 0,

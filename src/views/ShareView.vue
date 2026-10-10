@@ -41,7 +41,7 @@
             <span class="text-base mt-0.5">⏰</span>
             <div>
               <p class="text-xs text-gray-400 font-medium">{{ isZh ? '時間' : 'Time' }}</p>
-              <p class="text-sm text-gray-800 font-semibold">{{ session.time || '—' }}</p>
+              <p class="text-sm text-gray-800 font-semibold">{{ session.time || '—' }}{{ session.end_time ? ' – ' + session.end_time : '' }}</p>
             </div>
           </div>
           <div class="flex items-start gap-3 bg-indigo-50/60 rounded-xl px-4 py-3">

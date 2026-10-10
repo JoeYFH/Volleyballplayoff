@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   title text,
   date text NOT NULL,
   time text,
+  end_time text,
   location text,
   venue text,
   type text DEFAULT '',          -- '', 'mixed', 'male', 'female'

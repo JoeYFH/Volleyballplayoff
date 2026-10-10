@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase.js';
 
 export function mapSession(row) {
   return {
-    id: row.id, title: row.title, date: row.date, time: row.time,
+    id: row.id, title: row.title, date: row.date, time: row.time, endTime: row.end_time || '',
     location: row.location, venue: row.venue, type: row.type || '',
     limit: row.limit_total || 0, maleLimit: row.male_limit || 0, femaleLimit: row.female_limit || 0,
     equipment: row.equipment || [], note: row.note,
@@ -27,8 +27,8 @@ export function mapSignup(row) {
 
 export function sessionToRow(data) {
   return {
-    title: data.title, date: data.date, time: data.time, location: data.location,
-    venue: data.venue, type: data.type, limit_total: data.limit,
+    title: data.title, date: data.date, time: data.time, end_time: data.endTime || null,
+    location: data.location, venue: data.venue, type: data.type, limit_total: data.limit,
     male_limit: data.maleLimit, female_limit: data.femaleLimit,
     equipment: data.equipment, note: data.note, is_open: data.isOpen,
     is_private: data.isPrivate, open_at: data.openAt, close_at: data.closeAt,

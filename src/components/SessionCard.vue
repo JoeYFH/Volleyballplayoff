@@ -27,7 +27,10 @@
         <!-- Row 1: date + time -->
         <div class="flex flex-wrap gap-x-4 gap-y-1">
           <div class="flex items-center gap-1"><span>📅</span><span>{{ formatDate(session.date) }}</span></div>
-          <div class="flex items-center gap-1"><span>🕐</span><span>{{ session.time || '—' }}</span></div>
+          <div class="flex items-center gap-1">
+            <span>🕐</span>
+            <span>{{ session.time || '—' }}{{ session.endTime ? ' – ' + session.endTime : '' }}</span>
+          </div>
         </div>
         <!-- Row 2: location + venue on same line -->
         <div class="flex items-center gap-1 flex-wrap">

@@ -1,27 +1,35 @@
 <template>
   <div
     :class="[
-      'flex items-start gap-2 rounded-xl px-3 py-2',
+      'rounded-xl px-3 py-2',
       isWait ? 'opacity-60' : '',
       isOwn ? 'bg-indigo-50 border border-indigo-100' : 'bg-gray-50',
       genderBorder,
     ]"
   >
-    <span :class="['min-w-7 h-7 px-1 flex items-center justify-center rounded-full text-xs font-bold shrink-0 mt-0.5', posColor]">
-      {{ displayPos }}
-    </span>
-    <div class="flex-1 min-w-0">
-      <p class="text-sm font-medium text-gray-800 truncate">
-        {{ signup.name }}
-        <span v-if="isOwn" class="text-xs text-indigo-400">({{ isZh ? '我' : 'me' }})</span>
-      </p>
-      <div v-if="tags.length" class="flex gap-1 flex-wrap mt-0.5">
-        <span v-for="tag in tags" :key="tag.text" class="tag" :style="tag.style">{{ tag.text }}</span>
+    <!-- Main row: badge + name + own-user buttons -->
+    <div class="flex items-start gap-2">
+      <span :class="['min-w-7 h-7 px-1 flex items-center justify-center rounded-full text-xs font-bold shrink-0 mt-0.5', posColor]">
+        {{ displayPos }}
+      </span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-800 truncate">
+          {{ signup.name }}
+          <span v-if="isOwn" class="text-xs text-indigo-400">({{ isZh ? '我' : 'me' }})</span>
+        </p>
+        <div v-if="tags.length" class="flex gap-1 flex-wrap mt-0.5">
+          <span v-for="tag in tags" :key="tag.text" class="tag" :style="tag.style">{{ tag.text }}</span>
+        </div>
       </div>
+      <!-- Own-user buttons (small icons, stay in same row) -->
+      <template v-if="!isManager && isOwn">
+        <button @click="$emit('edit', signup)" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
+        <button @click="$emit('cancel', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
+      </template>
     </div>
-    <!-- Manager buttons -->
+    <!-- Manager buttons: own row, right-aligned, wraps on small screens -->
     <template v-if="isManager">
-      <div class="flex items-center gap-1 shrink-0">
+      <div class="flex flex-wrap items-center gap-1 justify-end mt-1.5">
         <button v-if="isWait"
           @click="$emit('mgmt-confirm', signup)"
           class="text-xs px-2 py-0.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition whitespace-nowrap">
@@ -40,11 +48,6 @@
           {{ isZh ? '移除' : 'Remove' }}
         </button>
       </div>
-    </template>
-    <!-- Own-user buttons -->
-    <template v-else-if="isOwn">
-      <button @click="$emit('edit', signup)" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
-      <button @click="$emit('cancel', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
     </template>
   </div>
 </template>
