@@ -8,8 +8,27 @@
         <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
       </div>
 
+      <!-- Success screen -->
+      <div v-if="submitted" class="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl">✅</div>
+        <div>
+          <p class="text-lg font-bold text-gray-800 mb-1">{{ isZh ? '報名成功！' : 'Signed up!' }}</p>
+          <p class="text-sm text-gray-500">{{ props.session.title }}</p>
+        </div>
+        <div class="flex flex-col gap-2 w-full mt-2">
+          <button @click="goHome"
+            class="w-full bg-indigo-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-indigo-700 active:scale-95 transition-all">
+            {{ isZh ? '🏠 回到首頁' : '🏠 Back to Home' }}
+          </button>
+          <button @click="$emit('close')"
+            class="w-full bg-gray-100 text-gray-600 rounded-xl py-3 font-semibold text-sm hover:bg-gray-200 active:scale-95 transition-all">
+            {{ isZh ? '關閉' : 'Close' }}
+          </button>
+        </div>
+      </div>
+
       <!-- Scrollable body -->
-      <div class="flex-1 min-h-0 overflow-y-auto" style="overscroll-behavior-y: contain">
+      <div v-else class="flex-1 min-h-0 overflow-y-auto" style="overscroll-behavior-y: contain">
         <div class="px-5 py-4 space-y-3">
 
           <!-- Profile preview (logged in, not signing up for a friend) -->
@@ -136,6 +155,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from '@/lib/i18n.js';
 import { useAuth } from '@/composables/useAuth.js';
 import { supabase } from '@/lib/supabase.js';
@@ -149,6 +169,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submitted']);
 
+const router = useRouter();
 const { lang, t } = useI18n();
 const { user, signInWithGoogle } = useAuth();
 
@@ -180,6 +201,7 @@ const pairWith = ref('');
 const bringEquip = ref(new Set());
 const submitting = ref(false);
 const successMsg = ref('');
+const submitted = ref(false);
 
 // Validation errors
 const nameError = ref('');
@@ -246,6 +268,11 @@ const equipChips = computed(() => {
     selected: bringEquip.value.has(name),
   }));
 });
+
+function goHome() {
+  emit('close');
+  router.push('/');
+}
 
 function toggleEquip(name) {
   const s = new Set(bringEquip.value);
@@ -349,9 +376,9 @@ async function submit() {
       const { error } = await supabase.from('signups').insert(signupToRow(payload));
       if (error) throw error;
       successMsg.value = t('successMsg');
+      submitted.value = true;
     }
     emit('submitted');
-    setTimeout(() => emit('close'), 1200);
   } catch (e) {
     alert(t('failMsg') + (e.message ? ` (${e.message})` : ''));
   } finally {
