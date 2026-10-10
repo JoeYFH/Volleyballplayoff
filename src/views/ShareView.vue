@@ -3,7 +3,13 @@
     style="background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%)">
 
     <!-- Card -->
-    <div class="bg-white rounded-3xl shadow-lg w-full max-w-sm p-8">
+    <div class="bg-white rounded-3xl shadow-lg w-full max-w-sm p-8 relative">
+
+      <!-- Lang toggle -->
+      <button @click="setLang(lang === 'zh' ? 'en' : 'zh')"
+        class="absolute top-4 right-4 text-xs text-gray-400 hover:text-indigo-500 px-2 py-1 rounded-lg border border-gray-200 hover:border-indigo-300 transition">
+        {{ lang === 'zh' ? 'EN' : '中' }}
+      </button>
 
       <!-- Loading -->
       <div v-if="state === 'loading'" class="text-center py-4">
@@ -144,7 +150,7 @@ import { useSignups } from '@/composables/useSignups.js';
 import { mapSession } from '@/composables/useSessions.js';
 
 const route = useRoute();
-const { lang } = useI18n();
+const { lang, setLang } = useI18n();
 
 const isZh = computed(() => lang.value === 'zh');
 const state = ref('loading'); // 'loading' | 'loaded' | 'error'

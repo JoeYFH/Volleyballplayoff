@@ -24,7 +24,7 @@
       <!-- Own-user buttons (small icons, stay in same row) -->
       <template v-if="!isManager && isOwn">
         <button @click="$emit('edit', signup)" class="text-xs text-gray-300 hover:text-indigo-400 transition shrink-0" :title="isZh ? '編輯報名' : 'Edit signup'">✏️</button>
-        <button @click="$emit('cancel', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-300 hover:text-red-400 transition shrink-0" :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
+        <button @click="$emit('cancel', { sessionId: signup.sessionId, signupId: signup.id })" class="text-xs text-gray-400 hover:text-red-500 transition shrink-0 font-bold" :title="isZh ? '取消報名' : 'Cancel signup'">✕</button>
       </template>
     </div>
     <!-- Manager buttons: own row, right-aligned, wraps on small screens -->

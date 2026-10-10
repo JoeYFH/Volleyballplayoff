@@ -146,7 +146,6 @@
       :signups="signups"
       :edit-signup="editSignupData"
       @close="closeSignupModal"
-      @submitted="closeSignupModal"
     />
   </Teleport>
 </template>
